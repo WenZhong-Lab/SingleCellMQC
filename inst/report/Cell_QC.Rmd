@@ -1,0 +1,107 @@
+---
+title: "cellqc"
+output: html_document
+---
+# Cell QC 
+
+**In this report, cell QC contains low-quality cells and doublets detection. including two sections: ** 
+
+- [**Low quality cell information - **](#md2-se1) Summary of the results of different low-quality cell detection methods.
+- [**Doublet information - **](#md2-se3) Summary of the results of different doublet detection methods.
+
+
+```{r Filtered pct, echo=FALSE, results='asis', message=FALSE, warning=FALSE}
+
+if(!is.null(data$Cell$Section1$scatter) | !is.null(data$Cell$Section1$lq_Filtration) | !is.null(data$Cell$Section1$lq_upset) ){
+    cat("
+## Low quality cell information {.tabset #md2-se1}
+
+The detection of low-quality cells plays an important part in sequencing data quality control. This section will help you quickly overview the basics information of different low-quality detection methods. This section contains three aspects:
+
+- [**QC scatter plot**:]{style=\"color:red\"} The distribution scatter plots of QC metrics.
+- [**Filtered information**:]{style=\"color:red\"} The filtered results of different methods.
+- [**Upset**:]{style=\"color:red\"} Upset plot to show the overlap between different methods.
+")
+ cat('\n\n') 
+}
+
+
+if(!is.null(data$Cell$Section1$scatter)){
+  cat('### QC scatter plot {.tabset .unnumbered .tabset-dropdown} \n')
+  cat('\n\n')
+  for (i in data$Cell$Section1$scatter) {
+    name <- paste(unlist(stringr::str_split(i, "_")), collapse = " ")
+    cat(paste0("#### ", name, " {.tabset .tabset-dropdown .unnumbered}\n"))
+    cat("![](", paste0(cell_dir, "/Cell_QC/LowCell/scatter/",  paste0(i,".png")), ")")
+    cat('\n\n')
+  }
+}
+
+
+
+if(!is.null(data$Cell$Section1$lq_Filtration)){
+  
+  cat('### Filtered information {.tabset .unnumbered} \n')
+  subchunkify(data$Cell$Section1$lq_pre_post, seed="low_pre_post")
+
+  subchunkify(data$Cell$Section1$lq_Filtration$pct,seed="low_pct")
+
+  subchunkify(data$Cell$Section1$lq_Filtration$count,seed="low_count")
+
+  
+  cat('\n\n')
+}  
+  
+if(!is.null(data$Cell$Section1$lq_upset)){
+  cat('### Upset {.tabset .unnumbered} \n')
+  subchunkify(data$Cell$Section1$lq_upset,6.5, 8,seed="low_upset")
+  cat('\n\n')
+  cat("This upset plot shows the overlap between different methods. Only 20 numbers of intersections are shown. \n")
+  cat('\n\n')
+}  
+
+
+
+
+```
+
+
+
+```{r Doublet, echo=FALSE, results='asis', message=FALSE, warning=FALSE}
+if(!is.null(data$Cell$Section2$db_Filtration) | !is.null(data$Cell$Section2$db_upset)){
+    cat("
+## Doublet information {.tabset #md2-se3}
+
+Another key issue in cell QC is the detection of doublets, which can affect the annotation accuracy of cell types. This section will help you quickly check the basics information of different doublet detection methods. This section contains two aspects:
+
+- [**Filtered information**:]{style=\"color:red\"} The filtering results of different methods. 
+- [**Upset**:]{style=\"color:red\"} Upset plot to show the overlap between different methods.
+")
+  cat('\n\n')
+}
+
+if(!is.null(data$Cell$Section2$db_Filtration)){
+  
+  cat('### Filtered information {.tabset .unnumbered} \n')
+  subchunkify(data$Cell$Section2$db_pre_post, seed="db_pre_post")
+
+  subchunkify(data$Cell$Section2$db_Filtration$pct,seed="db_pct")
+
+  subchunkify(data$Cell$Section2$db_Filtration$count,seed="db_count")
+
+  
+  cat('\n\n')
+}  
+  
+if(!is.null(data$Cell$Section2$db_upset)){
+  cat('### Upset {.tabset .unnumbered} \n')
+  subchunkify(data$Cell$Section2$db_upset,6.5, 8,seed="db_upset")
+  cat('\n\n')
+  cat("This upset plot shows the overlap between different methods. Only 20 numbers of intersections are shown. \n")
+  cat('\n\n')
+}  
+
+```
+
+
+

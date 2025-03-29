@@ -1,0 +1,232 @@
+---
+title: "SingleCellMQC"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  html_document:
+    css: bootstrap.css
+    toc: true
+    toc_float: 
+      collapsed: true      
+      smooth_scroll: true  
+    number_sections: true
+    self_contained: false
+#    self_contained: false
+params:
+  data: out_list
+  cell_dir: plot_dir
+lang: en
+---
+
+```{r setup, include=FALSE}
+## Global options
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r function, echo=FALSE}
+# params:
+#   data: out_list
+#   cell_dir: plot_dir
+subchunkify <- function(g, fig_height=7, fig_width=5, seed=floor(runif(1) * 10000)) {
+  g_deparsed <- paste0(deparse(
+    function() {g}
+  ), collapse = '')
+
+  sub_chunk <- paste0("
+  `","``{r sub_chunk_", seed, ", fig.height=",
+   fig_height, ", fig.width=", fig_width, ", echo=FALSE, warning=FALSE, message=FALSE}",
+  "\n(", 
+    g_deparsed
+    , ")()",
+  "\n`","``
+  ")
+
+  cat(knitr::knit(text = knitr::knit_expand(text = sub_chunk), quiet = TRUE))
+}
+
+bar_style <- function(width = 1, fill = "#e6e6e6", height = "75%",
+                      align = c("left", "right"), color = NULL) {
+  align <- match.arg(align)
+  if (align == "left") {
+    position <- paste0(width * 100, "%")
+    image <- sprintf("linear-gradient(90deg, %1$s %2$s, transparent %2$s)", fill, position)
+  } else {
+    position <- paste0(100 - width * 100, "%")
+    image <- sprintf("linear-gradient(90deg, transparent %1$s, %2$s %1$s)", position, fill)
+  }
+  list(
+    backgroundImage = image,
+    backgroundSize = paste("100%", height),
+    backgroundRepeat = "no-repeat",
+    backgroundPosition = "center",
+    color = color
+  )
+}
+
+btn <- function(xLoc, m, nms, xOry, data) { # x btn position, method, names, x or y
+  list(type = "list", x = xLoc, xanchor = "left", y = 1.2, 
+       buttons = lapply(
+         nms, function(k) {           # iterate over names
+           list(
+             method = m, label = k,
+             args = if(xOry == "x"){
+               list( # a list for each trace (each legend entry)
+                 list(x = list(data[, k] )),  # 3 lists, 3 traces
+                 list(xaxis = list(title = k)))
+             }else{
+               list(
+                 list(y = list(data[, k] )),  # 3 lists, 3 traces
+                 list(yaxis = list(title = k)))
+             }
+           )}
+       )
+  )}
+
+warning_alert_orange <- function(text) {
+  cat(sprintf('<div class="alert alert-warning">
+  <h5 class="alert-heading" style="font-size: 20px;" aria-hidden="true">Warning!</h5>
+  %s
+</div>', text))
+}
+warning_alert_red <- function(text) {
+  cat(sprintf('<div class="alert alert-dismissible alert-danger">
+  <h5 class="alert-heading" style="font-size: 20px;" aria-hidden="true">Warning!</h5>
+  %s
+</div>', text))
+}
+
+note_grey <- function(text) {
+  cat(sprintf('<div class="alert alert-dismissible alert-light">
+  %s
+</div>', text))
+}
+
+
+
+data <- params$data
+cell_dir <- params$cell_dir
+
+```
+
+
+```{r Sample QC, echo=FALSE, results='asis'}
+if (!is.null(data$Sample)) {
+  cat(knitr::knit_child("Sample_QC.Rmd", quiet = TRUE))
+  cat("\n\n")
+}
+```
+
+```{r Cell QC, echo=FALSE, results='asis'}
+if (!is.null(data$Cell)) {
+  cat(knitr::knit_child("Cell_QC.Rmd", quiet = TRUE))
+    cat("\n\n")
+
+}
+```
+
+```{r Feature QC, echo=FALSE, results='asis'}
+if (!is.null(data$Feature)) {
+  cat(knitr::knit_child("Feature_QC.Rmd", quiet = TRUE))
+    cat("\n\n")
+
+}
+```
+
+```{r Batch QC, echo=FALSE, results='asis'}
+if (!is.null(data$Batch)) {
+  cat(knitr::knit_child("Batch_QC.Rmd", quiet = TRUE))
+    cat("\n\n")
+
+}
+```
+
+
+# Abbreviations {.tabset .unnumbered}
+## Sample metrics {.tabset -}
+### Common {-}
+- **nCell** — Total number of cells captured for each sample.
+- **nGene_RNA** — Number of genes detected in each sample.
+- **nPro_ADT** — Number of protein targets quantified by antibody-derived tags (ADT) in each sample.
+- **nChain_TCR** — Total number of T-cell receptor (TCR) chains detected in each sample.
+- **nCell_TCR** — Number of cells with detected TCR chains in each sample.
+- **TCR%** — Percentage of cells with detected TCR chains relative to total cells in each sample.
+- **nChain_BCR** — Total number of B-cell receptor (BCR) chains detected in each sample.
+- **nCell_BCR** — Number of cells with detected BCR chains in each sample.
+- **BCR%** — Percentage of cells with detected BCR chains relative to total cells in each sample.
+- **nChain_TRA** — Total number of TCR alpha chains detected in each sample.
+- **nCell_TRA** — Number of cells with detected TCR alpha chains in each sample.
+- **TRA%** — Percentage of cells with detected TCR alpha chains relative to total cells in each sample.
+- **nChain_TRB** — Total number of TCR beta chains detected in each sample.
+- **nCell_TRB** — Number of cells with detected TCR beta chains in each sample.
+- **TRB%** — Percentage of cells with detected TCR beta chains relative to total cells in each sample.
+- **nChain_IGH** — Total number of immunoglobulin heavy (IGH) chains detected in each sample.
+- **nCell_IGH** — Number of cells with detected IGH chains in each sample.
+- **IGH%** — Percentage of cells with detected IGH chains relative to total cells in each sample.
+- **nChain_IGK** — Total number of immunoglobulin kappa (IGK) light chains detected in each sample.
+- **nCell_IGK** — Number of cells with detected IGK chains in each sample.
+- **IGK%** — Percentage of cells with detected IGK chains relative to total cells in each sample.
+- **nChain_IGL** — Total number of immunoglobulin lambda (IGL) light chains detected in each sample.
+- **nCell_IGL** — Number of cells with detected IGL chains in each sample.
+- **IGL%** — Percentage of cells with detected IGL chains relative to total cells in each sample.
+
+### V(D)J subtype {-}
+- **IGH + IGK** — Total number of cells with detected IGH and IGK chains.
+- **IGH + IGL** — Total number of cells with detected IGH and IGL chains.
+- **TRA + TRB** — Total number of cells with detected TRA and TRB chains.
+- **ambiguous_TB** — Number of cells with both TCR and BCR chains detection.
+- **multichain_B** — Number of cells with multiple BCR chains detected (2 or more IGH chains and/or 2 or more IGK/L chains).
+- **multichain_T** — Number of cells with multiple TCR chains detected (2 or more TRA chains and/or 2 or more TRB chains).
+- **single IGH** — Number of cells with only a single detected IGH chain.
+- **single IGK** — Number of cells with only a single detected IGK chain.
+- **single IGL** — Number of cells with only a single detected IGL chain.
+- **single TRA** — Number of cells with only a single detected TRA chain.
+- **single TRB** — Number of cells with only a single detected TRB chain.
+- **IGH + IGK%** — Percentage of cells with both IGH and IGK chains relative to total cells.
+- **IGH + IGL%** — Percentage of cells with both IGH and IGL chains relative to total cells.
+- **TRA + TRB%** — Percentage of cells with both TRA and TRB chains relative to total cells.
+- **ambiguous_TB%** — Percentage of cells with both TCR and BCR chains detection relative to total cells.
+- **multichain_B%** — Percentage of cells with multiple BCR chains (2 or more IGH chains and/or 2 or more IGK/L chains) relative to total cells.
+- **multichain_T%** — Percentage of cells with multiple TCR chains (2 or more TRA chains and/or 2 or more TRB chains) relative to total cells.
+- **single IGH%** — Percentage of cells with only a single IGH chain relative to total cells.
+- **single IGK%** — Percentage of cells with only a single IGK chain relative to total cells.
+- **single IGL%** — Percentage of cells with only a single IGL chain relative to total cells.
+- **single TRA%** — Percentage of cells with only a single TRA chain relative to total cells.
+- **single TRB%** — Percentage of cells with only a single TRB chain relative to total cells.
+
+## Cell metrics {-}
+
+- **nCount_RNA** — Total number of unique molecular identifiers (UMIs) detected in each cell.
+- **nFeature_RNA** — Number of unique genes detected in each cell.
+- **nCount_ADT** — Total number of unique molecular identifiers (UMIs) associated with antibody-derived tags in each cell.
+- **nFeature_ADT** — Number of unique ADT features detected in each cell.
+- **percent.mt** — Percentage of mitochondrial transcripts out of the total RNA transcripts in each cell.
+- **percent.rb** — Percentage of ribosomal transcripts out of total RNA transcripts in each cell.
+- **percent.hb** — Percentage of hemoglobin transcripts out of total RNA transcripts in each cell.
+- **percent.dissociation** — Percentage of dissociation-related transcripts out of total RNA transcripts in each cell.
+- **per_feature_count_RNA** — Average number of UMIs per gene in each cell.
+- **per_feature_count_ADT** — Average number of UMIs per ADT feature in each cell.
+- **percent.isotype** — Percentage of isotype control antibodies out of total ADTs in each cell.
+
+## Gene/protein metrics { -}
+
+- **nCell** — Number of cells in which a particular feature (e.g., gene or protein) is detected.
+- **pct** — Percentage of cells in which a particular feature is detected, relative to the total number of cells analyzed.
+- **mean** — Average expression level of a feature (e.g., gene or protein) across all cells in which it is detected.
+- **variance** — Statistical measure of the dispersion of a feature's expression levels across cells
+- **variance.standardized** — Standardized variance of a feature's expression levels across cells.
+
+
+# Authors {.unnumbered}
+
+**Wen Lab:**
+
+-  **Daihan Ji**
+
+-  **Mei Han**
+
+-  **Shuting Lu**
+
+-  **Jiaying Zeng** 
+
+-  **Wen Zhong** 
+
+
