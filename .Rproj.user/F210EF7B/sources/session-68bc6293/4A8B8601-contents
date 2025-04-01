@@ -3,8 +3,11 @@
 **SingleCellMQC**: A comprehensive quality control workflow for single-cell multi-omics in human health and disease monitoring. The SingleCellMQC pipeline is developed in R and accepts input files from scRNA-seq, surface protein seqencing, scTCR-seq, and scBCR-seq to perform QC analysis. The pipeline utilizes the **Seurat** and **BPCells** objects to store and analyze large data. The pipeline consists of four major QC modules:
 
 -   **sample QC**
+
 -   **cell QC**
+
 -   **feature QC**
+
 -   **batch QC**
 
 Each module encompasses a range of functions, including QC metrics assessment, outlier sample detection, abnormal cell identification, background noise detection, batch effect evaluation, etc. Data visualization for each module encompasses a variety of elements, including static graphs, interactive graphs, and interactive tables. In particular, each module supports the generation of HTML reports for multi-omics quality control (QC) based on R Markdown, which contains QC results and potential warnings.
@@ -13,7 +16,7 @@ Each module encompasses a range of functions, including QC metrics assessment, o
 
 ## Detail Manual
 
-The comprehensive documentation: <https://daihanji.github.io/SingleCellMQC-manual/>
+The comprehensive documentation: <https://daihanji.github.io/SingleCellMQC-manual/>
 
 ## R Installation
 
@@ -30,8 +33,22 @@ devtools::install_github('DaihanJi/SingleCellMQC')
 library(SingleCellMQC)
 ```
 
-### Integrated QC Tools in SingleCellMQC
+### **Integrated QC Tools in SingleCellMQC**
 
-[scater](https://bioconductor.org/packages/release/bioc/html/scater.html), [Seurat](https://satijalab.org/seurat/), [miQC](https://github.com/greenelab/miQC), [ddqc](https://github.com/ayshwaryas/ddqc), [decontX/DecontPro](https://github.com/campbio/decontX), [scCDC](https://github.com/ZJU-UoE-CCW-LAB/scCDC), [scDblFinder](https://github.com/plger/scDblFinder), [scds](https://github.com/kostkalab/scds), [DoubletFinder](https://github.com/chris-mcginnis-ucsf/DoubletFinder).
+#### **Core QC & Processing**  
+- [scater](https://bioconductor.org/packages/release/bioc/html/scater.html)  
+- [Seurat](https://satijalab.org/seurat/)  
+- [miQC](https://github.com/greenelab/miQC)  
+- [ddqc](https://github.com/ayshwaryas/ddqc)  
+- [decontX/DecontPro](https://github.com/campbio/decontX)  
+- [scCDC](https://github.com/ZJU-UoE-CCW-LAB/scCDC)  
+- [scDblFinder](https://github.com/plger/scDblFinder)  
+- [scds](https://github.com/kostkalab/scds)  
+- [DoubletFinder](https://github.com/chris-mcginnis-ucsf/DoubletFinder)  
 
-**Other Key Packages For QC**: [BPCells](https://github.com/bnprks/BPCells), [COSG](https://github.com/genecell/COSGR), [ScType](https://github.com/IanevskiAleksandr/sc-type#readme), [clusterProfiler](https://github.com/YuLab-SMU/clusterProfiler), [reactable](https://glin.github.io/reactable/index.html)
+#### **Other Key Packages For QC**  
+- [BPCells](https://github.com/bnprks/BPCells) 
+- [COSG](https://github.com/genecell/COSGR) 
+- [ScType](https://github.com/IanevskiAleksandr/sc-type#readme) 
+- [clusterProfiler](https://github.com/YuLab-SMU/clusterProfiler) 
+- [reactable](https://glin.github.io/reactable/index.html) 
