@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/957102221.svg)](https://doi.org/10.5281/zenodo.15121096)
+
 ## SingleCellMQC
 
 **SingleCellMQC**: A comprehensive quality control workflow for single-cell multi-omics in human health and disease monitoring. The SingleCellMQC pipeline is developed in R and accepts input files from scRNA-seq, surface protein seqencing, scTCR-seq, and scBCR-seq to perform QC analysis. The pipeline utilizes the **Seurat** and **BPCells** objects to store and analyze large data. The pipeline consists of four major QC modules:
