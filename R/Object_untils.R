@@ -449,3 +449,46 @@ MergeMatrix_IterableMatrix <- function(
 
 
 
+quiet <- function(
+    x,
+    print_cat = TRUE,
+    message = TRUE,
+    warning = TRUE
+) {
+  stopifnot(
+    is.logical(print_cat) && length(print_cat) == 1,
+    is.logical(message) && length(message) == 1,
+    is.logical(warning) && length(warning) == 1
+  )
+
+  if (print_cat) {
+    tmp_output <- tempfile()
+    sink(tmp_output, type = "output")
+    on.exit({
+      sink(type = "output")
+      unlink(tmp_output)
+    }, add = TRUE)
+  }
+
+  if (warning && message) {
+    invisible(suppressMessages(suppressWarnings(force(x))))
+  } else if (warning && !message) {
+    invisible(suppressWarnings(force(x)))
+  } else if (!warning && message) {
+    invisible(suppressMessages(force(x)))
+  } else {
+    invisible(force(x))
+  }
+}
+
+
+smart_lapply <- function(X, FUN, ..., .use_future = NULL, future.seed = TRUE) {
+  if (is.null(.use_future)) {
+    .use_future <- !inherits(future::plan(), "sequential")
+  }
+  if (.use_future) {
+    future.apply::future_lapply(X, FUN, ..., future.seed = future.seed)
+  } else {
+    lapply(X, FUN, ...)
+  }
+}

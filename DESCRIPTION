@@ -1,7 +1,7 @@
 Package: SingleCellMQC
 Type: Package
 Title: Tools for Single Cell Omics Quality Control
-Version: 0.3.8
+Version: 0.4.0
 Authors@R:c(
     person(given = "Daihan",   family = "Ji",    email = "ji_daihan@gzlab.ac.cn", role = c("aut", "cre", "ctb")),
     person(given = "Shuting",  family = "Lu",    email = "lu_shuting@gzlab.ac.cn", role = c("ctb")),
@@ -24,7 +24,6 @@ Imports:
     dbscan,
     dplyr,
     factoextra,
-    fields,
     ggforce,
     ggrepel,
     ggplot2,
@@ -39,7 +38,6 @@ Imports:
     plotly,
     reactable,
     reactablefmtr,
-    ROCR,
     scales,
     scattermore,
     scater,
@@ -61,7 +59,8 @@ Imports:
     rmarkdown,
     uwot,
     future.apply,
-    progressr
+    progressr,
+    future
 Suggests:
     BPCells,
     clusterProfiler,

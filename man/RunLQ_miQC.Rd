@@ -7,7 +7,7 @@
 RunLQ_miQC(
   object,
   model_type = "linear",
-  split.by = NULL,
+  split.by = "orig.ident",
   name.nFeature_RNA = "nFeature_RNA",
   name.percent.mt = "percent.mt",
   add.Seurat = TRUE,

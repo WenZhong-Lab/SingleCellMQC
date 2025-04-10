@@ -37,7 +37,7 @@ RunDbt_ADT(
 
 \item{do.correct}{Logical; if TRUE, performs correction for batch effects before doublet detection. Default is FALSE.}
 
-\item{preprocess}{Character; name of the preprocessing method to use. Default is "rna.umap".}
+\item{preprocess}{Character; name of the preprocessing method to use. Default is "adt.umap".}
 
 \item{return.cutoff}{Logical; if TRUE, returns the cutoff values used for doublet detection. Default is FALSE.}
 

@@ -540,7 +540,7 @@ FindSampleMetricsWarning <- function(object,
     if("plot" %in% return.type){
       plot_list <- lapply(names(result_table), function(x){
         plot_data <-  result_table[[x]]
-        plot_data$label <- ifelse(plot_data$isFlagged, plot_data$sample, "")
+        plot_data$label <- ifelse(plot_data$isFlagged, as.character(plot_data$sample), "")
         plot_data <- split(plot_data, plot_data$metrics_name)
 
         plot_out <- lapply(names(plot_data), function(y){
@@ -589,7 +589,7 @@ FindSampleMetricsWarning <- function(object,
 
     if("plot" %in% return.type){
       plot_data <- out$result_table
-      plot_data$label <- ifelse(plot_data$isFlagged, plot_data$sample, "")
+      plot_data$label <- ifelse(plot_data$isFlagged, as.character(plot_data$sample), "")
       plot_data <- split(plot_data, plot_data$metrics_name)
       plot_out <- lapply(names(plot_data), function(x){
         plot_data[[x]]$isFlagged <- factor(plot_data[[x]]$isFlagged, levels = c("TRUE", "FALSE") )

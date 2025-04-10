@@ -13,7 +13,7 @@ Each module encompasses a range of functions, including QC metrics assessment, o
 
 ![](https://github.com/DaihanJi/SingleCellMQC-manual/raw/main/figure/SingleCellMQC.png)
 
-## Detail Manual
+## Detail Documentation
 
 The comprehensive documentation: <https://daihanji.github.io/SingleCellMQC-manual/>
 
@@ -38,7 +38,7 @@ library(SingleCellMQC)
 
 **Other Key Packages For QC**: [BPCells](https://github.com/bnprks/BPCells), [COSG](https://github.com/genecell/COSGR), [ScType](https://github.com/IanevskiAleksandr/sc-type#readme), [clusterProfiler](https://github.com/YuLab-SMU/clusterProfiler), [reactable](https://glin.github.io/reactable/index.html)
 
-## Example QC HTML Report
+## Examples: Data and QC HTML Reports
 
-Access URL: https://zenodo.org/records/15120931
+Access URL: https://doi.org/10.5281/zenodo.15120930
 

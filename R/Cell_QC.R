@@ -373,7 +373,7 @@ RunLQ_MAD <- function(object, nmads  = 3, split.by=NULL, add.Seurat=T, share.med
 #' @references
 #' Hippen, Ariel A et al. “miQC: An adaptive probabilistic framework for quality control of single-cell RNA-sequencing data.” PLoS computational biology vol. 17,8 e1009290. 24 Aug. 2021, doi:10.1371/journal.pcbi.1009290
 #'
-RunLQ_miQC <- function(object, model_type = "linear",  split.by= NULL,
+RunLQ_miQC <- function(object, model_type = "linear",  split.by= "orig.ident",
                        name.nFeature_RNA = "nFeature_RNA", name.percent.mt = "percent.mt", add.Seurat = TRUE,
                        random.seed=1 , ...) {
   if(!("Seurat" %in% class(object)) ){
@@ -933,32 +933,6 @@ RunDbt_VDJ <- function(object,add.Seurat=T,...){
   return(db_VDJ)
 }
 
-.seurat_pipeline <- function(data, cluster, cluster_resolution, tsne=FALSE, nfeatures =2000, dim.ne=20, dim.usage=20,umap=T){
-  # data is seurat object
-  data <- Seurat::NormalizeData(data, normalization.method = "LogNormalize", scale.factor = 10000)
-  data <- Seurat::FindVariableFeatures(data, selection.method = "vst", nfeatures = nfeatures )
-  all.genes <- rownames(data)
-  data <- Seurat::ScaleData(data)
-
-  if( "RenameDims" %in% class(SeuratObject::GetAssayData(data, assay = "RNA", slot = "scale.data")) ){
-    data <- SeuratObject::SetAssayData(data, assay = "RNA", slot = "scale.data",
-                         new.data = as(object = SeuratObject::GetAssayData(data, assay = "RNA", slot = "scale.data"), Class = "matrix") )
-  }
-  data <- Seurat::RunPCA(data, features = Seurat::VariableFeatures(object = data))
-
-  if (cluster){
-    data <- Seurat::FindNeighbors(data, dims = 1:dim.ne)
-    data <- Seurat::FindClusters(data, resolution = cluster_resolution)
-    data <- identity(data)
-  }
-  if(umap){
-    data <- Seurat::RunUMAP(data, dims = 1:dim.usage)
-  }
-  if (tsne){
-    data <- Seurat::RunTSNE(data, dims = 1:dim.usage)
-  }
-  return(data)
-}
 
 #' Doublet Detection with DoubletFinder
 #'
@@ -978,13 +952,15 @@ RunDbt_VDJ <- function(object,add.Seurat=T,...){
 #'         Otherwise, returns a data frame with doublet scores and classifications for each cell.
 #'
 #' @export
-RunDbt_DoubletFinder <- function(object,split.by="orig.ident",add.Seurat=TRUE, db.rate=NULL,split.db.rate.1000=0.008, PCs=10,BPtmpdir= "./temp/SingleCellMQC_BPCellsStepBPToPCAScale/",...){
+RunDbt_DoubletFinder <- function(object,split.by="orig.ident",add.Seurat=TRUE, db.rate=NULL,
+                                 split.db.rate.1000=0.008, PCs=10,
+                                 BPtmpdir= "./temp/SingleCellMQC_BPCellsStepBPToPCAScale/",...){
   if(!requireNamespace("DoubletFinder", quietly = TRUE)){
     stop("Error: Please install the DoubletFinder package first.")
   }
 
-  if ( !(packageVersion("DoubletFinder") > "2.0.3")) {
-    stop("Please update the `DoubletFinder` package to version 2.0.4")
+  if ( !(packageVersion("DoubletFinder") > "2.0.5")) {
+    stop("Please update the `DoubletFinder` package to version >= 2.0.6")
   }
 
   split_object <- splitObject(object, split.by = split.by, assay="RNA", tmpdir= BPtmpdir)
@@ -995,27 +971,22 @@ RunDbt_DoubletFinder <- function(object,split.by="orig.ident",add.Seurat=TRUE, d
 
   p <- progressr::progressor(along = 1:length(split_object))
   dbt_DoubletFinder <- future.apply::future_lapply(split_object, function(object_temp){
-
-
     x <- ConvertToSeurat(object_temp)
     ####
-    dim.usage=10
     SeuratObject::DefaultAssay(x) <- "RNA"
-
 
     if( is(SeuratObject::GetAssayData(x, assay = "RNA", slot = "counts"), "IterableMatrix" ) ){
       x <- SeuratObject::SetAssayData(x, assay = "RNA", slot = "counts",
                         new.data = as(object = SeuratObject::GetAssayData(x, assay = "RNA", slot = "counts"), Class = "dgCMatrix") )
     }
 
-    currentSample <- RunPipeline(x, preprocess = "rna.pca")
+    currentSample <- quiet(RunPipeline(x, preprocess = "rna.pca"))
     # pK Identification (no ground-truth)
-    sweep.res.list <- .paramSweep(currentSample , PCs = 1:PCs, sct = FALSE)
-    sweep.stats <- DoubletFinder::summarizeSweep(sweep.res.list, GT = FALSE)
+    sweep.res.list <- quiet(DoubletFinder::paramSweep(currentSample , PCs = 1:PCs, sct = FALSE))
+    sweep.stats <- quiet(DoubletFinder::summarizeSweep(sweep.res.list, GT = FALSE))
     # sweep.stats <- .summarizeSweep(sweep.res.list, GT = FALSE)
-    bcmvn <- DoubletFinder::find.pK(sweep.stats)
+    bcmvn <- quiet(DoubletFinder::find.pK(sweep.stats))
     # bcmvn <- .find.pK(sweep.stats)
-
     # best PK
     mpK<-as.numeric(as.vector(bcmvn$pK[which.max(bcmvn$BCmetric)]))
 
@@ -1024,20 +995,31 @@ RunDbt_DoubletFinder <- function(object,split.by="orig.ident",add.Seurat=TRUE, d
       db.rate <- split.db.rate.1000  * ncol(x)/1000
     }
     nExp_poi <- db.rate * ncol(x)
-    out_doubletFinder <- .doubletFinder(currentSample, PCs = 1:PCs, pN = 0.25, pK = mpK, nExp = nExp_poi, reuse.pANN = FALSE, sct = FALSE)
+    out_doubletFinder <- quiet(
+          DoubletFinder::doubletFinder(
+            currentSample,
+            PCs = 1:PCs,
+            pN = 0.25,
+            pK = mpK,
+            nExp = nExp_poi,
+            reuse.pANN = NULL,
+            sct = FALSE
+          ))
+
     index <- c(grep("pANN_", colnames(out_doubletFinder@meta.data)) ,
                grep("DF.classifications", colnames(out_doubletFinder@meta.data))  )
     dbt_DoubletFinder <- out_doubletFinder@meta.data[,index, drop=F ]
     colnames(dbt_DoubletFinder) <- c("db_DoubletFinder_score", "db_DoubletFinder")
+    dbt_DoubletFinder$db_DoubletFinder <- ifelse(dbt_DoubletFinder$db_DoubletFinder == "Singlet", "Pass", "Fail")
+    message(paste0(format(Sys.time(), "%H:%M:%S"), "-- ", getSampleName(object_temp, sample.by = split.by), ": ", sum( dbt_DoubletFinder$db_DoubletFinder=="Fail" ), " doublets, ", sum( dbt_DoubletFinder$db_DoubletFinder=="Pass" ), " singlets" ))
+
     p()
     return(dbt_DoubletFinder)
   }, future.seed = 1)
 
   names(dbt_DoubletFinder) <- NULL
   dbt_DoubletFinder <- do.call(rbind, dbt_DoubletFinder)
-  dbt_DoubletFinder$db_DoubletFinder <- ifelse(dbt_DoubletFinder$db_DoubletFinder == "Singlet", "Pass", "Fail")
 
-  message(paste0(format(Sys.time(), "%H:%M:%S"), "-- ", getSampleName(object_temp, sample.by = split.by), ": ", sum( dbt_DoubletFinder$db_DoubletFinder=="Fail" ), " doublets, ", sum( dbt_DoubletFinder$db_DoubletFinder=="Pass" ), " singlets" ))
   if (dir.exists(BPtmpdir)) {
     unlink(BPtmpdir, recursive = TRUE)
   }
@@ -1049,331 +1031,6 @@ RunDbt_DoubletFinder <- function(object,split.by="orig.ident",add.Seurat=TRUE, d
 }
 
 
-.summarizeSweep <- function (sweep.list, GT = FALSE, GT.calls = NULL)
-{
-  name.vec <- names(sweep.list)
-  name.vec <- unlist(strsplit(name.vec, split = "pN_"))
-  name.vec <- name.vec[seq(2, length(name.vec), by = 2)]
-  name.vec <- unlist(strsplit(name.vec, split = "_pK_"))
-  pN <- as.numeric(unique(name.vec[seq(1, length(name.vec),
-                                       by = 2)]))
-  pK <- as.numeric(unique(name.vec[seq(2, length(name.vec),
-                                       by = 2)]))
-  if (GT == TRUE) {
-    sweep.stats <- as.data.frame(matrix(0L, nrow = length(sweep.list),
-                                        ncol = 4))
-    colnames(sweep.stats) <- c("pN", "pK", "AUC", "BCreal")
-    sweep.stats$pN <- factor(rep(pN, each = length(pK),
-                                 levels = pN))
-    sweep.stats$pK <- factor(rep(pK, length(pN), levels = pK))
-  }
-  if (GT == FALSE) {
-    sweep.stats <- as.data.frame(matrix(0L, nrow = length(sweep.list),
-                                        ncol = 3))
-    colnames(sweep.stats) <- c("pN", "pK", "BCreal")
-    sweep.stats$pN <- factor(rep(pN, each = length(pK),
-                                 levels = pN))
-    sweep.stats$pK <- factor(rep(pK, length(pN), levels = pK))
-  }
-  for (i in 1:length(sweep.list)) {
-    res.temp <- sweep.list[[i]]
-    gkde <- stats::approxfun(KernSmooth::bkde(res.temp$pANN, kernel = "normal"))
-    x <- seq(from = min(res.temp$pANN), to = max(res.temp$pANN),
-             length.out = nrow(res.temp))
-    sweep.stats$BCreal[i] <- DoubletFinder::bimodality_coefficient(gkde(x))
-    if (GT == FALSE) {
-      next
-    }
-    meta <- as.data.frame(matrix(0L, nrow = nrow(res.temp),
-                                 ncol = 2))
-    meta[, 1] <- GT.calls
-    meta[, 2] <- res.temp$pANN
-    train.ind <- sample(1:nrow(meta), round(nrow(meta)/2),
-                        replace = FALSE)
-    test.ind <- (1:nrow(meta))[-train.ind]
-    colnames(meta) <- c("SinDub", "pANN")
-    meta$SinDub <- factor(meta$SinDub, levels = c("Doublet",
-                                                  "Singlet"))
-    model.lm <- stats::glm(SinDub ~ pANN, family = stats::binomial(link = "logit"),
-                    data = meta, subset = train.ind)
-    prob <- stats::predict(model.lm, newdata = meta[test.ind, ],
-                    type = "response")
-    ROCpred <- ROCR::prediction(predictions = prob, labels = meta$SinDub[test.ind])
-    perf.auc <- ROCR::performance(ROCpred, measure = "auc")
-    sweep.stats$AUC[i] <- perf.auc@y.values[[1]]
-  }
-  return(sweep.stats)
-}
-
-
-.find.pK <- function(sweep.stats)
-{
-  "%ni%" <- Negate("%in%")
-  if ("AUC" %ni% colnames(sweep.stats) == TRUE) {
-    bc.mvn <- as.data.frame(matrix(0L, nrow = length(unique(sweep.stats$pK)),
-                                   ncol = 5))
-    colnames(bc.mvn) <- c("ParamID", "pK", "MeanBC", "VarBC",
-                          "BCmetric")
-    bc.mvn$pK <- unique(sweep.stats$pK)
-    bc.mvn$ParamID <- 1:nrow(bc.mvn)
-    x <- 0
-    for (i in unique(bc.mvn$pK)) {
-      x <- x + 1
-      ind <- which(sweep.stats$pK == i)
-      bc.mvn$MeanBC[x] <- mean(sweep.stats[ind, "BCreal"])
-      bc.mvn$VarBC[x] <- stats::sd(sweep.stats[ind, "BCreal"])^2
-      bc.mvn$BCmetric[x] <- mean(sweep.stats[ind, "BCreal"])/(stats::sd(sweep.stats[ind,
-                                                                             "BCreal"])^2)
-    }
-    par(mar = rep(1, 4))
-    x <- plot(x = bc.mvn$ParamID, y = bc.mvn$BCmetric, pch = 16,
-              col = "#41b6c4", cex = 0.75)
-    x <- lines(x = bc.mvn$ParamID, y = bc.mvn$BCmetric,
-               col = "#41b6c4")
-    print(x)
-    return(bc.mvn)
-  }
-  if ("AUC" %in% colnames(sweep.stats) == TRUE) {
-    bc.mvn <- as.data.frame(matrix(0L, nrow = length(unique(sweep.stats$pK)),
-                                   ncol = 6))
-    colnames(bc.mvn) <- c("ParamID", "pK", "MeanAUC", "MeanBC",
-                          "VarBC", "BCmetric")
-    bc.mvn$pK <- unique(sweep.stats$pK)
-    bc.mvn$ParamID <- 1:nrow(bc.mvn)
-    x <- 0
-    for (i in unique(bc.mvn$pK)) {
-      x <- x + 1
-      ind <- which(sweep.stats$pK == i)
-      bc.mvn$MeanAUC[x] <- mean(sweep.stats[ind, "AUC"])
-      bc.mvn$MeanBC[x] <- mean(sweep.stats[ind, "BCreal"])
-      bc.mvn$VarBC[x] <- sd(sweep.stats[ind, "BCreal"])^2
-      bc.mvn$BCmetric[x] <- mean(sweep.stats[ind, "BCreal"])/(sd(sweep.stats[ind,
-                                                                             "BCreal"])^2)
-    }
-    par(mar = rep(1, 4))
-    x <- plot(x = bc.mvn$ParamID, y = bc.mvn$MeanAUC, pch = 18,
-              col = "black", cex = 0.75, xlab = NA, ylab = NA)
-    x <- lines(x = bc.mvn$ParamID, y = bc.mvn$MeanAUC, col = "black",
-               lty = 2)
-    par(new = TRUE)
-    x <- plot(x = bc.mvn$ParamID, y = bc.mvn$BCmetric, pch = 16,
-              col = "#41b6c4", cex = 0.75)
-    axis(side = 4)
-    x <- lines(x = bc.mvn$ParamID, y = bc.mvn$BCmetric,
-               col = "#41b6c4")
-    print(x)
-    return(bc.mvn)
-  }
-}
-.paramSweep<- function (seu, PCs = 1:10, sct = FALSE, num.cores = 1)
-{
-  pK <- c(5e-04, 0.001, 0.005, seq(0.01, 0.3, by = 0.01))
-  pN <- seq(0.05, 0.3, by = 0.05)
-  min.cells <- round(nrow(seu@meta.data)/(1 - 0.05) - nrow(seu@meta.data))
-  pK.test <- round(pK * min.cells)
-  pK <- pK[which(pK.test >= 1)]
-  orig.commands <- seu@commands
-  if (nrow(seu@meta.data) > 10000) {
-    real.cells <- rownames(seu@meta.data)[sample(1:nrow(seu@meta.data),
-                                                 10000, replace = FALSE)]
-    data <- SeuratObject::GetAssayData(seu, assay="RNA", slot="counts")[, real.cells]
-    n.real.cells <- ncol(data)
-  }
-  if (nrow(seu@meta.data) <= 10000) {
-    real.cells <- rownames(seu@meta.data)
-    data <-SeuratObject::GetAssayData(seu, assay="RNA", slot="counts")
-    n.real.cells <- ncol(data)
-  }
-  if (num.cores > 1) {
-    cl <- parallel::makeCluster(num.cores)
-    output2 <- parallel::mclapply(as.list(1:length(pN)), FUN = DoubletFinder::parallel_paramSweep,
-                        n.real.cells, real.cells, pK, pN, data, orig.commands,
-                        PCs, sct, mc.cores = num.cores)
-    parallel::stopCluster(cl)
-  }
-  else {
-    output2 <- lapply(as.list(1:length(pN)), FUN = DoubletFinder::parallel_paramSweep,
-                      n.real.cells, real.cells, pK, pN, data, orig.commands,
-                      PCs, sct)
-  }
-  sweep.res.list <- list()
-  list.ind <- 0
-  for (i in 1:length(output2)) {
-    for (j in 1:length(output2[[i]])) {
-      list.ind <- list.ind + 1
-      sweep.res.list[[list.ind]] <- output2[[i]][[j]]
-    }
-  }
-  name.vec <- NULL
-  for (j in 1:length(pN)) {
-    name.vec <- c(name.vec, paste("pN", pN[j], "pK", pK,
-                                  sep = "_"))
-  }
-  names(sweep.res.list) <- name.vec
-  return(sweep.res.list)
-}
-.doubletFinder <- function (seu, PCs, pN = 0.25, pK, nExp, reuse.pANN = FALSE,
-                            sct = FALSE, annotations = NULL)
-{
-  if (reuse.pANN != FALSE) {
-    pANN.old <- seu@meta.data[, reuse.pANN]
-    classifications <- rep("Singlet", length(pANN.old))
-    classifications[order(pANN.old, decreasing = TRUE)[1:nExp]] <- "Doublet"
-    seu@meta.data[, paste("DF.classifications", pN, pK,
-                          nExp, sep = "_")] <- classifications
-    return(seu)
-  }
-  if (reuse.pANN == FALSE) {
-    real.cells <- rownames(seu@meta.data)
-    data <- SeuratObject::GetAssayData(seu, assay="RNA", slot="counts")[, real.cells]
-    n_real.cells <- length(real.cells)
-    n_doublets <- round(n_real.cells/(1 - pN) - n_real.cells)
-    print(paste("Creating", n_doublets, "artificial doublets...",
-                sep = " "))
-    real.cells1 <- sample(real.cells, n_doublets, replace = TRUE)
-    real.cells2 <- sample(real.cells, n_doublets, replace = TRUE)
-    doublets <- (data[, real.cells1] + data[, real.cells2])/2
-    colnames(doublets) <- paste("X", 1:n_doublets, sep = "")
-    data_wdoublets <- cbind(data, doublets)
-    if (!is.null(annotations)) {
-      stopifnot(typeof(annotations) == "character")
-      stopifnot(length(annotations) == length(SeuratObject::Cells(seu)))
-      stopifnot(!any(is.na(annotations)))
-      annotations <- factor(annotations)
-      names(annotations) <- SeuratObject::Cells(seu)
-      doublet_types1 <- annotations[real.cells1]
-      doublet_types2 <- annotations[real.cells2]
-    }
-    orig.commands <- seu@commands
-    if (sct == FALSE) {
-      print("Creating Seurat object...")
-      seu_wdoublets <- Seurat::CreateSeuratObject(counts = data_wdoublets)
-      print("Normalizing Seurat object...")
-      seu_wdoublets <- Seurat::NormalizeData(seu_wdoublets, normalization.method = orig.commands$NormalizeData.RNA@params$normalization.method,
-                                     scale.factor = orig.commands$NormalizeData.RNA@params$scale.factor,
-                                     margin = orig.commands$NormalizeData.RNA@params$margin)
-      print("Finding variable genes...")
-      seu_wdoublets <- Seurat::FindVariableFeatures(seu_wdoublets,
-                                            selection.method = orig.commands$FindVariableFeatures.RNA$selection.method,
-                                            loess.span = orig.commands$FindVariableFeatures.RNA$loess.span,
-                                            clip.max = orig.commands$FindVariableFeatures.RNA$clip.max,
-                                            mean.function = orig.commands$FindVariableFeatures.RNA$mean.function,
-                                            dispersion.function = orig.commands$FindVariableFeatures.RNA$dispersion.function,
-                                            num.bin = orig.commands$FindVariableFeatures.RNA$num.bin,
-                                            binning.method = orig.commands$FindVariableFeatures.RNA$binning.method,
-                                            nfeatures = orig.commands$FindVariableFeatures.RNA$nfeatures,
-                                            mean.cutoff = orig.commands$FindVariableFeatures.RNA$mean.cutoff,
-                                            dispersion.cutoff = orig.commands$FindVariableFeatures.RNA$dispersion.cutoff)
-      print("Scaling data...")
-      seu_wdoublets <- Seurat::ScaleData(seu_wdoublets, features = orig.commands$ScaleData.RNA$features,
-                                 model.use = orig.commands$ScaleData.RNA$model.use,
-                                 do.scale = orig.commands$ScaleData.RNA$do.scale,
-                                 do.center = orig.commands$ScaleData.RNA$do.center,
-                                 scale.max = orig.commands$ScaleData.RNA$scale.max,
-                                 block.size = orig.commands$ScaleData.RNA$block.size,
-                                 min.cells.to.block = orig.commands$ScaleData.RNA$min.cells.to.block)
-      print("Running PCA...")
-
-      if( "RenameDims" %in% class(SeuratObject::GetAssayData(seu_wdoublets, assay = "RNA", slot = "scale.data")) ){
-        seu_wdoublets <- SeuratObject::SetAssayData(seu_wdoublets, assay = "RNA", slot = "scale.data",
-                                      new.data = as(object = SeuratObject::GetAssayData(seu_wdoublets, assay = "RNA", slot = "scale.data"), Class = "matrix") )
-      }
-
-      seu_wdoublets <- Seurat::RunPCA(seu_wdoublets, features = orig.commands$ScaleData.RNA$features,
-                                      npcs = length(PCs), rev.pca = orig.commands$RunPCA.RNA$rev.pca,
-                                      weight.by.var = orig.commands$RunPCA.RNA$weight.by.var,
-                                      verbose = FALSE)
-      pca.coord <- seu_wdoublets@reductions$pca@cell.embeddings[,
-                                                                PCs]
-      cell.names <- rownames(seu_wdoublets@meta.data)
-      nCells <- length(cell.names)
-      rm(seu_wdoublets)
-      gc()
-    }
-    if (sct == TRUE) {
-      print("Creating Seurat object...")
-      seu_wdoublets <- Seurat::CreateSeuratObject(counts = data_wdoublets)
-      print("Running SCTransform...")
-      seu_wdoublets <- Seurat::SCTransform(seu_wdoublets)
-      print("Running PCA...")
-      if( "RenameDims" %in% class(SeuratObject::GetAssayData(seu_wdoublets, assay = "RNA", slot = "scale.data")) ){
-        seu_wdoublets <- SeuratObject::SetAssayData(seu_wdoublets, assay = "RNA", slot = "scale.data",
-                                      new.data = as(object = SeuratObject::GetAssayData(seu_wdoublets, assay = "RNA", slot = "scale.data"), Class = "matrix") )
-      }
-
-      seu_wdoublets <- Seurat::RunPCA(seu_wdoublets, npcs = length(PCs))
-      pca.coord <- seu_wdoublets@reductions$pca@cell.embeddings[,
-                                                                PCs]
-      cell.names <- rownames(seu_wdoublets@meta.data)
-      nCells <- length(cell.names)
-      rm(seu_wdoublets)
-      gc()
-    }
-    print("Calculating PC distance matrix...")
-    dist.mat <- fields::rdist(pca.coord)
-    print("Computing pANN...")
-    pANN <- as.data.frame(matrix(0L, nrow = n_real.cells,
-                                 ncol = 1))
-    if (!is.null(annotations)) {
-      neighbor_types <- as.data.frame(matrix(0L, nrow = n_real.cells,
-                                             ncol = length(levels(doublet_types1))))
-    }
-    rownames(pANN) <- real.cells
-    colnames(pANN) <- "pANN"
-    k <- round(nCells * pK)
-    for (i in 1:n_real.cells) {
-      neighbors <- order(dist.mat[, i])
-      neighbors <- neighbors[2:(k + 1)]
-      pANN$pANN[i] <- length(which(neighbors > n_real.cells))/k
-      if (!is.null(annotations)) {
-        for (ct in unique(annotations)) {
-          neighbors_that_are_doublets = neighbors[neighbors >
-                                                    n_real.cells]
-          if (length(neighbors_that_are_doublets) >
-              0) {
-            neighbor_types[i, ] <- table(doublet_types1[neighbors_that_are_doublets -
-                                                          n_real.cells]) + table(doublet_types2[neighbors_that_are_doublets -
-                                                                                                  n_real.cells])
-            neighbor_types[i, ] <- neighbor_types[i,
-            ]/sum(neighbor_types[i, ])
-          }
-          else {
-            neighbor_types[i, ] <- NA
-          }
-        }
-      }
-    }
-    print("Classifying doublets..")
-    classifications <- rep("Singlet", n_real.cells)
-    classifications[order(pANN$pANN[1:n_real.cells], decreasing = TRUE)[1:nExp]] <- "Doublet"
-    seu@meta.data[, paste("pANN", pN, pK, nExp, sep = "_")] <- pANN[rownames(seu@meta.data),
-                                                                    1]
-    seu@meta.data[, paste("DF.classifications", pN, pK,
-                          nExp, sep = "_")] <- classifications
-    if (!is.null(annotations)) {
-      colnames(neighbor_types) = levels(doublet_types1)
-      for (ct in levels(doublet_types1)) {
-        seu@meta.data[, paste("DF.doublet.contributors",
-                              pN, pK, nExp, ct, sep = "_")] <- neighbor_types[,
-                                                                              ct]
-      }
-    }
-    return(seu)
-  }
-}
-
-
-
-select_top_n <- function (scores, n_top)
-{
-  d <- data.frame(x = data.table::copy(scores), indice = seq(1,
-                                                             length(scores)))
-  data.table::setDT(d)
-  data.table::setorder(d, -x)
-  n_top_indice <- d$indice[1:n_top]
-  return(n_top_indice)
-}
-
 
 #' Doublet Detection (ADT) with mutually exclusive CITE-seq markers in CITE-seq data.
 #'
@@ -1382,7 +1039,7 @@ select_top_n <- function (scores, n_top)
 #' @param object A Seurat object containing assays: ADT or RNA+ADT.
 #' @param add.Seurat  Logical; if TRUE, adds the doublet detection results as metadata to the Seurat object and stored in \code{SingleCelMQC} slot in \code{misc}. Otherwise, returns a data.frame of the doublet detection results.
 #' @param split.by A character string specifying the column in the Seurat object's metadata to use for stratifying the dataset before applying doublet detection (e.g., "orig.ident").
-#' @param preprocess Character; name of the preprocessing method to use. Default is "rna.umap".
+#' @param preprocess Character; name of the preprocessing method to use. Default is "adt.umap".
 #' @param return.cutoff Logical; if TRUE, returns the cutoff values used for doublet detection. Default is FALSE.
 #' @param feature1 A character vector of the names of the mutually exclusive CITE-seq markers to use for doublet detection.
 #' @param feature2 A character vector of the names of the mutually exclusive CITE-seq markers to use for doublet detection.
@@ -1396,7 +1053,8 @@ select_top_n <- function (scores, n_top)
 #' @export
 #'
 RunDbt_ADT <- function(object, split.by="orig.ident",feature1 = NULL, feature2 = NULL, method.predict=c("NB","ROC", "Logit", "LDA"),
-                       resolution=1.5, dims=1:20, do.correct=F, preprocess="adt.umap", return.cutoff=F, add.Seurat=T, BPtmpdir= "./temp/SingleCellMQC_BPCellsStepBPToPCAScale/",...){
+                       resolution=1.5, dims=1:20, do.correct=F, preprocess="adt.umap",
+                       return.cutoff=F, add.Seurat=T, BPtmpdir= "./temp/SingleCellMQC_BPCellsStepBPToPCAScale/",...){
 
   if(!requireNamespace("COSG", quietly = TRUE)){
     stop("Error: Please install the COSG package first.")
@@ -1432,34 +1090,19 @@ RunDbt_ADT <- function(object, split.by="orig.ident",feature1 = NULL, feature2 =
 
       Seurat::DefaultAssay(seu) <- "ADT"
       Seurat::VariableFeatures(seu) <- rownames(seu[["ADT"]])
-      seu <- Seurat::NormalizeData(seu, normalization.method = 'CLR', margin = 2)
-
 
     c_num <- length(unique(seu$seurat_clusters))
     # If correction is requested, perform the correction step
     if (do.correct) {
       message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "-------- scCDC correction for features"))
       seu <- RunCorrection_scCDC(seu, assay = "ADT", features = c(feature1, feature2))
-      Seurat::DefaultAssay(seu) <- "Corrected_ADT"
-
-      if ( "BPCells" %in% attr(class(Seurat::GetAssayData(seu, assay = "Corrected_ADT", slot = "counts")), "package") ) {
-        expADT <- Seurat::GetAssayData(seu, assay = "Corrected_ADT", slot = "counts")
-        log_sums <- BPCells::colSums(log1p(expADT ), na.rm = TRUE)
-        scale_factors <- exp(log_sums / nrow(expADT))
-        expADT <- log1p(  BPCells::multiply_cols(expADT ,1/ scale_factors) )
-        seu <- SeuratObject::SetAssayData(object = seu,
-                                          assay = "Corrected_ADT",
-                                          slot = "data",
-                                          new.data = expADT)
-      }else{
-        Seurat::VariableFeatures(seu) <- rownames(seu[["Corrected_ADT"]])
-        seu <- Seurat::NormalizeData(seu, normalization.method = 'CLR', margin = 2)
-      }
-
-      assay.pos <- "Corrected_ADT"
+      Seurat::DefaultAssay(seu) <- "scCDC_ADT"
+      Seurat::VariableFeatures(seu) <- rownames(seu[["scCDC_ADT"]])
+      assay.pos <- "scCDC_ADT"
     } else {
       assay.pos <- "ADT"
     }
+    seu <- Seurat::NormalizeData(seu, normalization.method = 'CLR', margin = 2, verbose = F)
 
     # Calculate the cutoff for each feature1
     cutoff1 <- lapply(feature1, function(x) {
@@ -1468,8 +1111,6 @@ RunDbt_ADT <- function(object, split.by="orig.ident",feature1 = NULL, feature2 =
       cat(">>>>> Cutoff for ", x, " is ", out, "\n")
       return(out)
     })
-
-
     cutoff1 <- do.call(c, cutoff1)
 
     # Calculate the cutoff for each feature2
@@ -1481,6 +1122,8 @@ RunDbt_ADT <- function(object, split.by="orig.ident",feature1 = NULL, feature2 =
       return(out)
     })
     cutoff2 <- do.call(c, cutoff2)
+
+    p()
 
     if(return.cutoff){
       cutout <- data.frame(Sample= getSampleName(object_temp, sample.by = split.by),cluster_num = c_num,resolution = resolution, feature1=feature1, cutoff1=cutoff1 ,feature2=feature2, cutoff2=cutoff2 )
@@ -1512,7 +1155,6 @@ RunDbt_ADT <- function(object, split.by="orig.ident",feature1 = NULL, feature2 =
     rownames(db_ADT) <- colnames(seu)
 
     message(paste0(format(Sys.time(), "%H:%M:%S"), "-- ", getSampleName(object_temp, sample.by = split.by), ": ", sum( db_ADT$db_ADT=="Fail" ), " doublets, ", sum( db_ADT$db_ADT=="Pass" ), " singlets" ))
-    p()
     return(db_ADT)
   }, future.seed = 1)
 
