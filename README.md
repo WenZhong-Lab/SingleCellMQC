@@ -1,4 +1,3 @@
-[![DOI](https://zenodo.org/badge/957102221.svg)](https://doi.org/10.5281/zenodo.15121096)
 
 ## SingleCellMQC
 
