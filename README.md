@@ -28,7 +28,7 @@ You can install the development version of `SingleCellMQC` from [GitHub](https:/
 
 ```         
 install.packages('devtools')
-devtools::install_github('DaihanJi/SingleCellMQC')
+devtools::install_github('WenZhong-Lab/SingleCellMQC')
 library(SingleCellMQC)
 ```
 
