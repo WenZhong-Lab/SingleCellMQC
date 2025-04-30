@@ -13,24 +13,16 @@ output:
 
 # Sample QC 
 
-<details>
+**The main tasks of sample-level QC include: (i) Sample quality assessment: detecting technical artifacts that may be caused by library construction, insufficient sequencing depth, amplification biases, or contaminations; (ii) Outlier sample detection: identifying samples with unexpected cell type compositions; and (iii) Sample identity verification: identifying incorrect sample labeling caused by errors in sample handling.**
 
-<summary>**The main tasks of sample-level QC include:**</summary>
 
--   Detecting technical artifacts that may caused by library construction, insufficient sequencing depth, amplification biases, and contaminations.
--   Identifying outlier samples with unexpected cell type compositions, et.al.
--   Recognizing incorrect sample labeling that might caused by errors in sample handling.
 
-</details>
+**Sample QC Module Overview**
 
-<details>
+-   [**Sample quality assessment -**](#md1-sec1) Detecting technical and biological abnormalities.
+-   [**PCT outlier sample detection -**](#md1-sec2) Identifying cell type composition deviations.
+-   [**Sample identity verification -**](#md1-sec3) Verifying label-data consistency.
 
-<summary>**To address these issues, the Sample QC module in SingleCellMQC includes three main components:**</summary>
-
--   [**Sample quality assessment -**](#md1-sec1) To check if there are any abnormalities in a variety of technical and biology metrics.
--   [**Outlier sample detection -**](#md1-sec2) To evaluate deviations in cell type composition.
--   [**Sample identity verification -**](#md1-sec3) To check whether the file labeling is consistent with analyzed data features.
-</details>
 
 
 ------------------------------------------------------------------------
@@ -41,11 +33,10 @@ if(length(data$Sample$Section1$Metrics )!=0){
   cat("
 ## Sample quality assessment {#md1-sec1}
 
-**The main include: **
+**Key components overview: **
 
-- **10X metrics:** Derived from the Cell Ranger output (if available).
-- **Basic metrics:** Calculated by SingleCellMQC after preprocessing with tools such as Cell Ranger, dnbc4tools, and others.
-- **V(D)J overview:** Detailed metrics and analysis of V(D)J data (if available).
+- **10X Genomics Metrics (if available):** From Cell Ranger output.
+- **Basic QC Metrics:** From SingleCellMQC, including RNA, ADT and V(D)J metrics.
 
 ------------------------------------------------------------------------
 ")
@@ -63,9 +54,9 @@ if (!is.null(data$Sample$Section1$Metrics$Metrics_10X$base) &&
     length(data$Sample$Section1$Metrics$Metrics_10X$base) > 0){
   
   cat("
-### 10X Metrics 
+### 10X Genomics Metrics 
 
-This section provides a summary of the 10X metrics alerts. The alerts are generated based on the [10X Genomics CellRanger ](https://github.com/10XGenomics/cellranger) requirements. The alerts are divided into two categories: errors and warnings. **Errors** indicate that the sample may have serious problems, while **warnings** indicate that the sample may have potential problems. The details below: 
+This section summarizes 10X metrics alerts generated from [10X Genomics CellRanger](https://github.com/10XGenomics/cellranger) standards. Alerts are categorized as **errors** (indicating critical sample issues) or **warnings** (highlighting potential concerns), as detailed below:
       ")
   cat('\n\n')
 }
@@ -100,13 +91,22 @@ if (!is.null(data$Sample$Section1$Metrics$Metrics_10X$base) &&
 ```{r metrics introduction, echo=FALSE, results='asis', warning=FALSE, message=FALSE}
 if (length(data$Sample$Section1$Metrics )!=0) {
   cat("
-### Basic Metrics { .tabset}
+### Basic QC Metrics { .tabset}
 
-This section provides sample metrics calculated by SingleCellMQC after preprocessing with tools such as Cell Ranger, dnbc4tools, and others. The metrics include basic information and descriptive statistics for cell QC metrics. To identify potential warning samples, SingleCellMQC employs the `FindSampleMetricsWarning` function, which applies Median Absolute Deviation (MAD) to flag samples deviating from general distributions of key QC metrics. By default, the metrics analyzed include: `nCount_RNA`, `nFeature_RNA`, `nCount_ADT`, `nFeature_ADT`, `percent.mt`, and `percent.isotype`. Details are provided below:
+This section provides comprehensive single-cell quality control metrics calculated by SingleCellMQC to evaluate single-cell data quality at the sample level for RNA sequencing, surface protein profiling (ADT), and TCR/BCR sequencing to enable a systematic evaluation across multiple omics layers. For scRNA-seq, key QC metrics include indicators such as the total number of cells (nCell), the number of detected genes (nGene_RNA), the distribution of UMI counts per cell (nCount_RNA), the distribution of the number of genes detected per cell (nFeature_RNA), and the distribution of the proportion of mitochondrial reads per cell (percent.mt). For ADT data, metrics including the total number of proteins detected per sample (nPro_ADT), the distribution of total UMIs associated with antibody-derived tags per cell (nCount_ADT) and the distribution of the proportion of isotype control reads per cell (percent.isotype) are assessed to evaluate surface protein quality. For TCR/BCR sequencing, SingleCellMQC evaluates metrics such as the number of cells with detected TCR or BCR chains (nCell_TCR and nCell_BCR), the proportion of cells with specific TCR or BCR subtypes, the proportion of cells with specific receptor groups (e.g., TCR, BCR, TRA+TRB, single IGH, multichain_T), the distribution of CDR3 length per cell and the percentage of unique clones. 
+
+To systematically identify potential outlier samples, SingleCellMQC utilizes the `FindSampleMetricsWarning` function, which applies Median Absolute Deviation (MAD, median +/- 3×MAD) to flag deviations in key QC metrics—including nCount_RNA, nFeature_RNA, nCount_ADT, nFeature_ADT, percent.mt, and percent.isotype—relative to dataset-wide distributions. Detailed results are presented below:  
 
 ")
   cat('\n\n')
 }
+
+if(length(data$Sample$Section1$Metrics )!=0){
+  # cat( paste0(data$Sample$Section1$Metrics$note, collapse = "  \n") )
+  note_grey(paste0(data$Sample$Section1$Metrics$note, collapse = "  \n"))
+  cat('\n\n')
+  }
+
 ```
 
 
@@ -125,6 +125,8 @@ if(length(data$Sample$Section1$outlier_metrics)!=0){
   cat("\n\n")
   subchunkify(data$Sample$Section1$outlier_metrics$interactive_table,seed="interactive_table_metrics_outlier")
   cat("\n\n")
+  cat("For the table, `type`: define the direction of outlier detection (`lower` for values below the median threshold or `higher` for values above it); `log`: whether metrics were log-transformed prior to analysis. ")
+  cat("\n\n")
 }
 
 ```
@@ -133,15 +135,13 @@ if(length(data$Sample$Section1$outlier_metrics)!=0){
 ```{r metrics information, echo=FALSE, results='asis', warning=FALSE, message=FALSE}
 
 if(length(data$Sample$Section1$Metrics )!=0){
-  # cat( paste0(data$Sample$Section1$Metrics$note, collapse = "  \n") )
-  note_grey(paste0(data$Sample$Section1$Metrics$note, collapse = "  \n"))
-  cat('\n\n')
-  
 
 # Check and output Basic information if data exists
 if (!is.null(data$Sample$Section1$Metrics$count$base) && 
     length(data$Sample$Section1$Metrics$count$base) > 0) {
-  cat(paste0("#### Basic information", " {.tabset .unnumbered}\n"))
+  
+  cat(paste0("#### RNA & ADT", " {.tabset .unnumbered}\n"))
+  cat(paste0("##### Basic information", " {.tabset .unnumbered}\n"))
   subchunkify(data$Sample$Section1$Metrics$count$base, seed="count base information")
   cat('\n\n')
 }
@@ -155,11 +155,11 @@ if (!is.null(data$Sample$Section1$Metrics$count$statistics) &&
 # Check and output Statistical summary if data exists
 stat_data <- data$Sample$Section1$Metrics$summary
 if (!is.null(stat_data) && length(stat_data) > 0) {
-  cat(paste0("#### Descriptive statistics of cell QC metrics by sample", " {.tabset .unnumbered}\n"))
+  cat(paste0("##### Descriptive statistics of cell QC metrics per sample", " {.tabset .unnumbered}\n"))
   i=1000
   for (g in names(stat_data)) {
     if (!is.null(stat_data[[g]]$base) && length(stat_data[[g]]$base) > 0) {
-      cat('##### ', g, "{.unnumbered}",' \n')
+      cat('###### ', g, "{.unnumbered}",' \n')
       subchunkify(stat_data[[g]]$base, seed=paste0("summary_",g))
       cat("\n\n")
     }
@@ -179,10 +179,10 @@ if (!is.null(stat_data) && length(stat_data) > 0) {
 if(length(data$Sample$Section1$VDJ )!=0){
   
   cat("
-### V(D)J overview { .tabset}
+#### V(D)J { .tabset .unnumbered}
 ")
   cat('\n\n')
-  cat("This section provides a summary of the V(D)J information. The information includes V(D)J chain, V(D)J subtype, V(D)J gene usage, clonal quantity, and CDR3 length. The V(D)J gene usage, clonal quantity, and CDR3 length analysis based on [scRepertoire](https://github.com/ncborcherding/scRepertoire) package. The details below: \n\n")
+  cat("This section summarizes the V(D)J repertoire analysis, including V(D)J chain composition, V(D)J subtype composition, V(D)J gene usage (geneUsage), clonotype quantification (clonalQuant), and CDR3 sequence length profiles (CDR3). Gene usage frequencies (geneUsage) and clonal expansion metrics (clonalQuant) are derived using the [scRepertoire](https://github.com/ncborcherding/scRepertoire) package, which also processes CDR3 length distributions (CDR3). Detailed results are presented below. The details below: \n\n")
   stat_data <- data$Sample$Section1$VDJ
   i=1000
   
@@ -190,7 +190,7 @@ if(length(data$Sample$Section1$VDJ )!=0){
   cat('\n\n')
   
   for (g in c("V(D)J chain", "V(D)J subtype") ) {
-      cat('#### ', g, "{.unnumbered}",  ' \n')
+      cat('##### ', g, "{.unnumbered}",  ' \n')
       subchunkify(stat_data[[g]]$base,seed=paste0("VDJ_",g))
       cat("\n\n")
       subchunkify(stat_data[[g]]$statistics,seed=paste0("VDJ_statistics_",g))
@@ -205,10 +205,10 @@ if(length(data$Sample$Section1$VDJ )!=0){
 if( length(data$Sample$Section1$VDJ$geneUsage )!=0 ){
   vdj_data <- data$Sample$Section1$VDJ$geneUsage
   name <- names(vdj_data)
-  cat(paste0("#### geneUsage", " {.tabset .unnumbered}\n"))
+  cat(paste0("##### geneUsage", " {.tabset .unnumbered}\n"))
 
   for (i in name) {
-    cat(paste0("##### ", i, " {.tabset .unnumbered}\n"))
+    cat(paste0("###### ", i, " {.tabset .unnumbered}\n"))
     subchunkify(vdj_data[[i]],seed= paste0(i, "_geneUsage") )
     cat('\n\n')
   }
@@ -220,10 +220,10 @@ if( length(data$Sample$Section1$VDJ$geneUsage )!=0 ){
 if( length(data$Sample$Section1$VDJ$clonalQuant )!=0 ){
   vdj_data <- data$Sample$Section1$VDJ$clonalQuant
   name <- names(vdj_data)
-  cat(paste0("#### clonalQuant", " {.tabset .unnumbered}\n"))
+  cat(paste0("##### clonalQuant", " {.tabset .unnumbered}\n"))
 
   for (i in name) {
-    cat(paste0("##### ", i, " {.tabset .unnumbered}\n"))
+    cat(paste0("###### ", i, " {.tabset .unnumbered}\n"))
     subchunkify(vdj_data[[i]],seed= paste0(i, "_clonalQuant") )
     cat('\n\n')
   }
@@ -235,10 +235,10 @@ if( length(data$Sample$Section1$VDJ$clonalQuant )!=0 ){
 if( length(data$Sample$Section1$VDJ$CDR3 )!=0 ){
   vdj_data <- data$Sample$Section1$VDJ$CDR3
   name <- names(vdj_data)
-  cat(paste0("#### CDR3", " {.tabset .unnumbered}\n"))
+  cat(paste0("##### CDR3", " {.tabset .unnumbered}\n"))
 
   for (i in name) {
-    cat(paste0("##### ", i, " {.tabset .unnumbered}\n"))
+    cat(paste0("###### ", i, " {.tabset .unnumbered}\n"))
     cat("![](", paste0(cell_dir, "/Sample_QC/VDJ/CDR3/",  paste0(i,"_CDR3.png")), ")")
     cat("<p align='middle' style='font-size: 16px; color: black;'>**Figure: ** The distribution of CDR3 length. </p> \n\n")
         cat(paste0( "**IF you want to see interactive plotly object for details, you can see it by click the link ", "[plotly_link](", paste0( "./SingleCellMQC/plot/Sample_QC/VDJ/CDR3/",  paste0(i, "_CDR3.html")), ")", ".**\n\n")) 
@@ -262,7 +262,7 @@ if(length(data$Sample$Section2$outlier_comp)!=0){
   cat("
 ## PCT outlier sample detection {#md1-sec2 .tabset}
 
-**Outlier sample detection in SingleCellMQC focuses on identifying deviations in cell type compositions. ** Deviations in cell type composition within samples from the same experimental group are often indicative of potential technical issues, such as prolonged processing time, variations in storage conditions, experimental processing errors, and batch effects, all of which can compromise the integrity of the data. To address this issue, SingleCellMQC incorporates cell type composition analysis as a additional outlier detection approach. This section include two main approaches: 1) Common range outliers; 2) Inter-sample outliers.The details below:
+**Outlier sample detection in SingleCellMQC focuses on identifying deviations in cell type compositions. ** Deviations in cell type composition within samples from the same experimental group are often indicative of potential technical issues, such as prolonged processing time, variations in storage conditions, experimental processing errors, and batch effects, all of which can compromise the integrity of the data. To address this issue, SingleCellMQC incorporates cell type composition analysis as a additional outlier detection approach. This section include two main approaches: 1) **Reference-based outlier analysis**: Identification of outliers via deviation from reference cell type proportions; 2) **PCA-based outlier analysis**: Detection of inter-sample outliers via aberrant cell type proportionds within cohort. The details below:
 
 ------------------------------------------------------------------------
 ")
@@ -277,13 +277,13 @@ if(length(data$Sample$Section2$outlier_comp)!=0){
       cat_word <- do.call(c, lapply(names(table_data), function(x){
         paste0( "- ", length(table_data[[x]])," ", x," outlier samples: ", paste0(table_data[[x]],  collapse = ", "), " \n")
       }))
-      warning_alert_orange( paste0("Common range outliers: \n\n ",paste0(cat_word, collapse = ""),   " \n",
+      warning_alert_orange( paste0("Reference-based outlier analysis: \n\n ",paste0(cat_word, collapse = ""),   " \n",
            "**Notice: ** The above prediction results represent samples that may have potential abnormalities, and are for reference only. Please interpret the results in combination with the actual situation of the data.", "\n"))
   }
   
   
   if(length(comp_data$name_ellipse)!=0){
-    ellipse_pa <- paste0( "Inter-sample PCT outliers (Ellipse): \n\n ",
+    ellipse_pa <- paste0( "PCA-based outlier analysis (Ellipse): \n\n ",
     paste0("- ", "", length(comp_data$name_ellipse)," cell type composition outlier samples:  ", paste0(comp_data$name_ellipse, collapse = ", "), ""),
     " \n"
     )
@@ -292,7 +292,7 @@ if(length(data$Sample$Section2$outlier_comp)!=0){
   }
   
   if(length(comp_data$name_dbscan)!=0){
-    DBSCAN_pa <- paste0( "Inter-sample PCT outliers (DBSCAN): \n\n ",
+    DBSCAN_pa <- paste0( "PCA-based outlier analysis (DBSCAN): \n\n ",
     paste0("- ", "", length(comp_data$name_dbscan)," cell type composition outlier samples: ", paste0(comp_data$name_dbscan, collapse = ", "), ""),
     " \n"
     )
@@ -304,21 +304,23 @@ if(length(data$Sample$Section2$outlier_comp)!=0){
     warning_alert_orange(paste0(ellipse_pa,  " \n", DBSCAN_pa,  " \n", 
                                 "**Notice: ** The above prediction results represent samples that may have potential abnormalities, and are for reference only. Please interpret the results in combination with the actual situation of the data.", "\n"))
   }
-  
-    cat(paste0("### Common range outliers", " {.tabset .unnumbered}\n"))
-    cat("This section provides a summary of the common range outliers based on cell type composition. Outlier samples can be identified by comparing their cell type composition with our established reference cell type composition ranges when performing the `FindCommonPCTOutlier` function. The reference cell type composition ranges are established based on the 2299 single cell samples from [DISCO](https://www.immunesinglecell.org/) database. \n")
+    subchunkify(comp_data$CellTypePCT,seed="CellTypePCT")
+    cat("\n\n")
+    cat("Note: The per-sample cell type annotation by [ScType](https://github.com/IanevskiAleksandr/sc-type) method, and then quantifies cell type proportions per sample")
+    cat("\n\n")
+
+    cat(paste0("### Reference-based outlier analysis", " {.tabset .unnumbered}\n"))
+    cat("SingleCellMQC established the reference ranges for nine major cell types across ten human tissues by analyzing 2,299 scRNA-seq samples from the Deeply Integrated Human Single-Cell Omics data [(DISCO)](https://www.immunesinglecell.org/) database. Samples with deviations from these tissue-specific reference cell type compositions are automatically flagged as outlier samples using the `FindCommonPCTOutlier` function. \n")
   cat('\n\n')
 
     if(length(comp_data$com_table)!=0){
       subchunkify(comp_data$com_interactive_table,seed="com_interactive_table")
     }
     cat("\n\n")
-    subchunkify(comp_data$CellTypePCT,seed="CellTypePCT")
-        
     
     
     cat("\n\n")
-    cat(paste0("### Inter-sample outliers", " {.tabset .unnumbered}\n"))
+    cat(paste0("### PCA-based outlier analysis", " {.tabset .unnumbered}\n"))
     
     cat("A PCA-based outlier detection method using confidence ellipse or Density-Based Spatial Clustering of Applications with Noise (DBSCAN) to identify samples with unusual cell type proportions within sample groups was also provided in this section. Additionally, contributions of each cell type composition to PCs were calculated, providing further insights into potential outliers and ensuring the reliability of the dataset for downstream analysis. \n")
     cat("\n\n")
@@ -329,10 +331,13 @@ if(length(data$Sample$Section2$outlier_comp)!=0){
   cat(paste0("#### Ellipse", " {.tabset .unnumbered} \n\n"))
   subchunkify(comp_data$pca_ellipse, seed="outlier_comp_ellipse", fig_width=8)
   cat("\n\n")
+  cat("PCA of cell proportions across samples. The Ellipse panel highlights the outlier identification based on the 95% confidence ellipse, where the blue circle represents the range of the 95% confidence ellipse.")
+  cat("\n\n")
 
   cat(paste0("#### DBSCAN", " {.tabset .unnumbered} \n\n"))
   subchunkify(comp_data$pca_dbscan, seed="outlier_comp_dbscan", fig_width=8)
-  
+  cat("PCA of cell proportions across samples. The outliers were identified by DBSCAN clustering. The blue ellipse indicates the 95% confidence region of the core population.")
+  cat("\n\n")
 }
 
 
@@ -351,7 +356,7 @@ if(!is.null(data$Sample$Section3)){
   
   cat('## Sample identity verification {#md1-sec3}
 
-To avoid potential recording mistakes and data transmission errors, checking whether the file labeling is consistent with analyzed data features is necessary at the beginning of sample QC. In this section, you can check if your sample gender information is incorrectly labeled. In addition, if your sample does not have gender information, you can get it according to the table below.')
+To avoid potential recording mistakes and data transmission errors, checking whether the file labeling is consistent with analyzed data features is necessary at the beginning of sample QC. In this section, by default, sex-specific genes, including XIST, DDX3Y, UTY, and RPS4Y1, can be evaluated to verify the alignment with recorded sex information.')
   cat('\n\n')
 
   

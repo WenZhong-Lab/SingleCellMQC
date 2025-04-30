@@ -12,7 +12,8 @@ PlotVEPerFeature(
   color.density = NULL,
   color.bar = "#56B4E9",
   ntop = 10,
-  return.type = "plot"
+  return.type = "plot",
+  csv.name = paste0(assay, "_variance_explained")
 )
 }
 \arguments{
@@ -31,6 +32,8 @@ PlotVEPerFeature(
 \item{ntop}{Numeric value indicating the number of top features to highlight in the bar plot based on their variance explained. Default is \code{10}.}
 
 \item{return.type}{Character string or vector indicating the type of output to return. Options are \code{"plot"}, \code{"interactive_table"}, or both. Default is \code{"plot"}.}
+
+\item{csv.name}{Character. Name for interactive_table csv file.}
 }
 \value{
 The function returns either a \code{ggplot} object, an interactive table, or both, depending on the \code{return.type} specified.

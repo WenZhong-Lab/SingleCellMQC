@@ -31,8 +31,7 @@ subchunkify <- function(g, fig_height=7, fig_width=5, seed=floor(runif(1) * 1000
     function() {g}
   ), collapse = '')
 
-  sub_chunk <- paste0("
-  `","``{r sub_chunk_", seed, ", fig.height=",
+  sub_chunk <- paste0("`","``{r sub_chunk_", seed, ", fig.height=",
    fig_height, ", fig.width=", fig_width, ", echo=FALSE, warning=FALSE, message=FALSE}",
   "\n(", 
     g_deparsed
@@ -141,83 +140,85 @@ if (!is.null(data$Batch)) {
 
 
 # Abbreviations {.tabset .unnumbered}
-## Sample metrics {.tabset -}
-### Common {-}
-- **nCell** — Total number of cells captured for each sample.
-- **nGene_RNA** — Number of genes detected in each sample.
-- **nPro_ADT** — Number of protein targets quantified by antibody-derived tags (ADT) in each sample.
-- **nChain_TCR** — Total number of T-cell receptor (TCR) chains detected in each sample.
-- **nCell_TCR** — Number of cells with detected TCR chains in each sample.
-- **TCR%** — Percentage of cells with detected TCR chains relative to total cells in each sample.
-- **nChain_BCR** — Total number of B-cell receptor (BCR) chains detected in each sample.
-- **nCell_BCR** — Number of cells with detected BCR chains in each sample.
-- **BCR%** — Percentage of cells with detected BCR chains relative to total cells in each sample.
-- **nChain_TRA** — Total number of TCR alpha chains detected in each sample.
-- **nCell_TRA** — Number of cells with detected TCR alpha chains in each sample.
-- **TRA%** — Percentage of cells with detected TCR alpha chains relative to total cells in each sample.
-- **nChain_TRB** — Total number of TCR beta chains detected in each sample.
-- **nCell_TRB** — Number of cells with detected TCR beta chains in each sample.
-- **TRB%** — Percentage of cells with detected TCR beta chains relative to total cells in each sample.
-- **nChain_IGH** — Total number of immunoglobulin heavy (IGH) chains detected in each sample.
-- **nCell_IGH** — Number of cells with detected IGH chains in each sample.
-- **IGH%** — Percentage of cells with detected IGH chains relative to total cells in each sample.
-- **nChain_IGK** — Total number of immunoglobulin kappa (IGK) light chains detected in each sample.
-- **nCell_IGK** — Number of cells with detected IGK chains in each sample.
-- **IGK%** — Percentage of cells with detected IGK chains relative to total cells in each sample.
-- **nChain_IGL** — Total number of immunoglobulin lambda (IGL) light chains detected in each sample.
-- **nCell_IGL** — Number of cells with detected IGL chains in each sample.
-- **IGL%** — Percentage of cells with detected IGL chains relative to total cells in each sample.
 
-### V(D)J subtype {-}
-- **IGH + IGK** — Total number of cells with detected IGH and IGK chains.
-- **IGH + IGL** — Total number of cells with detected IGH and IGL chains.
-- **TRA + TRB** — Total number of cells with detected TRA and TRB chains.
-- **ambiguous_TB** — Number of cells with both TCR and BCR chains detection.
-- **multichain_B** — Number of cells with multiple BCR chains detected (2 or more IGH chains and/or 2 or more IGK/L chains).
-- **multichain_T** — Number of cells with multiple TCR chains detected (2 or more TRA chains and/or 2 or more TRB chains).
-- **single IGH** — Number of cells with only a single detected IGH chain.
-- **single IGK** — Number of cells with only a single detected IGK chain.
-- **single IGL** — Number of cells with only a single detected IGL chain.
-- **single TRA** — Number of cells with only a single detected TRA chain.
-- **single TRB** — Number of cells with only a single detected TRB chain.
-- **IGH + IGK%** — Percentage of cells with both IGH and IGK chains relative to total cells.
-- **IGH + IGL%** — Percentage of cells with both IGH and IGL chains relative to total cells.
-- **TRA + TRB%** — Percentage of cells with both TRA and TRB chains relative to total cells.
-- **ambiguous_TB%** — Percentage of cells with both TCR and BCR chains detection relative to total cells.
-- **multichain_B%** — Percentage of cells with multiple BCR chains (2 or more IGH chains and/or 2 or more IGK/L chains) relative to total cells.
-- **multichain_T%** — Percentage of cells with multiple TCR chains (2 or more TRA chains and/or 2 or more TRB chains) relative to total cells.
-- **single IGH%** — Percentage of cells with only a single IGH chain relative to total cells.
-- **single IGK%** — Percentage of cells with only a single IGK chain relative to total cells.
-- **single IGL%** — Percentage of cells with only a single IGL chain relative to total cells.
-- **single TRA%** — Percentage of cells with only a single TRA chain relative to total cells.
-- **single TRB%** — Percentage of cells with only a single TRB chain relative to total cells.
+<details>
+<summary><strong>**QC metrics**</strong></summary>
 
-## Cell metrics {-}
+| Module      | Metrics name            | Metrics description |
+|-------------|-------------------------|---------------------|
+| Sample QC   | nCell                   | Total number of cells captured for each sample. |
+|             | nGene_RNA               | Number of genes detected in each sample. |
+|             | nPro_ADT                | Number of protein targets quantified by antibody-derived tags (ADT) in each sample. |
+|             | nChain_TCR              | Total number of T-cell receptor (TCR) chains detected in each sample. |
+|             | nCell_TCR               | Number of cells with detected TCR chains in each sample. |
+|             | TCR%                    | Percentage of cells with detected TCR chains relative to total cells in each sample. |
+|             | nChain_BCR              | Total number of B-cell receptor (BCR) chains detected in each sample. |
+|             | nCell_BCR               | Number of cells with detected BCR chains in each sample. |
+|             | BCR%                    | Percentage of cells with detected BCR chains relative to total cells in each sample. |
+|             | nChain_TRA              | Total number of TCR alpha chains detected in each sample. |
+|             | nCell_TRA               | Number of cells with detected TCR alpha chains in each sample. |
+|             | TRA%                    | Percentage of cells with detected TCR alpha chains relative to total cells in each sample. |
+|             | nChain_TRB              | Total number of TCR beta chains detected in each sample. |
+|             | nCell_TRB               | Number of cells with detected TCR beta chains in each sample. |
+|             | TRB%                    | Percentage of cells with detected TCR beta chains relative to total cells in each sample. |
+|             | nChain_IGH              | Total number of immunoglobulin heavy (IGH) chains detected in each sample. |
+|             | nCell_IGH               | Number of cells with detected IGH chains in each sample. |
+|             | IGH%                    | Percentage of cells with detected IGH chains relative to total cells in each sample. |
+|             | nChain_IGK              | Total number of immunoglobulin kappa (IGK) light chains detected in each sample. |
+|             | nCell_IGK               | Number of cells with detected IGK chains in each sample. |
+|             | IGK%                    | Percentage of cells with detected IGK chains relative to total cells in each sample. |
+|             | nChain_IGL              | Total number of immunoglobulin lambda (IGL) light chains detected in each sample. |
+|             | nCell_IGL               | Number of cells with detected IGL chains in each sample. |
+|             | IGL%                    | Percentage of cells with detected IGL chains relative to total cells in each sample. |
+|             | IGH + IGK               | Total number of cells with detected IGH and IGK chains. |
+|             | IGH + IGL               | Total number of cells with detected IGH and IGL chains. |
+|             | TRA + TRB               | Total number of cells with detected TRA and TRB chains. |
+|             | ambiguous_TB            | Number of cells with both TCR and BCR chains detection. |
+|             | multichain_B            | Number of cells with multiple BCR chains detected (2 or more IGH chains and/or 2 or more IGK/L chains). |
+|             | multichain_T            | Number of cells with multiple TCR chains detected (2 or more TRA chains and/or 2 or more TRB chains). |
+|             | single IGH              | Number of cells with only a single detected IGH chain. |
+|             | single IGK              | Number of cells with only a single detected IGK chain. |
+|             | single IGL              | Number of cells with only a single detected IGL chain. |
+|             | single TRA              | Number of cells with only a single detected TRA chain. |
+|             | single TRB              | Number of cells with only a single detected TRB chain. |
+|             | IGH + IGK%              | Percentage of cells with both IGH and IGK chains relative to total cells. |
+|             | IGH + IGL%              | Percentage of cells with both IGH and IGL chains relative to total cells. |
+|             | TRA + TRB%              | Percentage of cells with both TRA and TRB chains relative to total cells. |
+|             | ambiguous_TB%           | Percentage of cells with both TCR and BCR chains detection relative to total cells. |
+|             | multichain_B%           | Percentage of cells with multiple BCR chains (2 or more IGH chains and/or 2 or more IGK/L chains) relative to total cells. |
+|             | multichain_T%           | Percentage of cells with multiple TCR chains (2 or more TRA chains and/or 2 or more TRB chains) relative to total cells. |
+|             | single IGH%             | Percentage of cells with only a single IGH chain relative to total cells. |
+|             | single IGK%             | Percentage of cells with only a single IGK chain relative to total cells. |
+|             | single IGL%             | Percentage of cells with only a single IGL chain relative to total cells. |
+|             | single TRA%             | Percentage of cells with only a single TRA chain relative to total cells. |
+|             | single TRB%             | Percentage of cells with only a single TRB chain relative to total cells. |
+|             | 1st Qu                  | The first quartile (25th percentile) of cell-level QC metrics within each individual sample. |
+|             | 3rd Qu                  | The third quartile (75th percentile) of cell-level QC metrics within each individual sample. |
+|             | Median                  | The median values of cell-level QC metrics (e.g., nFeature_RNA, percent.mt) for each individual sample. |
+|             | Mean                    | The mean values of cell-level QC metrics (e.g., nFeature_RNA, percent.mt) for each individual sample. |
+|             | Max                     | The maximum values of cell-level QC metrics within each sample. |
+|             | Min                     | The minimum values of cell-level QC metrics within each sample. |
+| Cell QC     | nCount_RNA              | Total number of unique molecular identifier (UMI) counts per cell. |
+|             | nFeature_RNA            | Total number of unique genes detected per cell. |
+|             | nCount_ADT              | Total number of UMI counts associated with antibody-derived tags per cell. |
+|             | nFeature_ADT            | Total number of unique ADT features detected per cell. |
+|             | percent.mt              | Percentage of mitochondrial counts out of the total RNA counts per cell. |
+|             | percent.rb              | Percentage of ribosomal counts out of total RNA counts per cell. |
+|             | percent.hb              | Percentage of hemoglobin counts out of total RNA counts per cell. |
+|             | percent.dissociation    | Percentage of dissociation-related counts out of total RNA counts per cell. |
+|             | percent.isotype         | Percentage of isotype control antibodies out of total ADT counts per cell. |
+|             | per_feature_count_RNA   | Average number of UMIs per gene in each cell. |
+|             | per_feature_count_ADT   | Average number of UMIs per ADT feature in each cell. |
+| Feature QC  | pct                     | Percentage of cells in which a particular feature is detected, relative to the total number of cells analyzed. |
+|             | mean                    | Average expression level of a feature (e.g., gene or protein) across all cells in which it is detected. |
+|             | variance                | Statistical measure of the dispersion of a feature's expression levels across cells. |
+|             | variance.standardized   | Standardized variance of a feature's expression levels across cells. |
 
-- **nCount_RNA** — Total number of unique molecular identifiers (UMIs) detected in each cell.
-- **nFeature_RNA** — Number of unique genes detected in each cell.
-- **nCount_ADT** — Total number of unique molecular identifiers (UMIs) associated with antibody-derived tags in each cell.
-- **nFeature_ADT** — Number of unique ADT features detected in each cell.
-- **percent.mt** — Percentage of mitochondrial transcripts out of the total RNA transcripts in each cell.
-- **percent.rb** — Percentage of ribosomal transcripts out of total RNA transcripts in each cell.
-- **percent.hb** — Percentage of hemoglobin transcripts out of total RNA transcripts in each cell.
-- **percent.dissociation** — Percentage of dissociation-related transcripts out of total RNA transcripts in each cell.
-- **per_feature_count_RNA** — Average number of UMIs per gene in each cell.
-- **per_feature_count_ADT** — Average number of UMIs per ADT feature in each cell.
-- **percent.isotype** — Percentage of isotype control antibodies out of total ADTs in each cell.
-
-## Gene/protein metrics { -}
-
-- **nCell** — Number of cells in which a particular feature (e.g., gene or protein) is detected.
-- **pct** — Percentage of cells in which a particular feature is detected, relative to the total number of cells analyzed.
-- **mean** — Average expression level of a feature (e.g., gene or protein) across all cells in which it is detected.
-- **variance** — Statistical measure of the dispersion of a feature's expression levels across cells
-- **variance.standardized** — Standardized variance of a feature's expression levels across cells.
-
+</details>
 
 # Authors {.unnumbered}
 
-**Wen Lab:**
+**[WenZhong Lab GitHub](https://github.com/WenZhong-Lab):**
 
 -  **Daihan Ji**
 

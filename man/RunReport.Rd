@@ -13,7 +13,7 @@ RunReport(
   section.sample = c(1:3),
   section.cell = c(1:2),
   section.feature = 1,
-  section.batch = 1:2,
+  section.batch = c(1:3),
   RNA_cluster_name = "rna_cluster",
   ADT_cluster_name = "adt_cluster",
   RNA.batch.by = "orig.ident",
@@ -53,27 +53,28 @@ RunReport(
 \item \strong{\code{1}}: Run Feature QC: Feature quality assessment.
 }}
 
-\item{section.batch}{Sections to include in the Batch QC module. Default is \code{1:2}.
+\item{section.batch}{Sections to include in the Batch QC module. Default is \code{1:3}.
 \itemize{
-\item \strong{\code{1}}: Run Batch QC: Clustering QC.
-\item \strong{\code{2}}: Run Batch QC: Covariate Impact.
+\item \strong{\code{1}}: Run Batch QC: Sample level.
+\item \strong{\code{2}}: Run Batch QC: Cell level.
+\item \strong{\code{3}}: Run Batch QC: Feature level.
 }}
 
-\item{RNA_cluster_name}{Column name in the metadata indicating RNA cluster information. Default is "rna_cluster". Only for: \strong{Batch QC (Clustering QC)}.}
+\item{RNA_cluster_name}{Column name in the metadata indicating RNA cluster information. Default is "rna_cluster". Only for: section.batch (2).}
 
-\item{ADT_cluster_name}{Column name in the metadata indicating ADT cluster information. Default is "adt_cluster". Only for: \strong{Batch QC (Clustering QC)}.}
+\item{ADT_cluster_name}{Column name in the metadata indicating ADT cluster information. Default is "adt_cluster". Only for: section.batch (2).}
 
-\item{RNA.batch.by}{Column name in the metadata indicating RNA batch information. Default is "orig.ident". Only for: \strong{Batch QC (Clustering QC, Covariate Impact)}.}
+\item{RNA.batch.by}{Character vector. Column name(s) in the metadata indicating RNA batch information (categorical variable) or other categorical variables for PCA or UMAP plot. Default is "orig.ident". Only for: section.batch (1, 2).}
 
-\item{ADT.batch.by}{Column name in the metadata indicating ADT batch information. Default is "orig.ident". Only for: \strong{Batch QC (Clustering QC, Covariate Impact)}.}
+\item{ADT.batch.by}{Character vector. Column name(s) in the metadata indicating ADT batch information (categorical variable) or other categorical variables for PCA or UMAP plot. Default is "orig.ident". Only for: section.batch (1, 2).}
 
-\item{RNA.batch.covariate}{Covariates for RNA batch analysis. Default is \code{c("orig.ident", "percent.mt", "nFeature_RNA", "nCount_RNA")}. Only for: \strong{Batch QC (Covariate Impact)}.}
+\item{RNA.batch.covariate}{Character vector. Covariates (can be categorical or continuous) for RNA \code{SVD} and \verb{Variance Explained} analysis. Default is \code{c("orig.ident", "percent.mt", "nFeature_RNA", "nCount_RNA")}. section.batch (1, 3).}
 
-\item{ADT.batch.covariate}{Covariates for ADT batch analysis. Default is \code{c("orig.ident", "nFeature_ADT", "nCount_ADT")}. Only for:\strong{Batch QC (Covariate Impact)}.}
+\item{ADT.batch.covariate}{Character vector. Covariates (can be categorical or continuous) for ADT \code{SVD} and \verb{Variance Explained} analysis. Default is \code{c("orig.ident", "nFeature_ADT", "nCount_ADT")}. Only for: section.batch (1, 3).}
 
-\item{celltype.by}{Column name in the metadata indicating cell type information. Default is "ScType". Only for: \strong{Sample QC (Outlier sample detection by cell type), Batch QC (Clustering QC)}.}
+\item{celltype.by}{Column name in the metadata indicating cell type information. Default is "ScType". Only for: section.sample (2), section.batch (1).}
 
-\item{tissue}{Tissue name. Default is NULL. Only for: \strong{Sample QC (Sample quality assessment, Outlier sample detection by cell type)}.}
+\item{tissue}{Tissue name. Default is NULL. Only for: section.sample (1, 2).}
 }
 \value{
 A HTML report is generated and saved to the specified output file path. No value is returned.
@@ -81,13 +82,4 @@ A HTML report is generated and saved to the specified output file path. No value
 \description{
 This function generates a comprehensive HTML report for single-cell data quality control (QC).
 The report includes modules for sample QC, cell QC, feature QC, and batch QC, with customizable sections for each module.
-}
-\examples{
-\dontrun{
-# Preprocess data using RunPreprocess
-seurat_object <- RunPreprocess(data = seurat_object, sample.by = "orig.ident")
-
-# Generate QC report
-RunReport(object = seurat_object, sample.by = "orig.ident")
-}
 }

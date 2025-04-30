@@ -62,7 +62,7 @@ RunVarExplained.Seurat <- function(object, assay="RNA", variables=NULL, ...){
 
   if(assay=="RNA"){
     SeuratObject::DefaultAssay(object) <-"RNA"
-    object <- Seurat::NormalizeData(object,assay="RNA")
+    object <- Seurat::NormalizeData(object,assay="RNA", verbose =F)
     exp <- Seurat::GetAssayData(object, assay = "RNA", slot = "data")
   }else if(assay=="ADT"){
     SeuratObject::DefaultAssay(object) <- 'ADT'
@@ -74,7 +74,7 @@ RunVarExplained.Seurat <- function(object, assay="RNA", variables=NULL, ...){
     }else{
       Seurat::DefaultAssay(object) <- "ADT"
       Seurat::VariableFeatures(object) <- rownames(object[["ADT"]])
-      object <- Seurat::NormalizeData(object, normalization.method = 'CLR', margin = 2)
+      object <- Seurat::NormalizeData(object, normalization.method = 'CLR', margin = 2, verbose =F)
       exp <- Seurat::GetAssayData(object, assay = "ADT", slot = "data")
     }
   }else{
@@ -112,30 +112,109 @@ RunVarExplained.default <- function(object, metadata, variables=NULL, ...) {
   return(out)
 }
 
-.getVarExplained <- function(object, metadata, variables=NULL){
-  if(is.null(variables)){
+
+#' Calculate Per Molecular Feature Variance Explained by Variables
+#'
+#' @description
+#' This function calculates the percentage of variance explained by one or more variables of interest for each molecular feature (e.g., gene, protein).
+#'
+#' @param object Seurat object
+#' @param type Analysis type, must be either "cell" (single-cell level) or "pseudobulk" (pseudobulk level)
+#' @param assay Name of assay to use, default is "RNA"
+#' @param pseudobulk.sample.by Metadata sample column name to group cells for pseudobulk analysis (when type="pseudobulk")
+#' @param variables Variables to calculate variance explained for (must be specified)
+#'
+#' @return Return variance explained results for each molecular feature
+#'
+#' @export
+#'
+RunVarExplainedPerFeature <- function(object, type = "cell", assay = "RNA",
+                                      pseudobulk.sample.by = "orig.ident",
+                                      variables = NULL) {
+  # Parameter validation
+  if (!type %in% c("cell", "pseudobulk")) {
+    stop("'type' must be either 'cell' or 'pseudobulk'")
+  }
+
+  if (is.null(variables)) {
+    stop("'variables' parameter must be specified (cannot be NULL)")
+  }
+  metadata <- object@meta.data
+
+  if (!all(variables %in% colnames(metadata))) {
+    missing_vars <- setdiff(variables, colnames(metadata))
+    stop("The following variables were not found in object metadata: ",
+         paste(missing_vars, collapse = ", "))
+  }
+
+  out <- switch(type,
+                "cell" = {
+                  cell_var <- RunVarExplained(object, variables = variables, assay = assay)
+                  return(cell_var)
+                },
+                "pseudobulk" = {
+                  exp <- Seurat::GetAssayData(object, assay = assay, slot = "counts")
+                  exp_sum <- AggregateGroupAcrossCells(exp, metadata, group.by = pseudobulk.sample.by)
+                  exp_sum_nom <- suppressMessages(.getVstExp(exp_sum, assay = assay))
+                  index <- match(colnames(exp_sum_nom), metadata[[pseudobulk.sample.by]])
+                  sample_information <- .pseudobulkMetadata(object, sample.by = pseudobulk.sample.by, variable.by = variables)
+                  sample_information <- sample_information[match(colnames(exp_sum_nom), sample_information$Sample ),]
+                  pobulk_var <- RunVarExplained(exp_sum_nom, sample_information, variables = colnames(sample_information)[-1])
+                  return(pobulk_var)
+                }
+  )
+  return(out)
+}
+
+
+.getVarExplained <- function(object, metadata, variables = NULL) {
+  if (is.null(variables)) {
     variables <- colnames(metadata)
   }
-  R2 <- lapply(variables, function(x){
-    if(is.character(metadata[[x]]) | is.factor(metadata[[x]])){
+  R2 <- lapply(variables, function(x) {
+    if (is.character(metadata[[x]]) | is.factor(metadata[[x]])) {
       metadata[[x]] <- as.character(metadata[[x]])
-      if(length(unique(metadata[[x]]) ) <= 1){
-        warning(sprintf("ignoring '%s' with fewer than 2 unique levels", x))
-        return(NA)
+      if (length(unique(metadata[[x]])) <= 1) {
+        warning(sprintf("Variable '%s' has fewer than 2 unique levels. Skipping.", x))
+        return(NULL)
       }
+      if (length(unique(metadata[[x]])) == nrow(metadata)) {
+        warning(sprintf(
+          "Variable '%s' has a unique value for every observation (R2=100%% is trivial and uninformative). Skipping.",
+          x
+        ))
+        return( NULL )
+      }
+
       out <- .aovR2(object, metadata[[x]])
-    }else if(is.numeric(metadata[[x]])){
+
+    } else if (is.numeric(metadata[[x]])) {
+      if (nrow(metadata) <= 2) {
+        warning(sprintf(
+         " Variable '%s' has <= 2 value for lm. Skipping.",
+          x
+        ))
+        return( NULL )
+      }
+
       out <- .lmR2(object, metadata[[x]])
-    }else{
-      stop("metadata must be numeric or character")
+
+    } else {
+      stop("Metadata must be numeric or character.")
     }
+
     return(out)
   })
+  names(R2) <- variables
+  R2 <- base::Filter(Negate(is.null), R2)
   R2 <- do.call(cbind, R2)
   rownames(R2) <- rownames(object)
-  colnames(R2) <- variables
-  return(R2*100)
+  return(R2 * 100)
 }
+
+
+
+
 
 
 
@@ -147,12 +226,20 @@ RunVarExplained.default <- function(object, metadata, variables=NULL, ...) {
   if(maxPCs > length(PCs)){
     maxPCs <- length(PCs)
   }
+
   out <- lapply(1:maxPCs, function(PC){
     pval_out <- lapply(variables, function(x){
+      n_samples <- nrow(value)
       if( !is(metadata[[x]], "numeric")  ){
         pval <- stats::kruskal.test(value[,PC] ~ as.factor(metadata[[x]]))$p.value
       }else{
-        pval <- summary(stats::lm(value[,PC] ~ metadata[[x]]))$coeff[2,4]
+        if (n_samples == 2) {
+          warning("Only 2 values for continuous variable '", x,
+                  "' (PC", PC,"). Using Kruskal-Wallis test instead of linear regression.")
+          pval <- stats::kruskal.test(value[, PC] ~ as.factor(metadata[[x]]))$p.value
+        } else {
+          pval <- summary(stats::lm(value[, PC] ~ metadata[[x]]))$coeff[2, 4]
+        }
       }
       return(pval)
     })
@@ -186,7 +273,7 @@ RunVarExplained.default <- function(object, metadata, variables=NULL, ...) {
 #' }
 #'
 AggregateGroupAcrossCells <- function(object, metadata, group.by){
-  split_object <- split(1:dim(object)[2], metadata[[group.by]])
+  split_object <- split(1:dim(object)[2], as.character(metadata[[group.by]]) )
   count_sum <- lapply(split_object, function(x){
     result <- Matrix::rowSums(object[, x, drop=F] , na.rm = T)
     return(result)
@@ -196,22 +283,37 @@ AggregateGroupAcrossCells <- function(object, metadata, group.by){
   colnames(count_sum) <- names(split_object)
   return(count_sum)
 }
-.getVstExp <- function(count_sum, assay){
-  if(assay == "ADT"){
-    if(dim(count_sum)[1]>100 ){
-      vsd <- DESeq2::vst(count_sum,blind = T,nsub = 100)
-    }else{
-      vsd <- DESeq2::vst(count_sum,blind = T,nsub = dim(count_sum)[1]-1)
+
+.getVstExp <- function(count_sum, assay) {
+
+  if (ncol(count_sum) < 2) {
+    stop("Error: data must have at least 2 columns.")
+  }
+
+  # check each row
+  if (all(rowSums(count_sum == 0) > 0)) {
+    warning("Every gene has at least one zero. Adding pseudocount (+1) to avoid log(0) issues.")
+    count_sum <- count_sum + 1  # +1
+  }
+
+  if (assay == "ADT") {
+    if (nrow(count_sum) > 100) {
+      vsd <- DESeq2::vst(count_sum, blind = TRUE, nsub = 100)
+    } else {
+      vsd <- DESeq2::vst(count_sum, blind = TRUE, nsub = nrow(count_sum) - 1)
     }
-  }else{
-    if(dim(count_sum)[1]>1000 ){
-      vsd <- DESeq2::vst(count_sum,blind = T, nsub = 1000)
-    }else{
-      vsd <- DESeq2::vst(count_sum,blind = T, nsub = 100 )
+  } else {
+    if (nrow(count_sum) > 1000) {
+      vsd <- DESeq2::vst(count_sum, blind = TRUE, nsub = 1000)
+    } else {
+      vsd <- DESeq2::vst(count_sum, blind = TRUE)
     }
   }
+
   return(vsd)
 }
+
+
 
 .getPcaRes <- function(object, assay ="RNA", sample.by = "orig.ident",  ntop=2000, do.aggregate=T){
   if( !("Seurat" %in% is(object)) ){
@@ -246,6 +348,7 @@ AggregateGroupAcrossCells <- function(object, metadata, group.by){
 
   }
 
+  object[[sample.by]] <- as.character(object[[sample.by]])
   unique_sample_name <- unique(as.character(object[[sample.by]]))
   out_list <- lapply(variable.by, function(x){
     if( !is(object[[x]], "numeric") ){
@@ -255,7 +358,7 @@ AggregateGroupAcrossCells <- function(object, metadata, group.by){
     }else{
       out  <- data.table(object)[, lapply(.SD, function(y) mean( as.numeric(y), na.rm = TRUE) ),
                                  by = sample.by, .SDcols = x][[2]]
-      out <- data.frame(out)
+      out <- data.frame( out )
       if( nrow(object)==nrow(out) ){
         colnames(out) <- x
       }else{
@@ -267,7 +370,9 @@ AggregateGroupAcrossCells <- function(object, metadata, group.by){
   })
   out <- do.call(cbind, out_list)
   out <- data.frame(Sample=unique_sample_name, out, check.names = F)
+
   if(index==1){
+    count_table<-count_table[match(out$Sample , count_table[[1]]), ]
     out <- data.frame(out, count_table, check.names = F)
   }
   return(out)
@@ -304,7 +409,9 @@ AggregateGroupAcrossCells <- function(object, metadata, group.by){
 
   if("pca" %in% plot.type){
     samples_groups <- .pseudobulkMetadata(object, sample.by = sample.by, variable.by =  group.by)
+    samples_groups <- samples_groups[match(rownames(pca_res$x), samples_groups$Sample) , ]
     pca_out <- data.frame(pca_res$x, samples_groups[,2,drop=F])
+
     if("table" %in% return.type){
       pca_out_table <- data.frame(Sample=rownames(pca_res$x), pca_out)
       rownames(pca_out_table) <- NULL
@@ -333,7 +440,6 @@ AggregateGroupAcrossCells <- function(object, metadata, group.by){
       if(is.null(color)){
         color <- get_colors( length(unique(pca_out[[group.by]])))
       }
-
       percentage <- round(pca_res$sdev/sum(pca_res$sdev) * 100,  2)
       percentage <- paste(colnames(pca_out), "(", paste(as.character(percentage), "%", ")", sep = ""))
       out$pca$plot <- ggplot2::ggplot(pca_out, mapping = ggplot2::aes(x = .data$PC1, y = .data$PC2, color = .data[[group.by]], shape = NULL,label = row.names(pca_out)))+
@@ -358,6 +464,7 @@ AggregateGroupAcrossCells <- function(object, metadata, group.by){
 
   if("svd" %in% plot.type){
     samples_groups <- .pseudobulkMetadata(object, sample.by = sample.by, variable.by = variable.by )
+    samples_groups <- samples_groups[match(rownames(pca_res$x), samples_groups$Sample) , ]
     variable_by <- colnames(samples_groups)[-1]
     sig_data <- .svdSig(pca_res, metadata = samples_groups, variables = variable_by, maxPCs = maxPCs)
     sig_data <- data.table(Variable=rownames(sig_data), sig_data, check.names = F)
@@ -404,6 +511,7 @@ AggregateGroupAcrossCells <- function(object, metadata, group.by){
 
   if("explanatory" %in% plot.type){
     samples_groups <- .pseudobulkMetadata(object, sample.by = sample.by, variable.by = variable.by )
+    samples_groups <- samples_groups[match(rownames(pca_res$x), samples_groups$Sample) , ]
     if(is.null(color)){
       color <- get_colors( dim(samples_groups)[1] )
     }
@@ -413,6 +521,9 @@ AggregateGroupAcrossCells <- function(object, metadata, group.by){
 
     plot_data <- .pseudobulkExplanatory(pca_res, samples_groups)
     plot_data <- plot_data[1:maxPCs, apply(plot_data, 2, function(x){sum(!is.na(x))}) > 0, drop=F]
+    if(ncol(plot_data)==1){
+      out$explanatory=NULL
+    }else{
 
     rownames(plot_data) <- NULL
     if("table" %in% return.type){
@@ -440,6 +551,11 @@ AggregateGroupAcrossCells <- function(object, metadata, group.by){
     if(length(out$explanatory)==1){
       out$explanatory <- out$explanatory[[1]]
     }
+    }
+  }
+
+  if(length(out$explanatory)==1){
+    out$explanatory <- out$explanatory[[1]]
   }
 
   if(length(out)==1){
@@ -489,11 +605,10 @@ PlotSamplePCA <- function(object, assay = "RNA", sample.by = "orig.ident", svd.v
 
   ##
   split_object <- list(all=object)
+  tmpdir= "./temp/SingleCellMQC_tempBPCellSplitSeurat/"
 
   if(!is.null(celltype.by)){
-    message(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
-                  "------Split Seurat object"))
-    split_object <- c(split_object, Seurat::SplitObject(object, split.by = celltype.by))
+    split_object <- c(split_object, splitObject(object, split.by = celltype.by))
   }
   out_list <- list()
 
@@ -506,12 +621,31 @@ PlotSamplePCA <- function(object, assay = "RNA", sample.by = "orig.ident", svd.v
     if("svd" %in% plot.type){
       out <- lapply(names(split_object), function(x){
         message(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "svd ",  x))
-        .samplePCAResult(split_object[[x]], assay = assay, sample.by = sample.by, variable.by = svd.variable.by,  maxPCs = svd.maxPCs,
-                         plot.type = "svd", return.type = "table",do.aggregate=do.aggregate)
+        result <- tryCatch(
+          {
+            .samplePCAResult(
+              split_object[[x]],
+              assay = assay,
+              sample.by = sample.by,
+              variable.by = svd.variable.by,
+              maxPCs = svd.maxPCs,
+              plot.type = "svd",
+              return.type = "table",
+              do.aggregate = do.aggregate
+            )
+          },
+          error = function(e) {
+            warning("Warning in .samplePCAResult for element ", x, ": ", e$message)
+            return(NULL)  # return NULL
+          }
+        )
       })
       names(out) <- names(split_object)
+      out <- Filter(Negate(is.null), out)
+
+      #
       plot_table <- lapply( names(out), function(x){
-        data.frame(Group=x, melt.data.table(out[[x]], id.vars = "Variable"), check.names = F)
+        data.frame(Group=x, data.table::melt.data.table(out[[x]], id.vars = "Variable"), check.names = F)
       })
       plot_table <- do.call(rbind, plot_table)
       plot_table <- split(plot_table, plot_table$variable)
@@ -564,13 +698,25 @@ PlotSamplePCA <- function(object, assay = "RNA", sample.by = "orig.ident", svd.v
     if("explanatory" %in% plot.type){
       out <- lapply(names(split_object), function(x){
         message(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "explanatory ",  x))
+        result <- tryCatch(
+          {
         .samplePCAResult(split_object[[x]], assay = assay, sample.by = sample.by, variable.by = svd.variable.by,  maxPCs = svd.maxPCs,
-                         plot.type = "explanatory", return.type = "table",do.aggregate=do.aggregate)
+                         plot.type = "explanatory", return.type = "table",do.aggregate=do.aggregate)}
+            ,error = function(e) {
+              warning("Warning in .samplePCAResult for element ", x, ": ", e$message)
+              return(NULL)  # return NULL
+            }
+        )
       })
       names(out) <- names(split_object)
+      out <- Filter(Negate(is.null), out)
+
+      if(length(out)==0){
+        return(out_list)
+      }
 
       plot_table <- lapply( names(out), function(x){
-        data.frame(Group=x, melt.data.table( data.table(out[[x]]), id.vars = "PCs"), check.names = F)
+        data.frame(Group=x, data.table::melt.data.table( data.table(out[[x]]), id.vars = "PCs"), check.names = F)
       })
       plot_table <- do.call(rbind, plot_table)
       plot_table <- split(plot_table, plot_table$PCs)
@@ -632,16 +778,19 @@ PlotSamplePCA <- function(object, assay = "RNA", sample.by = "orig.ident", svd.v
     out_list <- out_list[[1]]
   }
 
+  if (dir.exists(tmpdir)) {
+    unlink(tmpdir, recursive = TRUE)
+  }
+
   return(out_list)
 }
 # PlotCovariateImpact -----------------------------------------------------
 
 
 #' @title Visualize Covariate Impact on Single-Cell Data
-#' @description This function evaluates the impact of specified covariates on single-cell data, either at the cell level or pseudobulk level. It supports two main visualization types: covariate variance explained across features (`"cell"`) and PCA-based analyses (`"pseudobulk"`).
+#' @description This function evaluates the impact of specified covariates on pseudobulk level. It supports PCA-based analyses (`"pseudobulk"`).
 #'
 #' @param object A Seurat object containing the single-cell data to be analyzed.
-#' @param plot.type A character string specifying the type of plot to generate. Options include `"cell"` and `"pseudobulk"` (default: `"cell"`).
 #' @param assay A character string specifying the assay to use for PCA (default: `"RNA"`).
 #' @param variables A character vector specifying the metadata columns to use for variance explained analysis (default: `NULL`).
 #' @param pseudobulk.sample.by A character string specifying the metadata column used for defining samples in the pseudobulk analysis (default: `"orig.ident"`).
@@ -649,42 +798,26 @@ PlotSamplePCA <- function(object, assay = "RNA", sample.by = "orig.ident", svd.v
 #' @param pseudobulk.celltype.by A character string specifying the metadata column used to split the data into subsets in the pseudobulk analysis (default: `NULL`).
 #' @param color A vector of colors to use for visualizations (default: `NULL`).
 #' @param ... Additional arguments to be passed to the plotting functions.
-#' @return A plot or interactive table based on the specified `plot.type` and `return.type`.
+#' @return A plot or interactive table based on the specified `return.type`.
 #' @export
 #'
-#' @examples
-#' \dontrun{
-#' # Visualize covariate impact, object is a Seurat object
-#' PlotCovariateImpact(object, plot.type = "cell")
-#' }
 #'
 #' @seealso  \code{\link{RunVarExplained}}, \code{\link{PlotVEPerFeature}}, \code{\link{PlotSamplePCA}}
 #'
-PlotCovariateImpact <- function(object, plot.type="cell",assay="RNA", variables=NULL, pseudobulk.sample.by="orig.ident",return.type="plot",
+PlotCovariateImpact <- function(object, assay="RNA", variables=NULL, pseudobulk.sample.by="orig.ident",return.type="plot",
                                 pseudobulk.celltype.by = NULL,
                                 color=NULL ,...){
   if( !("Seurat" %in% is(object)) ){
     stop("Error: Input must be Seurat object.")
   }
 
-  out_data <- switch (plot.type,
-                      "cell" = {
-                        out <- RunVarExplained(object, assay = assay, variables = variables)
-                        p1 <- PlotVEPerFeature(out, plot.type="density", color.density=color, assay = assay)
-                        return(p1)
-                      },
-
-                      "pseudobulk"={
-                        out <- PlotSamplePCA(object, assay = assay, svd.variable.by = variables, sample.by =pseudobulk.sample.by, celltype.by = pseudobulk.celltype.by,plot.type = c("svd", "explanatory"),
-                                             color = color, return.type = return.type,... )
-                        return(out)
-                      }
-  )
-  return(out_data)
+  out <- PlotSamplePCA(object, assay = assay, svd.variable.by = variables, sample.by =pseudobulk.sample.by, celltype.by = pseudobulk.celltype.by,plot.type = c("pca", "svd", "explanatory"),
+                       color = color, return.type = return.type,... )
+  return(out)
 
 }
 
-# batch clustering --------------------------------------------------------
+# batch ReducedDim --------------------------------------------------------
 
 
 
@@ -754,6 +887,7 @@ PlotReducedDim  <- function(object, group.by = "seurat_clusters",
                        if(is.null(ncol)){
                          ncol = ceiling(sqrt(sample_num))
                        }
+                       cluster_data[[group.by]] <- factor(cluster_data[[group.by]], levels = sort(unique(cluster_data[[group.by]])) )
 
                        p <- plotScatter(cluster_data, x= colnames(cluster_data)[1] , y= colnames(cluster_data)[2], group.by = group.by, color = color,
                                         log.x = F,log.y = F,ggside = ggside,split.by = split.by, ncol = ncol,guide.nrow=guide.nrow, raster.cutoff=raster.cutoff)

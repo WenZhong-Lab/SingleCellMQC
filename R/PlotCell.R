@@ -682,8 +682,8 @@ PlotADTCutoff <- function(object, cutoff_table, feature1=NULL, feature2=NULL,
   scale_factors <- exp(log_sums / nrow(expADT))
   expADT <- log1p(  BPCells::multiply_cols(expADT ,1/ scale_factors) )
 
-  expADT1 <- expADT[feature1, ,drop=T]
-  expADT2 <- expADT[feature2, ,drop=T]
+  expADT1 <- as.numeric(as.matrix(expADT[feature1, ,drop=T]))
+  expADT2 <- as.numeric(as.matrix(expADT[feature2, ,drop=T]))
   cut1 <- cutoff_table[cutoff_table$Sample %in% Sample & cutoff_table$feature1 %in% feature1, "cutoff1"]
   cut2 <- cutoff_table[cutoff_table$Sample %in% Sample & cutoff_table$feature2 %in% feature2, "cutoff2"]
   if(is.null(group.by)){

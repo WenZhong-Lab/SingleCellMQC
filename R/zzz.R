@@ -5,6 +5,7 @@
 #' @importFrom methods is
 #' @importFrom stats cmdscale dist sd
 #' @importFrom utils packageVersion
+#' @importFrom utils write.csv
 #' @importFrom graphics par lines axis
 #' @importFrom grDevices pdf
 #' @importFrom grDevices dev.off

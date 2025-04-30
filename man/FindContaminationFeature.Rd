@@ -9,7 +9,7 @@ FindContaminationFeature(
   assay = "RNA",
   group.by = "seurat_clusters",
   split.by = "orig.ident",
-  restriction_factor = 0.5,
+  restriction_factor = 0.1,
   ...
 )
 }
@@ -26,7 +26,7 @@ This parameter is used to identify groups within the cells that may have differe
 \item{split.by}{A character string specifying the sample column in the Seurat object's metadata (e.g., "orig.ident"). Default is "orig.ident".}
 
 \item{restriction_factor}{Numeric. A parameter to control the sensitivity of contamination detection.
-Values should be between 0 and 1, where a higher value implies a stricter detection. Default is 0.5.}
+Values should be between 0 and 1, where a higher value implies a stricter detection. Default is 0.1}
 
 \item{...}{Additional arguments passed to \code{scCDC::ContaminationDetection} for more customized analysis.}
 }

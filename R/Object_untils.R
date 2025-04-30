@@ -152,7 +152,7 @@ splitObject.list <- function(object, split.by = NULL, ...){
     assay_names = assay
   }
 
-  metalist <- split(object@meta.data, object@meta.data[[split.by]] )
+  metalist <- split(object@meta.data, as.character(object@meta.data[[split.by]]) )
   exp_list <- lapply(assay_names, function(assay_name) {
     counts <- SeuratObject::GetAssayData(object, assay = assay_name, slot = "counts")
     return(counts)
@@ -172,7 +172,7 @@ splitObject.list <- function(object, split.by = NULL, ...){
   ## Run parallel processing
   # progressr::with_progress({
   p <- progressr::progressor(along = 1:(length(metalist)+1) )
-  object_list <- future.apply::future_lapply(metalist, function(x) {
+  object_list <- smart_lapply(metalist, function(x) {
     cell_name <- rownames(x)
     # first
     subexp <- exp_list[[ assay_names[1] ]][, cell_name, drop = FALSE]
@@ -326,7 +326,7 @@ MergeMatrix_dgCMatrix <- function(
 
   # Parallelize the processing of each matrix
   p <- progressr::progressor(along = seq_along(matrix_list))
-  matrix_data <- future.apply::future_lapply(seq_along(matrix_list), function(k) {
+  matrix_data <- smart_lapply(seq_along(matrix_list), function(k) {
     mat <- matrix_list[[k]]
     mat_i <- mat@i + 1  # Convert to R-style row indices (1-based)
     mat_p <- mat@p
@@ -489,6 +489,6 @@ smart_lapply <- function(X, FUN, ..., .use_future = NULL, future.seed = TRUE) {
   if (.use_future) {
     future.apply::future_lapply(X, FUN, ..., future.seed = future.seed)
   } else {
-    lapply(X, FUN, ...)
+    lapply(X, FUN)
   }
 }

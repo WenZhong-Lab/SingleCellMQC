@@ -16,9 +16,10 @@
 #' applied to a specific group.
 #' @export
 RunPipelinePerGroup <- function(object, split.by = "orig.ident", ...){
+  # note unlink
   split_object <- splitObject(object, split.by = split.by)
 
-  split_out <- lapply(split_object, function(x){
+  split_out <- smart_lapply(split_object, function(x){
     RunPipeline(x, ...)
   })
   names(split_out) <- names(split_object)

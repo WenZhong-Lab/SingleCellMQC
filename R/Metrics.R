@@ -366,7 +366,7 @@ CalculateMetricsPerSample.count <- function(object, #seurat object
   }
 
   metadata <- object@meta.data
-  split_name <- split(rownames(metadata), metadata[[sample.by]])
+  split_name <- split( as.character(rownames(metadata)), as.character(metadata[[sample.by]]) )
   if( "RNA" %in% names(object@assays)){
     SeuratObject::DefaultAssay(object) <- "RNA"
     counts <- Seurat::GetAssayData(object, assay = "RNA", slot = "counts")
@@ -496,6 +496,8 @@ CalculateMetricsPerSample.summary <- function(object,
     metadata <- object
   }
   metadata <- as.data.table(metadata)
+  metadata[[sample.by]] <- as.character( metadata[[sample.by]])
+
   metrics <- intersect(metrics, colnames(metadata))
   # metrics=c("per_feature_count_RNA", "per_feature_count_ADT")
   stat_table <- metadata[, lapply(.SD, function(x) {
@@ -506,8 +508,11 @@ CalculateMetricsPerSample.summary <- function(object,
       return(as.numeric(summary(x)[1:6]))
     }
   }) , .SDcols = metrics, by = sample.by]
+
+
   stat_table <- stat_table[, stat_method := rep( c("Min", "1st Qu", "Median", "Mean", "3rd Qu", "Max"), length(unique(get(sample.by)))) ]
   setcolorder(stat_table, c("stat_method", names(stat_table)[-length(names(stat_table))]))
+
   stat_list <- lapply(metrics, function(x){
     out <- as.data.frame(data.table::dcast(stat_table, paste0(sample.by," ~ stat_method"), value.var=x))
     out[, -1] <- lapply(out[, -1], function(x) round(x, 3))

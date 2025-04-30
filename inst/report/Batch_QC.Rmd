@@ -7,37 +7,18 @@ output: html_document
 
 # Batch QC 
 
-Batch-to-batch variation is a significant challenge in single-cell analysis, where differences in protocols, reagents, and experimental conditions can introduce noise that obscures true biological signals and leads to misleading interpretations. 
-**You can evaluate batch effects at both sample and cell levels. The section includes two aspects: **
+Batch-to-batch variation is a significant challenge in single-cell analysis, where differences in protocols, reagents, and experimental conditions can introduce noise that obscures true biological signals and leads to misleading interpretations. **You can evaluate batch effects at sample, cell and feature levels.**
 
-- Clustering QC: To evaluate batch effects using high-dimensional reduction techniques (PCA and UMAP). 
-- Batch covariates: To investigate factors contributing to batch effects.
-
-The details below:
-
-## Clustering QC {.tabset}
-
-To address this issue, this section evaluates batch effects using high-dimensional reduction techniques. At the sample level, SingleCellMQC calculates pseudobulk data by aggregating single-cell counts for target cell populations for each sample. A variance stabilizing transformation (vst) is applied to pseudobulk data using the DESeq2 package and subsequent PCA analysis to assess batch effects. At single-cell level, for single-omics data (RNA or ADT counts), preprocessing, dimension reduction and clustering steps in SingleCellMQC are done using by default Seurat or BPCells analysis pipeline. For CITE-seq data, CITE-seq data is integrated using Weighted Nearest Neighbor (WNN) analysis in Seurat package. The results of clustering are visualized by UMAP dimensionality reduction to evaluate batch effect.
-
-```{r clustering test, echo=FALSE, results='asis', warning=FALSE}
-
-if(length(data$Batch$Section1$test_RNA)!=0){
-  warning_alert_orange(paste0("Single-cell RNA data: ", data$Batch$Section1$test_RNA))
-    cat("\n\n")
-}
-if(length(data$Batch$Section1$test_ADT)!=0){
-  warning_alert_orange( paste0("Single-cell ADT data: ", data$Batch$Section1$test_ADT) )
-  cat("\n\n")
-}
-
-```
-
-
-```{r clustering RNA, echo=FALSE, results='asis', warning=FALSE}
+```{r pseudobulk batch, echo=FALSE, results='asis', warning=FALSE}
 
 if(length(data$Batch$Section1$pseudobulk_RNA)!=0 |  length(data$Batch$Section1$pseudobulk_ADT)!=0) {
-  cat(paste0("### ", "Pseudobulk", " {.tabset .unnumbered}\n"))
+    cat(paste0("## ", "Sample-level QC", " {.tabset }\n"))
+    cat("This section evaluates batch effects using PCA and SVD analysis. SingleCellMQC calculates pseudobulk data by aggregating single-cell counts for each sample. A variance stabilizing transformation (vst) is applied to pseudobulk data using the DESeq2 package and subsequent PCA to assess batch effects. In addition, SingleCellMQC performs singular value decomposition (SVD) analysis and calculates R² values to determine batch-associated variables that are significantly associated with principal components.")
   cat('\n\n')
+  
+  cat(paste0("### ", "Pseudobulk PCA", " {.tabset .unnumbered}\n"))
+  cat('\n\n')
+
   cat("This section applies PCA on pseudobulk single-cell data at the sample level, aggregating count data to quickly check batch effects across samples. \n")
   cat('\n\n')
   if(length(data$Batch$Section1$pseudobulk_RNA)!=0){
@@ -45,7 +26,7 @@ if(length(data$Batch$Section1$pseudobulk_RNA)!=0 |  length(data$Batch$Section1$p
       cat(paste0("#### ", i, " {.tabset .unnumbered}\n"))
       cat("![](", paste0(cell_dir, "/Batch_effect/Clustering/pseudobulk/",  paste0(i,".png")), ")")
       cat('\n\n')
-      cat("**Figure: ** The PCA analysis of pseudobulk data. \n\n")
+      # cat("**Figure: ** The PCA analysis of pseudobulk data. \n\n")
       cat('\n\n')
       
       cat(paste0("This plot shows the PCA analysis of pseudobulk data, which can assist in evaluating the batch effects between samples. ", "**IF you want to see interactive plotly object for details, you can see it by click the link ", "[plotly_link](", paste0( "./SingleCellMQC/plot/Batch_effect/Clustering/pseudobulk/",  paste0(i, ".html")), ")", ".**\n\n")) 
@@ -57,7 +38,7 @@ if(length(data$Batch$Section1$pseudobulk_RNA)!=0 |  length(data$Batch$Section1$p
       cat(paste0("#### ", i, " {.tabset .unnumbered}\n"))
       cat("![](", paste0(cell_dir, "/Batch_effect/Clustering/pseudobulk/",  paste0(i,".png")), ")")
       cat('\n\n')
-      cat("**Figure: ** The PCA analysis of pseudobulk data. \n\n")
+      # cat("**Figure: ** The PCA analysis of pseudobulk data. \n\n")
       cat('\n\n')
       
       cat(paste0("This plot shows the PCA analysis of pseudobulk data, which can assist in evaluating the batch effects between samples. ", "**IF you want to see interactive plotly object for details, you can see it by click the link ", "[plotly_link](", paste0( "./SingleCellMQC/plot/Batch_effect/Clustering/pseudobulk/",  paste0(i, ".html")), ")", ".**\n\n")) 
@@ -65,33 +46,140 @@ if(length(data$Batch$Section1$pseudobulk_RNA)!=0 |  length(data$Batch$Section1$p
   }
 }
 
-if(length(data$Batch$Section1$cell_RNA)!=0 |  length(data$Batch$Section1$cell_ADT)!=0) {
-  cat(paste0("### ", "Cell", " {.tabset .unnumbered}\n"))
+
+
+```
+
+
+```{r CovariateImpact, echo=FALSE, results='asis', warning=FALSE}
+
+if(length(data$Batch$Section1$CV_RNA)!=0 |  length(data$Batch$Section1$CV_ADT)!=0 | length(data$Batch$Section1$Cell_CV_RNA)!=0 | length(data$Batch$Section1$Cell_CV_ADT)!=0 ) {
+  cat(paste0("### ", "Covariate impact", " {.tabset .unnumbered}\n"))
   cat('\n\n')
-  cat("The UMAP on original single-cell data at the cell level to visualize batch-related variability. \n")
+  cat("This section performs SVD analysis and calculates R² values to determine batch-associated variables that are significantly associated with principal components, providing insights into the main drivers of batch effects. \n")
+    cat('\n\n')
+  if(length(data$Batch$Section1$CV_RNA)!=0){
+    cat(paste0("#### ", "RNA Pseudobulk", " {.tabset .unnumbered}\n"))
+    temp <- data$Batch$Section1$CV_RNA
+    index <- "PC1" %in% names(temp$svd)
+    
+    if(!index){
+      cat(paste0("##### ", "SVD pvalue", " {.tabset .unnumbered}\n"))
+      cat("The tables of PCA results were analyzed using Kruskal-Wallis tests (for categorical variables) or linear regression models (for continuous variables) to assess the statistical significance of variable associations with principal component scores. Statistical significance was defined as p < 0.05. \n\n ")
+      subchunkify(temp$svd, seed="svd_RNA")
+      cat('\n\n')
+      
+      cat(paste0("##### ", "Explanatory", " {.tabset .unnumbered}\n"))
+      cat("For each PC, the proportion of variance explained (R²) by categorical variables (e.g., batch factors) are computed through one-way ANOVA decomposition, while variance attribution for continuous covariates is calculated via the coefficient of determination (R²) from linear regression. \n\n ")
+      subchunkify(temp$explanatory, seed="explanatory_RNA")
+      cat('\n\n')
+    }else{
+      cat(paste0("##### ", "SVD pvalue", " {.tabset .unnumbered}\n"))
+      cat("The tables of PCA results were analyzed using Kruskal-Wallis tests (for categorical variables) or linear regression models (for continuous variables) to assess the statistical significance of variable associations with principal component scores. Statistical significance was defined as p < 0.05. \n\n ")
+      for (i in names(temp$svd)) {
+        subchunkify(temp$svd[[i]], seed=paste0("svd_RNA_", i))
+        cat('\n\n')
+      }
+      
+      cat(paste0("##### ", "Explanatory", " {.tabset .unnumbered}\n"))
+            cat("For each PC, the proportion of variance explained (R²) by categorical variables (e.g., batch factors) are computed through one-way ANOVA decomposition, while variance attribution for continuous covariates is calculated via the coefficient of determination (R²) from linear regression. \n\n ")
+
+      for (i in names(temp$explanatory)) {
+        subchunkify(temp$explanatory[[i]], seed=paste0("explanatory_RNA_", i))
+        cat('\n\n')
+      }
+    }
+  }
+  
+  if(length(data$Batch$Section1$CV_ADT)!=0){
+    cat(paste0("#### ", "ADT Pseudobulk", " {.tabset .unnumbered}\n"))
+    temp <- data$Batch$Section1$CV_ADT
+    index <- "PC1" %in% names(temp$svd)
+    
+    if(!index){
+      cat(paste0("##### ", "SVD pvalue", " {.tabset .unnumbered}\n"))
+      cat("The tables of PCA results were analyzed using Kruskal-Wallis tests (for categorical variables) or linear regression models (for continuous variables) to assess the statistical significance of variable associations with principal component scores. Statistical significance was defined as p < 0.05. \n\n ")
+      subchunkify(temp$svd, seed="svd_ADT")
+      cat('\n\n')
+      
+      cat(paste0("##### ", "Explanatory", " {.tabset .unnumbered}\n"))
+            cat("For each PC, the proportion of variance explained (R²) by categorical variables (e.g., batch factors) are computed through one-way ANOVA decomposition, while variance attribution for continuous covariates is calculated via the coefficient of determination (R²) from linear regression. \n\n ")
+
+      subchunkify(temp$explanatory, seed="explanatory_ADT")
+      cat('\n\n')
+    }else{
+      cat(paste0("##### ", "SVD pvalue", " {.tabset .unnumbered}\n"))
+      cat("The tables of PCA results were analyzed using Kruskal-Wallis tests (for categorical variables) or linear regression models (for continuous variables) to assess the statistical significance of variable associations with principal component scores. Statistical significance was defined as p < 0.05. \n\n ")
+      for (i in names(temp$svd)) {
+        subchunkify(temp$svd[[i]], seed=paste0("svd_ADT_", i))
+        cat('\n\n')
+      }
+      
+      cat(paste0("##### ", "Explanatory", " {.tabset .unnumbered}\n"))
+            cat("For each PC, the proportion of variance explained (R²) by categorical variables (e.g., batch factors) are computed through one-way ANOVA decomposition, while variance attribution for continuous covariates is calculated via the coefficient of determination (R²) from linear regression. \n\n ")
+
+      for (i in names(temp$explanatory)) {
+        subchunkify(temp$explanatory[[i]], seed=paste0("explanatory_ADT_", i))
+        cat('\n\n')
+      }
+    }
+  }
   cat('\n\n')
-  if(length(data$Batch$Section1$cell_RNA)!=0){
-    for (i in names(data$Batch$Section1$cell_RNA) ) {
-      cat(paste0("#### ", i, " {.tabset .unnumbered}\n"))
-      for (j in data$Batch$Section1$cell_RNA[[i]]) {
-        cat(paste0("##### ", j, " {.tabset .unnumbered}\n"))
+}
+
+```
+
+
+```{r cell_batch_information, echo=FALSE, results='asis', warning=FALSE }
+ if(length(data$Batch$Section2$cell_RNA)!=0 |  length(data$Batch$Section2$cell_ADT)!=0) {
+   cat(paste0("## ", " Cell-level QC", " {.tabset }\n"))
+   cat("\n\n")
+   cat("This section evaluates batch effects using high-dimensional reduction techniques. At single-cell level, for single-omic data (RNA or ADT counts), preprocessing, dimension reduction and clustering steps in SingleCellMQC are done using Seurat or BPCells analysis pipeline. For CITE-seq data, CITE-seq data is integrated using Weighted Nearest Neighbor (WNN) analysis in Seurat package. The results of clustering are visualized by UMAP dimensionality reduction to evaluate batch effect.")
+ }
+
+```
+
+
+```{r clustering test, echo=FALSE, results='asis', warning=FALSE}
+
+if(length(data$Batch$Section2$test_RNA)!=0){
+  warning_alert_orange(paste0("Single-cell RNA data: ", data$Batch$Section2$test_RNA))
+    cat("\n\n")
+}
+if(length(data$Batch$Section2$test_ADT)!=0){
+  warning_alert_orange( paste0("Single-cell ADT data: ", data$Batch$Section2$test_ADT) )
+  cat("\n\n")
+}
+
+```
+
+```{r cell clustering RNA, echo=FALSE, results='asis', warning=FALSE}
+
+if(length(data$Batch$Section2$cell_RNA)!=0 |  length(data$Batch$Section2$cell_ADT)!=0) {
+  # cat(paste0("### ", "Cell", " {.tabset .unnumbered}\n"))
+  cat('\n\n')
+  if(length(data$Batch$Section2$cell_RNA)!=0){
+    for (i in names(data$Batch$Section2$cell_RNA) ) {
+      cat(paste0("### ", i, " {.tabset .unnumbered}\n"))
+      for (j in data$Batch$Section2$cell_RNA[[i]]) {
+        cat(paste0("#### ", j, " {.tabset .unnumbered}\n"))
         cat("![](", paste0(cell_dir, "/Batch_effect/Clustering/cell/",  paste0(j,".png")), ")")
         cat('\n\n')
-        cat("**Figure: ** The UMAP of cell data. \n\n")
+        # cat("**Figure: ** The UMAP of cell data. \n\n")
         cat('\n\n')
       }
     
     }
   }
   
-  if(length(data$Batch$Section1$cell_ADT)!=0){
-    for (i in names(data$Batch$Section1$cell_ADT) ) {
-      cat(paste0("#### ", i, " {.tabset .unnumbered}\n"))
-      for (j in data$Batch$Section1$cell_ADT[[i]]) {
-        cat(paste0("##### ", j, " {.tabset .unnumbered}\n"))
+  if(length(data$Batch$Section2$cell_ADT)!=0){
+    for (i in names(data$Batch$Section2$cell_ADT) ) {
+      cat(paste0("### ", i, " {.tabset .unnumbered}\n"))
+      for (j in data$Batch$Section2$cell_ADT[[i]]) {
+        cat(paste0("#### ", j, " {.tabset .unnumbered}\n"))
         cat("![](", paste0(cell_dir, "/Batch_effect/Clustering/cell/",  paste0(j,".png")), ")")
         cat('\n\n')
-        cat("**Figure: ** The UMAP of cell data. \n\n")
+        # cat("**Figure: ** The UMAP of cell data. \n\n")
         cat('\n\n')
       }
     
@@ -104,94 +192,67 @@ if(length(data$Batch$Section1$cell_RNA)!=0 |  length(data$Batch$Section1$cell_AD
 ```
 
 
-```{r CovariateImpact, echo=FALSE, results='asis', warning=FALSE}
+```{r ve_perfeature , echo=FALSE, results='asis', warning=FALSE}
 
-if(length(data$Batch$Section2$CV_RNA)!=0 |  length(data$Batch$Section1$CV_ADT)!=0 | length(data$Batch$Section2$Cell_CV_RNA)!=0 | length(data$Batch$Section2$Cell_CV_ADT)!=0 ) {
-  cat(paste0("## ", "Batch covariates", " {.tabset}\n"))
+if(length(data$Batch$Section3$CV_RNA)!=0 |  length(data$Batch$Section3$CV_ADT)!=0 | length(data$Batch$Section3$Cell_CV_RNA)!=0 | length(data$Batch$Section3$Cell_CV_ADT)!=0 ) {
   cat('\n\n')
-  cat("To further investigate factors contributing to batch effects, SingleCellMQC performs SVD analysis and calculates R² values to determine batch-associated variables that are significantly associated with principal components, providing insights into the main drivers of batch effects. The PCA results from ‘prcomp’ function are analyzed via Kruskal-Wallis tests (categorical variables) or linear regression (continuous variables) to detect the significance of the relationship between the variable and the PC scores. Additionally, the proportion of variance explained by batch-associated variables is quantified for each feature using ANOVA-derived R² (categorical) or regression-based R² (continuous). \n")
+  cat(paste0("## ", " Feature-level QC", " {.tabset }\n"))
+  cat('\n\n')
+  cat("At the feature level, SingleCellMQC calculates the percentage of variance (R²) explained by different variables for both RNA and surface protein features. These analyses are performed at single-cell and pseudobulk levels, enabling users to quantify the contribution of batch-specific covariates to feature expression variation. For each feature, the proportion of variance explained (R²) by categorical variables (one-way ANOVA) or continuous covariates (linear regression).")
     cat('\n\n')
-  if(length(data$Batch$Section2$CV_RNA)!=0){
+
+  if(length(data$Batch$Section3$CV_RNA)!=0){
     cat(paste0("### ", "RNA Pseudobulk", " {.tabset .unnumbered}\n"))
-    temp <- data$Batch$Section2$CV_RNA
-    index <- "PC1" %in% names(temp$svd)
-    
-    if(!index){
-      cat(paste0("#### ", "SVD pvalue", " {.tabset .unnumbered}\n"))
-      cat("The tables of PCA results were analyzed using Kruskal-Wallis tests (for categorical variables) or linear regression models (for continuous variables) to assess the statistical significance of variable associations with principal component scores. Statistical significance was defined as p < 0.05. \n\n ")
-      subchunkify(temp$svd, seed="svd_RNA")
-      cat('\n\n')
-      
-      cat(paste0("#### ", "Explanatory", " {.tabset .unnumbered}\n"))
-      subchunkify(temp$explanatory, seed="explanatory_RNA")
-      cat('\n\n')
-    }else{
-      cat(paste0("#### ", "SVD pvalue", " {.tabset .unnumbered}\n"))
-      cat("The tables of PCA results were analyzed using Kruskal-Wallis tests (for categorical variables) or linear regression models (for continuous variables) to assess the statistical significance of variable associations with principal component scores. Statistical significance was defined as p < 0.05. \n\n ")
-      for (i in names(temp$svd)) {
-        subchunkify(temp$svd[[i]], seed=paste0("svd_RNA_", i))
-        cat('\n\n')
-      }
-      
-      cat(paste0("#### ", "Explanatory", " {.tabset .unnumbered}\n"))
-      for (i in names(temp$explanatory)) {
-        subchunkify(temp$explanatory[[i]], seed=paste0("explanatory_RNA_", i))
-        cat('\n\n')
-      }
-    }
+    cat("![](", paste0(cell_dir, "/Batch_effect/Feature/RNA_pseudobulk.png"), ")")
+    cat('\n\n')
+    cat('
+Density plot showing the percentage of variance explained by a set of explanatory variables across all gene/proteins. The explanatory percentages are generated by SingleCellMQC package. We can then use this to determine which experimental factors are contributing most to the variance in expression. This is useful for diagnosing batch effects or to quickly verify that biological experiment has an effect.', " \n\n")
+    cat('\n\n')
+    subchunkify(data$Batch$Section3$CV_RNA, seed="CV_RNA")
+    cat('\n\n')
+    cat("Whole csv table see [link](", paste0(cell_dir, "/Batch_effect/Feature/RNA_pseudobulk_VE_perFeature.csv"), ")")
+    cat('\n\n')
   }
   
-  if(length(data$Batch$Section2$CV_ADT)!=0){
+  if(length(data$Batch$Section3$CV_ADT)!=0){
     cat(paste0("### ", "ADT Pseudobulk", " {.tabset .unnumbered}\n"))
-    temp <- data$Batch$Section2$CV_ADT
-    index <- "PC1" %in% names(temp$svd)
+        cat("![](", paste0(cell_dir, "/Batch_effect/Feature/ADT_pseudobulk.png"), ")")
+    cat('\n\n')
+    cat('
+Density plot showing the percentage of variance explained by a set of explanatory variables across all gene/proteins. The explanatory percentages are generated by SingleCellMQC package. We can then use this to determine which experimental factors are contributing most to the variance in expression. This is useful for diagnosing batch effects or to quickly verify that biological experiment has an effect.', " \n\n")
+    cat('\n\n')
+    subchunkify(data$Batch$Section3$CV_ADT, seed="CV_ADT")
+    cat('\n\n')
+    cat("Whole csv table see [link](", paste0(cell_dir, "/Batch_effect/Feature/ADT_pseudobulk_VE_perFeature.csv"), ")")
+    cat('\n\n')
     
-    if(!index){
-      cat(paste0("#### ", "SVD pvalue", " {.tabset .unnumbered}\n"))
-      cat("The tables of PCA results were analyzed using Kruskal-Wallis tests (for categorical variables) or linear regression models (for continuous variables) to assess the statistical significance of variable associations with principal component scores. Statistical significance was defined as p < 0.05. \n\n ")
-      subchunkify(temp$svd, seed="svd_ADT")
-      cat('\n\n')
-      
-      cat(paste0("#### ", "Explanatory", " {.tabset .unnumbered}\n"))
-      subchunkify(temp$explanatory, seed="explanatory_ADT")
-      cat('\n\n')
-    }else{
-      cat(paste0("#### ", "SVD pvalue", " {.tabset .unnumbered}\n"))
-      cat("The tables of PCA results were analyzed using Kruskal-Wallis tests (for categorical variables) or linear regression models (for continuous variables) to assess the statistical significance of variable associations with principal component scores. Statistical significance was defined as p < 0.05. \n\n ")
-      for (i in names(temp$svd)) {
-        subchunkify(temp$svd[[i]], seed=paste0("svd_ADT_", i))
-        cat('\n\n')
-      }
-      
-      cat(paste0("#### ", "Explanatory", " {.tabset .unnumbered}\n"))
-      for (i in names(temp$explanatory)) {
-        subchunkify(temp$explanatory[[i]], seed=paste0("explanatory_ADT_", i))
-        cat('\n\n')
-      }
-    }
   }
   
   
-  if(length(data$Batch$Section2$Cell_CV_RNA)!=0){
+  if(length(data$Batch$Section3$Cell_CV_RNA)!=0){
     cat(paste0("### ", "RNA Cell", " {.tabset .unnumbered}\n"))
-    cat("![](", paste0(cell_dir, "/Batch_effect/Covariate/RNA_CovariateImpact.png"), ")")
+    cat("![](", paste0(cell_dir, "/Batch_effect/Feature/RNA_cell.png"), ")")
     cat('\n\n')
     cat('
-Density plot showing the percentage of variance explained by a set of explanatory variables across all gene/proteins. The explanatory percentages are generated by SingleCellQC package. We can then use this to determine which experimental factors are contributing most to the variance in expression. This is useful for diagnosing batch effects or to quickly verify that biological experiment has an effect. If percentages are generally small (<1%), it indicates that gene expressions are not strongly associated with this technical factor.', " \n\n")
+Density plot showing the percentage of variance explained by a set of explanatory variables across all gene/proteins. The explanatory percentages are generated by SingleCellMQC package. We can then use this to determine which experimental factors are contributing most to the variance in expression. This is useful for diagnosing batch effects or to quickly verify that biological experiment has an effect.', " \n\n")
     cat('\n\n')
-    subchunkify(data$Batch$Section2$Cell_CV_RNA, seed="Cell_CV_RNA")
+    subchunkify(data$Batch$Section3$Cell_CV_RNA, seed="Cell_CV_RNA")
+    cat('\n\n')
+    cat("Whole csv table see [link](", paste0(cell_dir, "/Batch_effect/Feature/RNA_cell_VE_perFeature.csv"), ")")
     cat('\n\n')
   }
   
-  if(length(data$Batch$Section2$Cell_CV_ADT)!=0){
+  if(length(data$Batch$Section3$Cell_CV_ADT)!=0){
     cat(paste0("### ", "ADT Cell", " {.tabset .unnumbered}\n"))
-    cat("![](", paste0(cell_dir, "/Batch_effect/Covariate/ADT_CovariateImpact.png"), ")")
+    cat("![](", paste0(cell_dir, "/Batch_effect/Feature/ADT_cell.png"), ")")
     cat('\n\n')
     cat('
-Density plot showing the percentage of variance explained by a set of explanatory variables across all gene/proteins. The explanatory percentages are generated by SingleCellQC package. We can then use this to determine which experimental factors are contributing most to the variance in expression. This is useful for diagnosing batch effects or to quickly verify that biological experiment has an effect. If percentages are generally small (<1%), it indicates that gene expressions are not strongly associated with this technical factor.', " \n\n")
+Density plot showing the percentage of variance explained by a set of explanatory variables across all gene/proteins. The explanatory percentages are generated by SingleCellMQC package. We can then use this to determine which experimental factors are contributing most to the variance in expression. This is useful for diagnosing batch effects or to quickly verify that biological experiment has an effect.', " \n\n")
 
     cat('\n\n')
-    subchunkify(data$Batch$Section2$Cell_CV_ADT, seed="Cell_CV_ADT")
+    subchunkify(data$Batch$Section3$Cell_CV_ADT, seed="Cell_CV_ADT")
+    cat('\n\n')
+    cat("Whole csv table see [link](", paste0(cell_dir, "/Batch_effect/Feature/ADT_cell_VE_perFeature.csv"), ")")
     cat('\n\n')
   }
   

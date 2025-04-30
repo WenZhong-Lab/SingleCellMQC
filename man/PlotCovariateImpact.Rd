@@ -6,7 +6,6 @@
 \usage{
 PlotCovariateImpact(
   object,
-  plot.type = "cell",
   assay = "RNA",
   variables = NULL,
   pseudobulk.sample.by = "orig.ident",
@@ -18,8 +17,6 @@ PlotCovariateImpact(
 }
 \arguments{
 \item{object}{A Seurat object containing the single-cell data to be analyzed.}
-
-\item{plot.type}{A character string specifying the type of plot to generate. Options include \code{"cell"} and \code{"pseudobulk"} (default: \code{"cell"}).}
 
 \item{assay}{A character string specifying the assay to use for PCA (default: \code{"RNA"}).}
 
@@ -36,17 +33,10 @@ PlotCovariateImpact(
 \item{...}{Additional arguments to be passed to the plotting functions.}
 }
 \value{
-A plot or interactive table based on the specified \code{plot.type} and \code{return.type}.
+A plot or interactive table based on the specified \code{return.type}.
 }
 \description{
-This function evaluates the impact of specified covariates on single-cell data, either at the cell level or pseudobulk level. It supports two main visualization types: covariate variance explained across features (\code{"cell"}) and PCA-based analyses (\code{"pseudobulk"}).
-}
-\examples{
-\dontrun{
-# Visualize covariate impact, object is a Seurat object
-PlotCovariateImpact(object, plot.type = "cell")
-}
-
+This function evaluates the impact of specified covariates on pseudobulk level. It supports PCA-based analyses (\code{"pseudobulk"}).
 }
 \seealso{
 \code{\link{RunVarExplained}}, \code{\link{PlotVEPerFeature}}, \code{\link{PlotSamplePCA}}

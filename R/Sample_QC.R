@@ -329,7 +329,7 @@ ShowDatabaseTissue <- function(database="ScType"){
   metrics_out <- do.call(rbind, metrics_out)
 
   metrics_list <- lapply(seq_along(metrics.by), function(x){
-    out <- metrics_out$sample[(metrics_out$metrics_name %in% metrics.by[x]) & metrics_out$isFlagged==TRUE ]
+    out <- as.character(metrics_out$sample[(metrics_out$metrics_name %in% metrics.by[x]) & metrics_out$isFlagged==TRUE ])
     if( !S4Vectors::isEmpty(out) & sum(is.na(out))==0 ){
       cat(" ", metrics.by[x], "warning samples:", paste0(out,collapse = "," ),"\n")
     }

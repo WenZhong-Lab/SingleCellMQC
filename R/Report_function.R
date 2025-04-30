@@ -40,8 +40,9 @@ report.sample <- function(object, VDJ_data=NULL, sample.by="orig.ident", color=N
 
 
   ##Metrics information
-  message(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),  "------ Run Sample QC: Sample quality assessment --- Checking Basic Metrics"))
-  outlist$Metrics$note <- utils::capture.output(outlist$Metrics$count <- PlotSampleMetrics(object, type = "count",  return.type = "interactive_table", csv.name = "count", elementId ="count-table",maxWidth = NULL))
+  message(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),  "------ Run Sample QC: Sample quality assessment --- Checking RNA & ADT Metrics"))
+  outlist$Metrics$note <- utils::capture.output(outlist$Metrics$count <- PlotSampleMetrics(object, type = "count",  return.type = "interactive_table",metrics= c("nCell", "nGene_RNA","nPro_ADT"),
+                                                                                           csv.name = "GEX_metrics", elementId ="GEX_metrics-table",maxWidth = NULL))
   outlist$Metrics$note <- c(outlist$Metrics$note , utils::capture.output(outlist$Metrics$summary <- PlotSampleMetrics(object, type = "summary",  return.type = "interactive_table", metrics = ShowSampleMetricsName(object, type = "summary"), maxWidth = NULL)))
 
   ##metrics outlier
@@ -103,7 +104,9 @@ report.sample <- function(object, VDJ_data=NULL, sample.by="orig.ident", color=N
                         plot= outlist$VDJ$CDR3$TCR ,
                         width= 10,
                         height = 8, dpi=150)
-        suppressWarnings(htmlwidgets::saveWidget( plotly::partial_bundle(plotly::ggplotly(outlist$VDJ$CDR3$TCR)), paste0(plot_out, "/SingleCellMQC/plot/Sample_QC/VDJ/CDR3/", "TCR_CDR3", ".html"), selfcontained = F) )
+        # suppressWarnings(htmlwidgets::saveWidget( plotly::partial_bundle(plotly::ggplotly(outlist$VDJ$CDR3$TCR)), paste0(plot_out, "/SingleCellMQC/plot/Sample_QC/VDJ/CDR3/", "TCR_CDR3", ".html"), selfcontained = F) )
+        suppressWarnings(htmlwidgets::saveWidget( (plotly::ggplotly(outlist$VDJ$CDR3$TCR)), paste0(plot_out, "/SingleCellMQC/plot/Sample_QC/VDJ/CDR3/", "TCR_CDR3", ".html"), selfcontained = F) )
+
         outlist$VDJ$CDR3$TCR <- "TCR_CDR3"
       }
     }
@@ -138,7 +141,9 @@ report.sample <- function(object, VDJ_data=NULL, sample.by="orig.ident", color=N
                         plot= outlist$VDJ$CDR3$BCR ,
                         width= 10,
                         height = 8, dpi=150)
-        suppressWarnings(htmlwidgets::saveWidget( plotly::partial_bundle(plotly::ggplotly(outlist$VDJ$CDR3$BCR)), paste0(plot_out, "/SingleCellMQC/plot/Sample_QC/VDJ/CDR3/", "BCR_CDR3", ".html"), selfcontained = F) )
+        # suppressWarnings(htmlwidgets::saveWidget( plotly::partial_bundle(plotly::ggplotly(outlist$VDJ$CDR3$BCR)), paste0(plot_out, "/SingleCellMQC/plot/Sample_QC/VDJ/CDR3/", "BCR_CDR3", ".html"), selfcontained = F) )
+        suppressWarnings(htmlwidgets::saveWidget( (plotly::ggplotly(outlist$VDJ$CDR3$BCR)), paste0(plot_out, "/SingleCellMQC/plot/Sample_QC/VDJ/CDR3/", "BCR_CDR3", ".html"), selfcontained = F) )
+
         outlist$VDJ$CDR3$BCR <- "BCR_CDR3"
 
       }
@@ -384,32 +389,20 @@ report.feature <- function(object, marker_name= c("CD3D","CD3E","CD19", "MS4A1",
 }
 
 
-.batchSection1 <- function(object, RNA_cluster_name=NULL, ADT_cluster_name=NULL,
-                           sample.by="orig.ident",
-                           RNA.batch.by= "orig.ident",
-                           ADT.batch.by="orig.ident", plot_out){
+.batchSection1 <- function(object,
+         sample.by="orig.ident",
+         RNA.batch.by= "orig.ident",
+         ADT.batch.by="orig.ident", plot_out,
+         RNA.batch.covariate=c( "orig.ident" ,"percent.mt", "nFeature_RNA", "nCount_RNA"),
+         ADT.batch.covariate=c( "orig.ident" , "nFeature_ADT", "nCount_ADT"),
+         celltype.by=NULL){
   message(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
-                "------ Run Batch QC: Clustering QC"))
-metadata <- object@meta.data
+                "------ Run Batch QC: Sample-level"))
+  metadata <- object@meta.data
   outlist <- list()
-  ## batch test
-  if(!is.null(RNA_cluster_name)){
-    if(RNA_cluster_name %in% colnames(object@meta.data) ){
-      outlist$test_RNA <- utils::capture.output(temp <- RunBatchTest(object, cluster.by = RNA_cluster_name),  type = "message")
-    }
-  }
-
-  if(!is.null(ADT_cluster_name)){
-    if(ADT_cluster_name %in% colnames(object@meta.data)){
-      outlist$test_ADT <- utils::capture.output(temp <- RunBatchTest(object, cluster.by = ADT_cluster_name),  type = "message")
-    }
-  }
-
-
-  ##pseudobulk clustering
   {
     message(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
-                  "------ Run Batch QC: Clustering QC --- Pseudobulk clustering"))
+                  "------ Run Batch QC: Pseudobulk PCA"))
 
     if (!dir.exists(paste0(plot_out,"/SingleCellMQC/plot/Batch_effect/Clustering/pseudobulk/"))) {
       dir.create(paste0(plot_out,"/SingleCellMQC/plot/Batch_effect/Clustering/pseudobulk/"), recursive = TRUE)
@@ -435,7 +428,8 @@ metadata <- object@meta.data
                         width=10,
                         height = 8, dpi=150)
 
-        suppressWarnings(htmlwidgets::saveWidget( plotly::partial_bundle(plotly::ggplotly(p1)), paste0(plot_out,"/SingleCellMQC/plot/Batch_effect/Clustering/pseudobulk/", x, "_RNA.html"), selfcontained = F) )
+        # suppressWarnings(htmlwidgets::saveWidget( plotly::partial_bundle(plotly::ggplotly(p1)), paste0(plot_out,"/SingleCellMQC/plot/Batch_effect/Clustering/pseudobulk/", x, "_RNA.html"), selfcontained = F) )
+        suppressWarnings(htmlwidgets::saveWidget( (plotly::ggplotly(p1)), paste0(plot_out,"/SingleCellMQC/plot/Batch_effect/Clustering/pseudobulk/", x, "_RNA.html"), selfcontained = F) )
 
       })
       outlist$pseudobulk_RNA <-paste0(RNA.batch.by, "_RNA")
@@ -466,7 +460,10 @@ metadata <- object@meta.data
                         width = 10,
                         height = 8, dpi = 150)
 
-        suppressWarnings(htmlwidgets::saveWidget(plotly::partial_bundle(plotly::ggplotly(p1)),
+        # suppressWarnings(htmlwidgets::saveWidget(plotly::partial_bundle(plotly::ggplotly(p1)),
+        #                                          paste0(plot_out, "/SingleCellMQC/plot/Batch_effect/Clustering/pseudobulk/", x, "_ADT.html"),
+        #                                          selfcontained = FALSE))
+        suppressWarnings(htmlwidgets::saveWidget((plotly::ggplotly(p1)),
                                                  paste0(plot_out, "/SingleCellMQC/plot/Batch_effect/Clustering/pseudobulk/", x, "_ADT.html"),
                                                  selfcontained = FALSE))
       })
@@ -475,9 +472,62 @@ metadata <- object@meta.data
 
   }
 
+
+
+  {
+    message(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+                  "------ Run Batch QC: Covariate Impact"))
+    ## CovariateImpact
+    if( "RNA" %in% names(object@assays) ){
+      message(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+                    "------ Run Batch QC: Covariate Impact RNA data"))
+      SeuratObject::DefaultAssay(object) <- "RNA"
+      outlist$CV_RNA <- PlotCovariateImpact(object, assay="RNA" ,variables =RNA.batch.covariate, pseudobulk.celltype.by=celltype.by,  return.type = "interactive_table")
+    }
+
+    if( "ADT" %in% names(object@assays) ){
+      SeuratObject::DefaultAssay(object) <- "ADT"
+      if(dim(object)[1] < 10){
+        message("--------nADT < 10")
+      }else{
+        message(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+                      "------ Run Batch QC: Covariate Impact ADT data"))
+        outlist$CV_ADT <- PlotCovariateImpact(object, assay="ADT" ,variables =ADT.batch.covariate, pseudobulk.celltype.by=celltype.by,  return.type = "interactive_table")
+      }
+    }
+  }
+  return(outlist)
+
+}
+
+
+
+
+
+.batchSection2 <- function(object, RNA_cluster_name=NULL, ADT_cluster_name=NULL,
+                           sample.by="orig.ident",
+                           RNA.batch.by= "orig.ident",
+                           ADT.batch.by="orig.ident", plot_out){
+  message(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+                "------ Run Batch QC: Cell-level"))
+  metadata <- object@meta.data
+  outlist <- list()
+  ## batch test
+  if(!is.null(RNA_cluster_name)){
+    if(RNA_cluster_name %in% colnames(object@meta.data) ){
+      outlist$test_RNA <- utils::capture.output(temp <- RunBatchTest(object, cluster.by = RNA_cluster_name),  type = "message")
+    }
+  }
+
+  if(!is.null(ADT_cluster_name)){
+    if(ADT_cluster_name %in% colnames(object@meta.data)){
+      outlist$test_ADT <- utils::capture.output(temp <- RunBatchTest(object, cluster.by = ADT_cluster_name),  type = "message")
+    }
+  }
+
   ##cell
   message(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
-                "------ Run Batch QC: Clustering QC --- Cell clustering"))
+                "------ Run Batch QC: Cell clustering"))
   if (!dir.exists(paste0(plot_out,"/SingleCellMQC/plot/Batch_effect/Clustering/cell/"))) {
     dir.create(paste0(plot_out,"/SingleCellMQC/plot/Batch_effect/Clustering/cell/"), recursive = TRUE)
   }
@@ -532,62 +582,96 @@ metadata <- object@meta.data
   }
   return(outlist)
 }
-.batchSection2 <- function(object,
+
+.batchSection3 <- function(object,
+                           sample.by="orig.ident",
                            RNA.batch.covariate=c( "orig.ident" ,"percent.mt", "nFeature_RNA", "nCount_RNA"),
                            ADT.batch.covariate=c( "orig.ident" , "nFeature_ADT", "nCount_ADT"),
-                           celltype.by=NULL,plot_out){
+                           plot_out){
   message(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
-                "------ Run Batch QC: Covariate Impact"))
+                "------ Run Batch QC: Feature-level"))
   outlist <- list()
-  ## CovariateImpact
-  if( "RNA" %in% names(object@assays) ){
-    message(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
-                  "------ Run Batch QC: Covariate Impact RNA data"))
-    SeuratObject::DefaultAssay(object) <- "RNA"
-    outlist$CV_RNA <- PlotCovariateImpact(object, assay="RNA" ,variables =RNA.batch.covariate, plot.type = "pseudobulk" ,pseudobulk.celltype.by=celltype.by,  return.type = "interactive_table")
-    if (!dir.exists(paste0(plot_out,"/SingleCellMQC/plot/Batch_effect/Covariate/"))) {
-      dir.create(paste0(plot_out,"/SingleCellMQC/plot/Batch_effect/Covariate/"), recursive = TRUE)
-    }
+  if (!dir.exists(paste0(plot_out,"/SingleCellMQC/plot/Batch_effect/Feature/"))) {
+    dir.create(paste0(plot_out,"/SingleCellMQC/plot/Batch_effect/Feature/"), recursive = TRUE)
+  }
+  if (!dir.exists(paste0(plot_out,"/SingleCellMQC/excel/Batch_effect/"))) {
+    dir.create(paste0(plot_out,"/SingleCellMQC/excel/Batch_effect/"), recursive = TRUE)
+  }
 
-    out <- RunVarExplained(object, assay = "RNA", variables = RNA.batch.covariate)
+  ##
+  if( "RNA" %in% names(object@assays) ){
+
+    message(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+                  "------ Run Batch QC: Variance explained  per feature (RNA data) "))
+
+    message(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+                  "------ Run Batch QC: Pseudobulk RNA"))
+
+    SeuratObject::DefaultAssay(object) <- "RNA"
+    out <- RunVarExplainedPerFeature(object, assay = "RNA", variables = RNA.batch.covariate, pseudobulk.sample.by = sample.by, type = "pseudobulk")
     p1 <- PlotVEPerFeature(out, plot.type="density")
     ggplot2::ggsave(
-      paste0(plot_out, "/SingleCellMQC/plot/Batch_effect/Covariate/","RNA_CovariateImpact.png"),
+      paste0(plot_out, "/SingleCellMQC/plot/Batch_effect/Feature/","RNA_pseudobulk.png"),
       plot = p1,
       width = 8,
       height = 6,
       dpi = 150
     )
-    outlist$Cell_CV_RNA <- PlotVEPerFeature(out, plot.type="density", return.type = "interactive_table")
+    write.csv(out, file = paste0(plot_out,"/SingleCellMQC/plot/Batch_effect/Feature/RNA_pseudobulk_VE_perFeature.csv") )
+    outlist$CV_RNA <- PlotVEPerFeature(out, plot.type="density", return.type = "interactive_table", csv.name = "RNA_pseudobulk_VE_perFeature")
+
+    message(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+                  "------ Run Batch QC: Cell RNA"))
+    out <- RunVarExplainedPerFeature(object, assay = "RNA", variables = RNA.batch.covariate, type = "cell")
+    p1 <- PlotVEPerFeature(out, plot.type="density")
+    ggplot2::ggsave(
+      paste0(plot_out, "/SingleCellMQC/plot/Batch_effect/Feature/","RNA_cell.png"),
+      plot = p1,
+      width = 8,
+      height = 6,
+      dpi = 150
+    )
+    write.csv(out, file = paste0(plot_out,"/SingleCellMQC/plot/Batch_effect/Feature/RNA_cell_VE_perFeature.csv") )
+    outlist$Cell_CV_RNA <- PlotVEPerFeature(out, plot.type="density", return.type = "interactive_table", csv.name = "RNA_cell_VE_perFeature")
   }
 
   if( "ADT" %in% names(object@assays) ){
+    message(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+                  "------ Run Batch QC: Variance explained  per feature (ADT data) "))
+    message(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+                  "------ Run Batch QC: Pseudobulk ADT"))
     SeuratObject::DefaultAssay(object) <- "ADT"
-    if(dim(object)[1] < 10){
-      message("--------nADT < 10")
-    }else{
-        message(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
-                  "------ Run Batch QC: Covariate Impact ADT data"))
-    outlist$CV_ADT <- PlotCovariateImpact(object, assay="ADT" ,variables =ADT.batch.covariate, plot.type = "pseudobulk" ,pseudobulk.celltype.by=celltype.by,  return.type = "interactive_table")
-    if (!dir.exists(paste0(plot_out,"/SingleCellMQC/plot/Batch_effect/Covariate/"))) {
-      dir.create(paste0(plot_out,"/SingleCellMQC/plot/Batch_effect/Covariate/"), recursive = TRUE)
-    }
-
-    out <- RunVarExplained(object, assay = "ADT", variables = ADT.batch.covariate)
-    p1 <- PlotVEPerFeature(out, plot.type="density", assay = "ADT")
+    out <- RunVarExplainedPerFeature(object, assay = "ADT", variables = ADT.batch.covariate, pseudobulk.sample.by = sample.by, type = "pseudobulk")
+    p1 <- PlotVEPerFeature(out, plot.type="density")
     ggplot2::ggsave(
-      paste0(plot_out, "/SingleCellMQC/plot/Batch_effect/Covariate/","ADT_CovariateImpact.png"),
+      paste0(plot_out, "/SingleCellMQC/plot/Batch_effect/Feature/","ADT_pseudobulk.png"),
       plot = p1,
       width = 8,
       height = 6,
       dpi = 150
     )
-    outlist$Cell_CV_ADT <- PlotVEPerFeature(out, plot.type="density", return.type = "interactive_table", assay = "ADT")
-    }
+    write.csv(out, file = paste0(plot_out,"/SingleCellMQC/plot/Batch_effect/Feature/ADT_pseudobulk_VE_perFeature.csv") )
+    outlist$CV_ADT <- PlotVEPerFeature(out, plot.type="density", return.type = "interactive_table",csv.name = "ADT_pseudobulk_VE_perFeature")
+
+    message(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+                  "------ Run Batch QC: Cell ADT"))
+    out <- RunVarExplainedPerFeature(object, assay = "ADT", variables = ADT.batch.covariate, type = "cell")
+    p1 <- PlotVEPerFeature(out, plot.type="density")
+    ggplot2::ggsave(
+      paste0(plot_out, "/SingleCellMQC/plot/Batch_effect/Feature/","ADT_cell.png"),
+      plot = p1,
+      width = 8,
+      height = 6,
+      dpi = 150
+    )
+    write.csv(out, file = paste0(plot_out,"/SingleCellMQC/plot/Batch_effect/Feature/ADT_cell_VE_perFeature.csv") )
+    outlist$Cell_CV_ADT <- PlotVEPerFeature(out, plot.type="density", return.type = "interactive_table", csv.name = "ADT_cell_VE_perFeature")
   }
 
   return(outlist)
 }
+
+
 
 
 report.batch <- function(object, RNA_cluster_name=NULL, ADT_cluster_name=NULL,
@@ -602,11 +686,17 @@ report.batch <- function(object, RNA_cluster_name=NULL, ADT_cluster_name=NULL,
   Batch <- list()
 
   if(1 %in% section){
-    Batch$Section1  <- .batchSection1(object, RNA_cluster_name=RNA_cluster_name, ADT_cluster_name=ADT_cluster_name, RNA.batch.by=RNA.batch.by, ADT.batch.by=ADT.batch.by, plot_out=plot_out, sample.by=sample.by)
+    Batch$Section1  <- .batchSection1(object, RNA.batch.by=RNA.batch.by, ADT.batch.by=ADT.batch.by, plot_out=plot_out, sample.by=sample.by,
+                                      RNA.batch.covariate=RNA.batch.covariate, ADT.batch.covariate=ADT.batch.covariate, celltype.by=celltype.by
+                                      )
   }
 
   if(2 %in% section){
-    Batch$Section2  <- .batchSection2(object, RNA.batch.covariate=RNA.batch.covariate, ADT.batch.covariate=ADT.batch.covariate, celltype.by=celltype.by, plot_out=plot_out)
+    Batch$Section2  <- .batchSection2(object, RNA_cluster_name=RNA_cluster_name, ADT_cluster_name=ADT_cluster_name, RNA.batch.by=RNA.batch.by, ADT.batch.by=ADT.batch.by, plot_out=plot_out, sample.by=sample.by)
+  }
+
+  if(3 %in% section){
+   Batch$Section3  <- .batchSection3(object,sample.by=sample.by, RNA.batch.covariate=RNA.batch.covariate, ADT.batch.covariate=ADT.batch.covariate,  plot_out=plot_out)
   }
   return(Batch)
 }
@@ -631,31 +721,24 @@ report.batch <- function(object, RNA_cluster_name=NULL, ADT_cluster_name=NULL,
 #'   - **`2`**: Run Cell QC: Doublet information.
 #' @param section.feature Sections to include in the Feature QC module. Default is `1`.
 #'   - **`1`**: Run Feature QC: Feature quality assessment.
-#' @param section.batch Sections to include in the Batch QC module. Default is `1:2`.
-#'   - **`1`**: Run Batch QC: Clustering QC.
-#'   - **`2`**: Run Batch QC: Covariate Impact.
-#' @param RNA_cluster_name Column name in the metadata indicating RNA cluster information. Default is "rna_cluster". Only for: **Batch QC (Clustering QC)**.
-#' @param ADT_cluster_name Column name in the metadata indicating ADT cluster information. Default is "adt_cluster". Only for: **Batch QC (Clustering QC)**.
-#' @param RNA.batch.by Column name in the metadata indicating RNA batch information. Default is "orig.ident". Only for: **Batch QC (Clustering QC, Covariate Impact)**.
-#' @param ADT.batch.by Column name in the metadata indicating ADT batch information. Default is "orig.ident". Only for: **Batch QC (Clustering QC, Covariate Impact)**.
-#' @param RNA.batch.covariate Covariates for RNA batch analysis. Default is `c("orig.ident", "percent.mt", "nFeature_RNA", "nCount_RNA")`. Only for: **Batch QC (Covariate Impact)**.
-#' @param ADT.batch.covariate Covariates for ADT batch analysis. Default is `c("orig.ident", "nFeature_ADT", "nCount_ADT")`. Only for:**Batch QC (Covariate Impact)**.
-#' @param celltype.by Column name in the metadata indicating cell type information. Default is "ScType". Only for: **Sample QC (Outlier sample detection by cell type), Batch QC (Clustering QC)**.
-#' @param tissue Tissue name. Default is NULL. Only for: **Sample QC (Sample quality assessment, Outlier sample detection by cell type)**.
+#' @param section.batch Sections to include in the Batch QC module. Default is `1:3`.
+#'   - **`1`**: Run Batch QC: Sample level.
+#'   - **`2`**: Run Batch QC: Cell level.
+#'   - **`3`**: Run Batch QC: Feature level.
+#' @param RNA_cluster_name Column name in the metadata indicating RNA cluster information. Default is "rna_cluster". Only for: section.batch (2).
+#' @param ADT_cluster_name Column name in the metadata indicating ADT cluster information. Default is "adt_cluster". Only for: section.batch (2).
+#' @param RNA.batch.by Character vector. Column name(s) in the metadata indicating RNA batch information (categorical variable) or other categorical variables for PCA or UMAP plot. Default is "orig.ident". Only for: section.batch (1, 2).
+#' @param ADT.batch.by Character vector. Column name(s) in the metadata indicating ADT batch information (categorical variable) or other categorical variables for PCA or UMAP plot. Default is "orig.ident". Only for: section.batch (1, 2).
+#' @param RNA.batch.covariate Character vector. Covariates (can be categorical or continuous) for RNA `SVD` and `Variance Explained` analysis. Default is `c("orig.ident", "percent.mt", "nFeature_RNA", "nCount_RNA")`. section.batch (1, 3).
+#' @param ADT.batch.covariate Character vector. Covariates (can be categorical or continuous) for ADT `SVD` and `Variance Explained` analysis. Default is `c("orig.ident", "nFeature_ADT", "nCount_ADT")`. Only for: section.batch (1, 3).
+#' @param celltype.by Column name in the metadata indicating cell type information. Default is "ScType". Only for: section.sample (2), section.batch (1).
+#' @param tissue Tissue name. Default is NULL. Only for: section.sample (1, 2).
 #'
 #' @return A HTML report is generated and saved to the specified output file path. No value is returned.
 #' @export
 #'
-#' @examples
-#' \dontrun{
-#' # Preprocess data using RunPreprocess
-#' seurat_object <- RunPreprocess(data = seurat_object, sample.by = "orig.ident")
-#'
-#' # Generate QC report
-#' RunReport(object = seurat_object, sample.by = "orig.ident")
-#' }
 RunReport <- function(object=NULL, VDJ_data=NULL, sample.by="orig.ident", outputFile="./SingleCellMQC/SingleCellMQC.html", color=NULL,
-                      section.sample = c(1:3), section.cell = c(1:2), section.feature=1,section.batch=1:2,
+                      section.sample = c(1:3), section.cell = c(1:2), section.feature=1,section.batch=c(1:3),
                       RNA_cluster_name="rna_cluster", ADT_cluster_name="adt_cluster", RNA.batch.by= "orig.ident", ADT.batch.by="orig.ident",
                       RNA.batch.covariate=c( "orig.ident" ,"percent.mt", "nFeature_RNA", "nCount_RNA"),
                       ADT.batch.covariate=c( "orig.ident" , "nFeature_ADT", "nCount_ADT"),

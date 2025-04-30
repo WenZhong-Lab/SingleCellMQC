@@ -12,7 +12,7 @@
 #' @param group.by Character. The metadata column used for grouping cells. Default is "seurat_clusters".
 #' This parameter is used to identify groups within the cells that may have different contamination profiles.
 #' @param restriction_factor Numeric. A parameter to control the sensitivity of contamination detection.
-#' Values should be between 0 and 1, where a higher value implies a stricter detection. Default is 0.5.
+#' Values should be between 0 and 1, where a higher value implies a stricter detection. Default is 0.1
 #' @param ... Additional arguments passed to `scCDC::ContaminationDetection` for more customized analysis.
 #' @param split.by A character string specifying the sample column in the Seurat object's metadata (e.g., "orig.ident"). Default is "orig.ident".
 #'
@@ -23,7 +23,7 @@
 #' @references
 #' Wang, W., Cen, Y., Lu, Z., Xu, Y., Sun, T., Xiao, Y., Liu, W., Li, J. J., & Wang, C. (2024). scCDC: a computational method for gene-specific contamination detection and correction in single-cell and single-nucleus RNA-seq data. Genome biology, 25(1), 136. https://doi.org/10.1186/s13059-024-03284-wIF: 1
 #'
-FindContaminationFeature <- function(object, assay= "RNA", group.by="seurat_clusters", split.by="orig.ident", restriction_factor=0.5, ...){
+FindContaminationFeature <- function(object, assay= "RNA", group.by="seurat_clusters", split.by="orig.ident", restriction_factor=0.1, ...){
   object_list <- splitObject(object, split.by = split.by)
 
   GCGname_list <- lapply(object_list, function(x){
@@ -60,13 +60,17 @@ FindContaminationFeature <- function(object, assay= "RNA", group.by="seurat_clus
 #' @param do.merge Logical. Whether to merge the corrected objects into a single Seurat object. Default is TRUE.
 #' @param ... Additional arguments passed to `scCDC::ContaminationCorrection` for customized analysis.
 #' @param group.by A character string specifying the metadata column used for grouping cells (default: `"seurat_clusters"`).
+#' @param saveBP_dir Directory to save BPCells data. Defaults to `./scCDC_BP/`
 #'
 #' @return A Seurat object containing the corrected data in a new assay named "Corrected". If `do.merge` is TRUE and multiple samples are provided, a merged Seurat object is returned.
 #' @export
-
-RunCorrection_scCDC <- function(object, assay= "RNA", features=NULL, split.by="orig.ident", do.merge=T, group.by="seurat_clusters", ...){
+RunCorrection_scCDC <- function(object, assay= "RNA", features=NULL, split.by="orig.ident", do.merge=T, group.by="seurat_clusters",
+                                saveBP_dir="./scCDC_BP/",
+                                ...){
 
   object_list <- splitObject(object, split.by = split.by)
+  tmpdir= "./temp/SingleCellMQC_tempBPCellSplitSeurat/"
+
   object_name <- names(object_list)
 
   if(!requireNamespace("scCDC", quietly = TRUE)){
@@ -77,87 +81,310 @@ RunCorrection_scCDC <- function(object, assay= "RNA", features=NULL, split.by="o
     if(packageVersion("Seurat") < "5.0.0"){
       stop("scCDC package version >= 1.4 only support for Seurat package version >= 5.0.0, please install the Seurat package version >= 5.0.0 or downgrade the scCDC package version < 1.4.")
     }
+    object_list <- lapply(object_name, function(x) {
+      count_data = Seurat::GetAssayData(object_list[[x]], assay = assay, slot = "counts")
+      index = inherits(count_data, "IterableMatrix")
+      if (index) {
+        count_data <- as(count_data, "dgCMatrix")
 
-    if(!is(features, "list")){
-      object_list <- lapply( object_name, function(x){
-        seuObject <- Seurat::CreateSeuratObject(counts = object_list[[x]][[assay]] , assay = assay, meta.data = object_list[[x]]@meta.data)
-        SeuratObject::Idents(seuObject) <- seuObject@meta.data[[group.by]]
-        seuObject <- scCDC::ContaminationCorrection(seuObject, cont_genes=features, ...)
-        seuObject <- Seurat::CreateSeuratObject(SeuratObject::GetAssayData(seuObject, assay="Corrected", slot="counts"), assay = "Corrected")
-      })
-    }else{
-      object_list <- lapply( object_name, function(x){
-        seuObject <- Seurat::CreateSeuratObject(counts = object_list[[x]][[assay]] , assay = assay, meta.data = object_list[[x]]@meta.data)
-        SeuratObject::Idents(seuObject) <-  seuObject@meta.data[[group.by]]
-        seuObject <- scCDC::ContaminationCorrection(seuObject, cont_genes=features[[x]], ...)
-        seuObject <- Seurat::CreateSeuratObject(SeuratObject::GetAssayData(seuObject, assay="Corrected", slot="counts"), assay = "Corrected")
-      })
-    }
-
+      }
+      seuObject <- Seurat::CreateSeuratObject(
+        counts = count_data,
+        assay = assay,
+        meta.data = object_list[[x]]@meta.data
+      )
+      SeuratObject::Idents(seuObject) <- seuObject@meta.data[[group.by]]
+      cont_genes <- if (!is(features, "list")) features else features[[x]]
+      seuObject <- scCDC::ContaminationCorrection(seuObject, cont_genes = cont_genes, ...)
+      count <- SeuratObject::GetAssayData(seuObject, assay = "Corrected", slot = "counts")
+      if (index) {
+        count <- ConvertToBPCells(count, BPdir =paste0(saveBP_dir, "/", assay, "_split/", x) )
+      }
+      return(count)
+    })
 
   }else if(packageVersion("scCDC") == "1.3"){
-    if(!is(features, "list")){
-      object_list <- lapply(object_name, function(x){
-        seuObject <- Seurat::CreateSeuratObject(counts = object_list[[x]][[assay]] , assay = assay, meta.data = object_list[[x]]@meta.data)
-        if(class(seuObject[[assay]]) %in% "Assay5"){
-          seuObject[[assay]] <- as(seuObject[[assay]], "Assay")
-        }
-        seuObject <- scCDC::ContaminationCorrection(seuObject, cont_genes=features, ...)
-        seuObject <- Seurat::CreateSeuratObject(SeuratObject::GetAssayData(seuObject, assay="Corrected", slot="counts"), assay = "Corrected")
-      })
-    }else{
-      object_list <- lapply(object_name, function(x){
-        seuObject <- Seurat::CreateSeuratObject(counts = object_list[[x]][[assay]] , assay = assay, meta.data = object_list[[x]]@meta.data)
-        if(class(seuObject[[assay]]) %in% "Assay5"){
-          seuObject[[assay]] <- as(seuObject[[assay]], "Assay")
-        }
-        seuObject <- scCDC::ContaminationCorrection(seuObject, cont_genes=features[[x]], ...)
-        seuObject <- Seurat::CreateSeuratObject(SeuratObject::GetAssayData(seuObject, assay="Corrected", slot="counts"), assay = "Corrected")
-      })
-    }
 
+    object_list <- lapply(object_name, function(x) {
+      count_data = Seurat::GetAssayData(object_list[[x]], assay = assay, slot = "counts")
+      if (inherits(count_data, "IterableMatrix")) {
+        count_data <- as(count_data, "dgCMatrix")
+      }
+      seuObject <- Seurat::CreateSeuratObject(
+        counts = count_data,
+        assay = assay,
+        meta.data = object_list[[x]]@meta.data
+      )
+      if (inherits(seuObject[[assay]], "Assay5")) {
+        seuObject[[assay]] <- as(seuObject[[assay]], "Assay")
+      }
+      cont_genes <- if (!is(features, "list")) features else features[[x]]
+      seuObject <- scCDC::ContaminationCorrection(seuObject, cont_genes = cont_genes, ...)
+      count <- SeuratObject::GetAssayData(seuObject, assay = "Corrected", slot = "counts")
+    })
   }else{
     stop("Please install the scCDC package version >= 1.3.")
   }
 
   names(object_list) <- object_name
 
+  if (dir.exists(tmpdir)) {
+    unlink(tmpdir, recursive = TRUE)
+  }
 
   if (length(object_list) == 1) {
     # If input is a single Seurat object, add the corrected assay to the original object
     object_list <- object_list[[1]]
 
     if (inherits(object, "Seurat")) {
-      object[[paste0("scCDC_", assay)]] <- object_list@assays$Corrected
+      if(packageVersion("Seurat") < "5.0.0"){
+        object[[paste0("scCDC_", assay)]] <- SeuratObject::CreateAssayObject(counts = object_list)
+      }else{
+        object[[paste0("scCDC_", assay)]] <- SeuratObject::CreateAssay5Object(counts = object_list)
+      }
       return(object)
-    } else {
-      # If the original input is a list, return the merged object
-      return(object_list)
     }
   } else {
     if (do.merge) {
       # Merge the corrected objects
-      Corrected_data <- merge(object_list[[1]], y = object_list[2:length(object_list)])
-      if (inherits(object_list[[1]]@assays$Corrected, "Assay5")) {
-        Corrected_data <- SeuratObject::JoinLayers(Corrected_data, assay = "Corrected")
+      object_list <- MergeMatrix(object_list, prefix=F)
+      if (inherits(object_list, "IterableMatrix")) {
+        object_list <- ConvertToBPCells(
+          object_list,
+          BPdir = paste0(saveBP_dir,"/", assay)
+        )
+      }
+
+      if (dir.exists( paste0(saveBP_dir, "/", assay, "_split/") ) ) {
+        unlink(paste0(saveBP_dir, "/", assay, "_split/"), recursive = TRUE)
       }
 
       # If the original input is a Seurat object, embed the corrected assay into it
       if (inherits(object, "Seurat")) {
-        object[[paste0("scCDC_", assay)]] <- Corrected_data@assays$Corrected
+        if(packageVersion("Seurat") < "5.0.0"){
+          object[[paste0("scCDC_", assay)]] <- SeuratObject::CreateAssayObject(counts = object_list)
+        }else{
+          object[[paste0("scCDC_", assay)]] <- SeuratObject::CreateAssay5Object(counts = object_list)
+        }
         return(object)
       } else {
         # If the original input is a list, return the merged object
-        return(Corrected_data)
+        return(object_list)
       }
     } else {
       # If do.merge is FALSE, return the list of corrected objects
-      return(object_list)
+      name=names(object)
+      object <- lapply(names(object), function(x){
+        if(packageVersion("Seurat") < "5.0.0"){
+          object[[x]][[paste0("scCDC_", assay)]] <- SeuratObject::CreateAssayObject(counts = object_list[[x]])
+        }else{
+          object[[x]][[paste0("scCDC_", assay)]] <- SeuratObject::CreateAssay5Object(counts = object_list[[x]])
+        }
+        return(object[[x]])
+      })
+      names(object) <- name
+      return(object)
     }
   }
 
   return(object_list)
 }
+
+
+
+# RunCorrection_scCDC <- function(object, assay= "RNA", features=NULL, split.by="orig.ident", do.merge=T, group.by="seurat_clusters", ...){
+#
+#   object_list <- splitObject(object, split.by = split.by)
+#   object_name <- names(object_list)
+#
+#   if(!requireNamespace("scCDC", quietly = TRUE)){
+#     stop("Please install the scCDC package first.")
+#   }
+#
+#   if(packageVersion("scCDC") >= "1.4"){
+#     if(packageVersion("Seurat") < "5.0.0"){
+#       stop("scCDC package version >= 1.4 only support for Seurat package version >= 5.0.0, please install the Seurat package version >= 5.0.0 or downgrade the scCDC package version < 1.4.")
+#     }
+#
+#     object_list <- lapply(object_name, function(x) {
+#       count_data = Seurat::GetAssayData(object_list[[x]], assay = assay, slot = "counts")
+#       if (inherits(count_data, "IterableMatrix")) {
+#         count_data <- as(count_data, "dgCMatrix")
+#       }
+#       seuObject <- Seurat::CreateSeuratObject(
+#         counts = count_data,
+#         assay = assay,
+#         meta.data = object_list[[x]]@meta.data
+#       )
+#       SeuratObject::Idents(seuObject) <- seuObject@meta.data[[group.by]]
+#       cont_genes <- if (!is(features, "list")) features else features[[x]]
+#       seuObject <- scCDC::ContaminationCorrection(seuObject, cont_genes = cont_genes, ...)
+#       Seurat::CreateSeuratObject(
+#         counts = SeuratObject::GetAssayData(seuObject, assay = "Corrected", slot = "counts"),
+#         assay = "Corrected"
+#       )
+#     })
+#
+#   }else if(packageVersion("scCDC") == "1.3"){
+#
+#     object_list <- lapply(object_name, function(x) {
+#       count_data = Seurat::GetAssayData(object_list[[x]], assay = assay, slot = "counts")
+#       if (inherits(count_data, "IterableMatrix")) {
+#         count_data <- as(count_data, "dgCMatrix")
+#       }
+#       seuObject <- Seurat::CreateSeuratObject(
+#         counts = count_data,
+#         assay = assay,
+#         meta.data = object_list[[x]]@meta.data
+#       )
+#       if (inherits(seuObject[[assay]], "Assay5")) {
+#         seuObject[[assay]] <- as(seuObject[[assay]], "Assay")
+#       }
+#       cont_genes <- if (!is(features, "list")) features else features[[x]]
+#       seuObject <- scCDC::ContaminationCorrection(seuObject, cont_genes = cont_genes, ...)
+#       Seurat::CreateSeuratObject(
+#         counts = SeuratObject::GetAssayData(seuObject, assay = "Corrected", slot = "counts"),
+#         assay = "Corrected"
+#       )
+#     })
+#   }else{
+#     stop("Please install the scCDC package version >= 1.3.")
+#   }
+#
+#   names(object_list) <- object_name
+#
+#
+#   if (length(object_list) == 1) {
+#     # If input is a single Seurat object, add the corrected assay to the original object
+#     object_list <- object_list[[1]]
+#
+#     if (inherits(object, "Seurat")) {
+#       object[[paste0("scCDC_", assay)]] <- object_list@assays$Corrected
+#       return(object)
+#     } else {
+#       # If the original input is a list, return the merged object
+#       return(object_list)
+#     }
+#   } else {
+#     if (do.merge) {
+#       # Merge the corrected objects
+#       Corrected_data <- merge(object_list[[1]], y = object_list[2:length(object_list)])
+#       if (inherits(object_list[[1]]@assays$Corrected, "Assay5")) {
+#         Corrected_data <- SeuratObject::JoinLayers(Corrected_data, assay = "Corrected")
+#       }
+#
+#       # If the original input is a Seurat object, embed the corrected assay into it
+#       if (inherits(object, "Seurat")) {
+#         object[[paste0("scCDC_", assay)]] <- Corrected_data@assays$Corrected
+#         return(object)
+#       } else {
+#         # If the original input is a list, return the merged object
+#         return(Corrected_data)
+#       }
+#     } else {
+#       # If do.merge is FALSE, return the list of corrected objects
+#       return(object_list)
+#     }
+#   }
+#
+#   return(object_list)
+# }
+#
+# RunCorrection_scCDC <- function(object, assay= "RNA", features=NULL, split.by="orig.ident", do.merge=T, group.by="seurat_clusters", ...){
+#
+#   object_list <- splitObject(object, split.by = split.by)
+#   object_name <- names(object_list)
+#
+#   if(!requireNamespace("scCDC", quietly = TRUE)){
+#     stop("Please install the scCDC package first.")
+#   }
+#
+#   if(packageVersion("scCDC") >= "1.4"){
+#     if(packageVersion("Seurat") < "5.0.0"){
+#       stop("scCDC package version >= 1.4 only support for Seurat package version >= 5.0.0, please install the Seurat package version >= 5.0.0 or downgrade the scCDC package version < 1.4.")
+#     }
+#
+#
+#     if(!is(features, "list")){
+#       object_list <- lapply( object_name, function(x){
+#         seuObject <- Seurat::CreateSeuratObject(counts = Seurat::GetAssayData(object_list[[x]], assay=assay, slot= "counts") , assay = assay, meta.data = object_list[[x]]@meta.data)
+#         SeuratObject::Idents(seuObject) <- seuObject@meta.data[[group.by]]
+#         seuObject <- scCDC::ContaminationCorrection(seuObject, cont_genes=features, ...)
+#         seuObject <- Seurat::CreateSeuratObject(SeuratObject::GetAssayData(seuObject, assay="Corrected", slot="counts"), assay = "Corrected")
+#       })
+#     }else{
+#       object_list <- lapply( object_name, function(x){
+#         seuObject <- Seurat::CreateSeuratObject(counts = object_list[[x]][[assay]] , assay = assay, meta.data = object_list[[x]]@meta.data)
+#         SeuratObject::Idents(seuObject) <-  seuObject@meta.data[[group.by]]
+#         seuObject <- scCDC::ContaminationCorrection(seuObject, cont_genes=features[[x]], ...)
+#         seuObject <- Seurat::CreateSeuratObject(SeuratObject::GetAssayData(seuObject, assay="Corrected", slot="counts"), assay = "Corrected")
+#       })
+#     }
+#
+#
+#   }else if(packageVersion("scCDC") == "1.3"){
+#     if(!is(features, "list")){
+#       object_list <- lapply(object_name, function(x){
+#         seuObject <- Seurat::CreateSeuratObject(counts = object_list[[x]][[assay]] , assay = assay, meta.data = object_list[[x]]@meta.data)
+#         if(class(seuObject[[assay]]) %in% "Assay5"){
+#           seuObject[[assay]] <- as(seuObject[[assay]], "Assay")
+#         }
+#         seuObject <- scCDC::ContaminationCorrection(seuObject, cont_genes=features, ...)
+#         seuObject <- Seurat::CreateSeuratObject(SeuratObject::GetAssayData(seuObject, assay="Corrected", slot="counts"), assay = "Corrected")
+#       })
+#     }else{
+#       object_list <- lapply(object_name, function(x){
+#         seuObject <- Seurat::CreateSeuratObject(counts = object_list[[x]][[assay]] , assay = assay, meta.data = object_list[[x]]@meta.data)
+#         if(class(seuObject[[assay]]) %in% "Assay5"){
+#           seuObject[[assay]] <- as(seuObject[[assay]], "Assay")
+#         }
+#         seuObject <- scCDC::ContaminationCorrection(seuObject, cont_genes=features[[x]], ...)
+#         seuObject <- Seurat::CreateSeuratObject(SeuratObject::GetAssayData(seuObject, assay="Corrected", slot="counts"), assay = "Corrected")
+#       })
+#     }
+#
+#   }else{
+#     stop("Please install the scCDC package version >= 1.3.")
+#   }
+#
+#   names(object_list) <- object_name
+#
+#
+#   if (length(object_list) == 1) {
+#     # If input is a single Seurat object, add the corrected assay to the original object
+#     object_list <- object_list[[1]]
+#
+#     if (inherits(object, "Seurat")) {
+#       object[[paste0("scCDC_", assay)]] <- object_list@assays$Corrected
+#       return(object)
+#     } else {
+#       # If the original input is a list, return the merged object
+#       return(object_list)
+#     }
+#   } else {
+#     if (do.merge) {
+#       # Merge the corrected objects
+#       Corrected_data <- merge(object_list[[1]], y = object_list[2:length(object_list)])
+#       if (inherits(object_list[[1]]@assays$Corrected, "Assay5")) {
+#         Corrected_data <- SeuratObject::JoinLayers(Corrected_data, assay = "Corrected")
+#       }
+#
+#       # If the original input is a Seurat object, embed the corrected assay into it
+#       if (inherits(object, "Seurat")) {
+#         object[[paste0("scCDC_", assay)]] <- Corrected_data@assays$Corrected
+#         return(object)
+#       } else {
+#         # If the original input is a list, return the merged object
+#         return(Corrected_data)
+#       }
+#     } else {
+#       # If do.merge is FALSE, return the list of corrected objects
+#       return(object_list)
+#     }
+#   }
+#
+#   return(object_list)
+# }
 
 
 #' Perform the contamination correction by DecontX
@@ -265,6 +492,7 @@ RunCorrection <- function(object, method=NULL, group.by="seurat_clusters", featu
 #' @param color.bar Character string specifying the color of bars in the bar plot. Default is `"#56B4E9"`.
 #' @param ntop Numeric value indicating the number of top features to highlight in the bar plot based on their variance explained. Default is `10`.
 #' @param return.type Character string or vector indicating the type of output to return. Options are `"plot"`, `"interactive_table"`, or both. Default is `"plot"`.
+#' @param csv.name Character. Name for interactive_table csv file.
 #'
 #' @return The function returns either a `ggplot` object, an interactive table, or both, depending on the `return.type` specified.
 #'   \itemize{
@@ -274,7 +502,8 @@ RunCorrection <- function(object, method=NULL, group.by="seurat_clusters", featu
 #'   }
 #'
 #' @export
-PlotVEPerFeature <- function(object, assay="RNA", variables=NULL, plot.type="density", color.density=NULL, color.bar="#56B4E9",ntop=10, return.type="plot" ){
+PlotVEPerFeature <- function(object, assay="RNA", variables=NULL, plot.type="density", color.density=NULL, color.bar="#56B4E9",ntop=10, return.type="plot",
+                             csv.name=paste0(assay, "_variance_explained")){
 
   if( length(setdiff(plot.type, c("density", "bar")))!=0 ){
     stop("Invalid `plot.type`, only: `density` or/and `bar` ")
@@ -298,7 +527,7 @@ PlotVEPerFeature <- function(object, assay="RNA", variables=NULL, plot.type="den
     unique_rows <- unique(unlist(top_rows))
     dt <- rsquared_mat[feature %in% unique_rows]
     dt <- as.data.frame(dt)
-    out$interactive_table <- .re_table(dt, csv.name =paste0(assay, "_variance_explained"), elementId = paste0(assay, "_variance_explained_table"), maxWidth = NULL,
+    out$interactive_table <- .re_table(dt, csv.name =csv.name, elementId = paste0(csv.name, "_table"), maxWidth = NULL,
                                        subtitle = paste0("Variance Explained per Feature (top ",ntop, ")") )
   }
 

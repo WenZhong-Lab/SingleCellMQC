@@ -61,7 +61,7 @@ ConvertToBPCells <- function(object, ...) {
 
 
 
-#' @title Compute Per-Feature Variance Explained by Variables
+#' @title RunVarExplained Per-Feature Variance Explained by Variables
 #'
 #' @description
 #' This function calculates the percentage of variance explained by one or more variables of interest for each feature. It supports both RNA and ADT assays and can handle sparse matrices efficiently. The function is designed to work with Seurat objects and can also accept raw matrices or metadata directly.

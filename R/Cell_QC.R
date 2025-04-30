@@ -607,6 +607,7 @@ RunDbt_hybrid <- function(object, db.rate=NULL, split.db.rate.1000=0.008,
   }
 
   split_object <- splitObject(object, split.by = split.by, assay="RNA", tmpdir= BPtmpdir)
+
   # split_object <- Seurat::SplitObject(object = object, split.by = split.by)
   message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "-------- Doublet dection (hybrid)"))
 
@@ -614,9 +615,11 @@ RunDbt_hybrid <- function(object, db.rate=NULL, split.db.rate.1000=0.008,
   filtered_args <- list(...)
   filtered_args <- filtered_args[names(filtered_args) %in% known_params]
 
+  gc()
+
   ## Run parallel processing
   p <- progressr::progressor(along = 1:length(split_object))
-  db_hybrid <- future.apply::future_lapply(split_object, function(object_temp){
+  db_hybrid <- smart_lapply(split_object, function(object_temp){
 
     x <- ConvertToSCE(object_temp, assay = "RNA")
     if( is(x@assays@data@listData[["counts"]], "IterableMatrix" ) ){
@@ -692,7 +695,7 @@ RunDbt_bcds <- function(object, db.rate=NULL, split.db.rate.1000=0.008, split.by
   ## Run parallel processing
 
   p <- progressr::progressor(along = 1:length(split_object))
-  db_bcds <- future.apply::future_lapply(split_object, function(object_temp){
+  db_bcds <- smart_lapply(split_object, function(object_temp){
 
     x <- ConvertToSCE(object_temp, assay = "RNA")
     if( is(x@assays@data@listData[["counts"]], "IterableMatrix" ) ){
@@ -763,7 +766,7 @@ RunDbt_cxds <- function(object, db.rate=NULL,  split.db.rate.1000=0.008, split.b
   ## Run parallel processing
 
   p <- progressr::progressor(along = 1:length(split_object))
-  db_cxds <- future.apply::future_lapply(split_object, function(object_temp){
+  db_cxds <- smart_lapply(split_object, function(object_temp){
     x <- ConvertToSCE(object_temp, assay = "RNA")
     if( is(x@assays@data@listData[["counts"]], "IterableMatrix" ) ){
       x@assays@data@listData[["counts"]] <- as(object = x@assays@data@listData[["counts"]], Class = "dgCMatrix")
@@ -834,7 +837,7 @@ RunDbt_scDblFinder <- function(object, do.topscore=F, db.rate=NULL, split.db.rat
 
   ## Run parallel processing
   p <- progressr::progressor(along = 1:length(split_object))
-  db_scDblFinder <- future.apply::future_lapply(split_object, function(object_temp){
+  db_scDblFinder <- smart_lapply(split_object, function(object_temp){
 
     x <- ConvertToSCE(object_temp, assay = "RNA")
     if( is(x@assays@data@listData[["counts"]], "IterableMatrix" ) ){
@@ -970,7 +973,7 @@ RunDbt_DoubletFinder <- function(object,split.by="orig.ident",add.Seurat=TRUE, d
   ## Run parallel processing
 
   p <- progressr::progressor(along = 1:length(split_object))
-  dbt_DoubletFinder <- future.apply::future_lapply(split_object, function(object_temp){
+  dbt_DoubletFinder <- smart_lapply(split_object, function(object_temp){
     x <- ConvertToSeurat(object_temp)
     ####
     SeuratObject::DefaultAssay(x) <- "RNA"
@@ -1072,9 +1075,8 @@ RunDbt_ADT <- function(object, split.by="orig.ident",feature1 = NULL, feature2 =
   message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "-------- Doublet dection (ADT)"))
 
   ## Run parallel processing
-
   p <- progressr::progressor(along = 1:length(split_object))
-  out <- future.apply::future_lapply(split_object, function(object_temp){
+  out <- smart_lapply(split_object, function(object_temp){
 
     suppressWarnings(suppressMessages(seu <- RunPipeline(object_temp, preprocess = preprocess, resolution = resolution, dims = dims)))
     if ( "BPCells" %in% attr(class(Seurat::GetAssayData(seu, assay = "ADT", slot = "counts")), "package") ) {
@@ -1086,22 +1088,27 @@ RunDbt_ADT <- function(object, split.by="orig.ident",feature1 = NULL, feature2 =
                                            assay = "ADT",
                                            slot = "counts",
                                            new.data = as(expADT, "dgCMatrix") )
+      Seurat::DefaultAssay(seu) <- "ADT"
+      seu <- Seurat::NormalizeData(seu, normalization.method = 'CLR', margin = 2, verbose = F)
+
     }
 
       Seurat::DefaultAssay(seu) <- "ADT"
       Seurat::VariableFeatures(seu) <- rownames(seu[["ADT"]])
 
+
     c_num <- length(unique(seu$seurat_clusters))
     # If correction is requested, perform the correction step
     if (do.correct) {
       message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "-------- scCDC correction for features"))
-      seu <- RunCorrection_scCDC(seu, assay = "ADT", features = c(feature1, feature2))
+      seu <- RunCorrection_scCDC(seu, assay = "ADT", features = unique(c(feature1, feature2)) )
       Seurat::DefaultAssay(seu) <- "scCDC_ADT"
       Seurat::VariableFeatures(seu) <- rownames(seu[["scCDC_ADT"]])
       assay.pos <- "scCDC_ADT"
     } else {
       assay.pos <- "ADT"
     }
+
     seu <- Seurat::NormalizeData(seu, normalization.method = 'CLR', margin = 2, verbose = F)
 
     # Calculate the cutoff for each feature1
@@ -1157,6 +1164,9 @@ RunDbt_ADT <- function(object, split.by="orig.ident",feature1 = NULL, feature2 =
     message(paste0(format(Sys.time(), "%H:%M:%S"), "-- ", getSampleName(object_temp, sample.by = split.by), ": ", sum( db_ADT$db_ADT=="Fail" ), " doublets, ", sum( db_ADT$db_ADT=="Pass" ), " singlets" ))
     return(db_ADT)
   }, future.seed = 1)
+
+  ##
+  ##
 
   names(out) <- NULL
   db_ADT <- do.call(rbind, out)

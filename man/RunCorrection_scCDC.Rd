@@ -11,6 +11,7 @@ RunCorrection_scCDC(
   split.by = "orig.ident",
   do.merge = T,
   group.by = "seurat_clusters",
+  saveBP_dir = "./scCDC_BP/",
   ...
 )
 }
@@ -26,6 +27,8 @@ RunCorrection_scCDC(
 \item{do.merge}{Logical. Whether to merge the corrected objects into a single Seurat object. Default is TRUE.}
 
 \item{group.by}{A character string specifying the metadata column used for grouping cells (default: \code{"seurat_clusters"}).}
+
+\item{saveBP_dir}{Directory to save BPCells data. Defaults to \verb{./scCDC_BP/}}
 
 \item{...}{Additional arguments passed to \code{scCDC::ContaminationCorrection} for customized analysis.}
 }

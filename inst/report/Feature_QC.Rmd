@@ -60,7 +60,7 @@ if(length(data$Feature$Section1$base)!=0 ){
 
 if(length(data$Feature$Section1$VE_RNA)!=0 | length(data$Feature$Section1$VE_ADT)!=0  ){
   cat(paste0("### ", "Variance explained", " {.tabset .unnumbered}\n"))
-  cat("This table presents the percentage of variance in feature expression that can be attributed to the sample, aiming to identify the potential genes or proteins that are most significantly influenced by the samples. Only the top 20 genes or proteins are shown in the table. For each feature, the proportion of variance explained by batch-associated variables is quantified using the ANOVA-derived R². \n\n")
+  cat("These tables presents the percentage of variance in feature expression that can be attributed to the sample, aiming to identify the potential genes or proteins that are most significantly influenced by the samples. Only the top 20 genes or proteins are shown in the table. For each feature, the proportion of variance explained by batch-associated variables is quantified using the ANOVA-derived R². \n\n")
 
   cat('\n\n')
   if(length(data$Feature$Section1$VE_RNA)!=0   ){

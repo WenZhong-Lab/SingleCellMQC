@@ -5,7 +5,7 @@
 \alias{RunVarExplained.IterableMatrix}
 \alias{RunVarExplained.default}
 \alias{RunVarExplained}
-\title{Compute Per-Feature Variance Explained by Variables}
+\title{RunVarExplained Per-Feature Variance Explained by Variables}
 \usage{
 \method{RunVarExplained}{Seurat}(object, assay = "RNA", variables = NULL, ...)
 

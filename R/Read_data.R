@@ -69,7 +69,7 @@ Read10XData <- function(dir_GEX=NULL, dir_TCR=NULL, dir_BCR=NULL, sample=NULL, s
     # Parallelize the processing of each matrix
     message("Reading GEX data...")
     p <- progressr::progressor(along = seq_along(names(dir_GEX)))
-    matrix_list <- future.apply::future_lapply(names(dir_GEX), function(x) {
+    matrix_list <- smart_lapply(names(dir_GEX), function(x) {
       suppressMessages(GEX <- Seurat::Read10X(dir_GEX[x], gene.column=gene.column))
       if ("dgCMatrix" %in% class(GEX)) {
         GEX <- list("Gene Expression" = GEX)
@@ -196,7 +196,7 @@ Read10XH5Data <- function(dir_GEX = NULL, dir_TCR = NULL, dir_BCR = NULL, sample
     # Parallelize the processing of each matrix
     message("Reading GEX data...")
     p <- progressr::progressor(along = seq_along(names(dir_GEX)))
-    matrix_list <- future.apply::future_lapply(names(dir_GEX), function(x) {
+    matrix_list <- smart_lapply(names(dir_GEX), function(x) {
       suppressMessages(GEX <- Seurat::Read10X_h5(dir_GEX[x]))
       if ("dgCMatrix" %in% class(GEX)) {
         GEX <- list("Gene Expression" = GEX)
