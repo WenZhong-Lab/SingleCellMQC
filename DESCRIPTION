@@ -1,7 +1,7 @@
 Package: SingleCellMQC
 Type: Package
 Title: Single Cell Multi-Omics Quality Control Toolkit
-Version: 0.5.9
+Version: 0.6.0
 Authors@R:c(
     person(given = "Daihan",   family = "Ji",    email = "ji_daihan@gzlab.ac.cn", role = c("aut", "cre", "ctb")),
     person(given = "Shuting",  family = "Lu",    email = "lu_shuting@gzlab.ac.cn", role = c("ctb")),
