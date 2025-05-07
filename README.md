@@ -26,8 +26,10 @@ Before installation, we recommend installing these dependencies first:
 You can install the development version of `SingleCellMQC` from [GitHub](https://github.com/DaihanJi/SingleCellMQC) with:
 
 ```         
-install.packages('devtools')
-devtools::install_github('WenZhong-Lab/SingleCellMQC')
+if (!requireNamespace("devtools", quietly = TRUE)) {
+  install.packages("devtools")  
+}
+devtools::install_github('WenZhong-Lab/SingleCellMQC') 
 library(SingleCellMQC)
 ```
 
