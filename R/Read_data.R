@@ -62,7 +62,7 @@ Read10XData <- function(dir_GEX=NULL, dir_TCR=NULL, dir_BCR=NULL, sample=NULL, s
       names(dir_GEX) <- sample
     }else{
       if( is.null( names(dir_GEX) )){
-        names(dir_GEX) <- paste0("Sample_",seq_along( dir_GEX) )
+        names(dir_GEX) <- paste0("Sample",seq_along( dir_GEX) )
       }
     }
 

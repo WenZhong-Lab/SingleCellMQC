@@ -422,7 +422,7 @@ AggregateGroupAcrossCells <- function(object, metadata, group.by){
       pca_out_table <- data.frame(Sample=rownames(pca_res$x), pca_out)
       rownames(pca_out_table) <- NULL
       out$pca$interactive_table <- .re_table_fmtr(pca_out_table, csv.name =paste0(assay, "_PCA"), elementId = paste0(assay,"_PCA"), right.sparkline = F, down.sparkline = F,
-                                                  bar_type= "data_bars(
+                                                  bar_type= "reactablefmtr::data_bars(
                              count,
                              text_position = 'inside-base',
                              number_fmt = scales::number,
