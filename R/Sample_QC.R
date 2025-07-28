@@ -55,7 +55,7 @@ RunScType <- function(object, split.by= NULL, return.name="ScType",
                               resolution=1,
                               cutoff=3,
                               type.tissue = "Immune system",
-                              type.condition = NULL, type.cell="Normal",  data_source="Main", ntop=30,
+                              type.condition = NULL, type.cell="Normal",  data_source="c", ntop=30,
                       ...
 ){
 
@@ -75,12 +75,19 @@ RunScType <- function(object, split.by= NULL, return.name="ScType",
   data <- object
   if(!is.null(split.by)){
     cat(">>>>>> Split by: ", split.by, " ","\n")
-    object_list <- splitObject(object, split.by = split.by )
+    object_list <- splitObject(object, split.by = split.by, tmpdir="./temp/SingleCellMQC_tempScType/" )
     out <- lapply(names(object_list), function(x){
       cat(">>>>>>>>>>>>>>> ", "\n")
       cat( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "--------- Cell anotation: ", x, " ","\n") )
       cat(">>>>>>>>>>>>>>> ", "\n")
       sc_data <- object_list[[x]]
+
+      if ( "BPCells" %in% attr(class(Seurat::GetAssayData(sc_data, assay = "RNA", slot = "counts")), "package") ) {
+        sc_data <- SeuratObject::SetAssayData(object = sc_data,
+                                          assay = "RNA",
+                                          slot = "counts",
+                                          new.data = as(Seurat::GetAssayData(sc_data, assay = "RNA", slot = "counts"), "dgCMatrix") )
+      }
 
       if(!is.null(preprocess)){
 
@@ -89,6 +96,8 @@ RunScType <- function(object, split.by= NULL, return.name="ScType",
           sc_data <- suppressMessages(RunPipeline(sc_data, preprocess ="rna.umap", resolution=resolution, ...))
       }
       ano_result <- .runScType(object = sc_data, genelist = genelist, group.by=group.by, cutoff=cutoff)
+      rm(sc_data)
+      gc()
       return(ano_result)
     })
     names(out) <- NULL

@@ -274,11 +274,20 @@ if(length(data$Sample$Section2$outlier_comp)!=0){
   
   if(length(comp_data$com_table)!=0){
       table_data <- comp_data$com_table
+      
+      # subset freq >= 3
+      freq_table <- as.data.frame(table( do.call(c, table_data) ))
+      freq_table <- freq_table[freq_table$Freq >=3,]
+      freq_table <- freq_table[ order(freq_table$Freq, decreasing =T) , ]
+      cat_freq_word3ormore <- paste0( "- ", length(freq_table[,1]), " warning samples (celltype% outliers >= 3 ): ", paste0(freq_table[,1], collapse = ", ")," \n")
+      
       cat_word <- do.call(c, lapply(names(table_data), function(x){
         paste0( "- ", length(table_data[[x]])," ", x," outlier samples: ", paste0(table_data[[x]],  collapse = ", "), " \n")
       }))
-      warning_alert_orange( paste0("Reference-based outlier analysis: \n\n ",paste0(cat_word, collapse = ""),   " \n",
+      warning_alert_orange( paste0("Reference-based outlier analysis: \n\n ", cat_freq_word3ormore,
+                                   paste0(cat_word, collapse = ""),   " \n",
            "**Notice: ** The above prediction results represent samples that may have potential abnormalities, and are for reference only. Please interpret the results in combination with the actual situation of the data.", "\n"))
+      
   }
   
   

@@ -320,7 +320,6 @@ RunLQ_MAD <- function(object, nmads  = 3, split.by=NULL, add.Seurat=T, share.med
   nCount_RNA <- do.call(scater::isOutlier, c(list("metric" = .get_named_column(metadata, col_name="nCount_RNA"), "batch"=metadata[[split.by]], "log"=T, "nmads"=nmads), filtered_args))
   nFeature_RNA <- do.call(scater::isOutlier, c(list("metric" = .get_named_column(metadata, col_name="nFeature_RNA"), "batch"=metadata[[split.by]], "log"=T, "nmads"=nmads), filtered_args))
   mt <- do.call(scater::isOutlier, c(list("metric" = .get_named_column(metadata, col_name="percent.mt"), "batch"=metadata[[split.by]], "log"=F, "nmads"=nmads), filtered_args))
-
   mad_result <- data.frame(nCount_RNA, nFeature_RNA, mt)
   colnames(mad_result) <- c( paste0(c("lq_RNA_umi_","lq_RNA_gene_","lq_RNA_mt_"), nmads, c("mad")) )
 
@@ -333,6 +332,7 @@ RunLQ_MAD <- function(object, nmads  = 3, split.by=NULL, add.Seurat=T, share.med
     colnames(mad_result) <- c( paste0(c("lq_RNA_umi_","lq_RNA_gene_","lq_RNA_mt_", "lq_ADT_umi_","lq_ADT_pro_", "lq_ADT_isotype_"), nmads, c("mad")) )
   }
 
+  # mad_result[[paste0("lq_RNA_", nmads, "mad")]] <- nCount_RNA | nFeature_RNA | mt
   mad_result <- as.data.frame(lapply(mad_result, function(x) {
     ifelse(x == TRUE, "Fail", "Pass")
   }))
@@ -360,6 +360,7 @@ RunLQ_MAD <- function(object, nmads  = 3, split.by=NULL, add.Seurat=T, share.med
 #' @param split.by Column name by which to group the data before calculating statistics.
 #' @param random.seed Random seed for reproducibility.
 #' @param ... Additional arguments to be passed to \code{\link[miQC]{filterCells}} function from the `miQC` package.
+#' @param BPtmpdir Temporary directory for BPCells matrix processing.
 #'
 #' @return A Seurat object with appended miQC metadata if `add.Seurat` is TRUE; otherwise, a data frame with the miQC results.
 #' @details The 'Fail' value represents low-quality cells.
@@ -375,7 +376,7 @@ RunLQ_MAD <- function(object, nmads  = 3, split.by=NULL, add.Seurat=T, share.med
 #'
 RunLQ_miQC <- function(object, model_type = "linear",  split.by= "orig.ident",
                        name.nFeature_RNA = "nFeature_RNA", name.percent.mt = "percent.mt", add.Seurat = TRUE,
-                       random.seed=1 , ...) {
+                       random.seed=1 ,BPtmpdir="./temp/SingleCellMQC_miQC/", ...) {
   if(!("Seurat" %in% class(object)) ){
     stop("Error: Seurat object must be as input!!")
   }
@@ -393,31 +394,29 @@ RunLQ_miQC <- function(object, model_type = "linear",  split.by= "orig.ident",
   colnames(metadata)[1:2] <- c("detected", "subsets_mito_percent")
   object <- Seurat::AddMetaData(object, metadata = metadata)
 
-  if(!is.null(split.by)){
-    if(  length(unique(object@meta.data[[split.by]]))>1  ){
-      message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "-------- Split Seurat Object"))
-      split_object <- Seurat::SplitObject(object, split.by = split.by)
-    }else{
-      split_object <- list(Sample = object)
-      names(split_object) <- as.character(unique(object@meta.data[[split.by]]))
-    }
-  }else{
-    split_object <- list(Sample = object)
-  }
+  split_object <- splitObject(object, split.by = split.by, assay="RNA", tmpdir= BPtmpdir)
+  message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "-------- Low-quality detection (miQC)"))
 
-  out <- lapply( names(split_object), function(x){
+
+  p <- progressr::progressor(along = 1:length(split_object))
+
+  out <- lapply( split_object, function(x){
     set.seed(random.seed)
-    message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "-------- Low-quality detection (miQC): ","Sample ",x))
-    sce <- suppressWarnings(Seurat::as.SingleCellExperiment(split_object[[x]], assay = "RNA"))
+    sce <- suppressWarnings(Seurat::as.SingleCellExperiment(x, assay = "RNA"))
     model <- miQC::mixtureModel(sce,model_type=model_type)
 
     out <- do.call(miQC::filterCells, c(list("sce" = sce, "model"=model, "verbose"=F), filtered_args))
     index <- colnames(out)
 
-    lq_miQC <- data.frame( lq_miQC = rep("Fail", dim(split_object[[x]])[2] ) )
-    rownames(lq_miQC) <- rownames(split_object[[x]]@meta.data)
+    lq_miQC <- data.frame( lq_miQC = rep("Fail", dim(x)[2] ) )
+    rownames(lq_miQC) <- rownames(x@meta.data)
     lq_miQC$lq_miQC[ match(index,rownames(lq_miQC))  ] <- "Pass"
-    cat(" ", sum( lq_miQC$lq_miQC=="Fail" ), "fail cells \n", "", sum( lq_miQC$lq_miQC=="Pass" ), "pass cells \n" )
+
+    message( paste0(format(Sys.time(), "%H:%M:%S"), "-- ", getSampleName(x, sample.by = split.by), ": ", sum( lq_miQC$lq_miQC=="Fail" ), " fail cells, ", sum( lq_miQC$lq_miQC=="Pass" ), " pass cells" ))
+    rm(x)
+    gc()
+    p()
+
     return(lq_miQC)
   }
   )
@@ -441,6 +440,7 @@ RunLQ_miQC <- function(object, model_type = "linear",  split.by= "orig.ident",
 #' @param add.Seurat Logical; if TRUE, adds the ddqc results as metadata to the Seurat object and stored in \code{SingleCelMQC} slot in \code{misc}. Otherwise, returns a data.frame of the ddqc results.
 #' @param ... Additional arguments to be passed to ddqcR::ddqc.metrics function.
 #' @param split.by Column name by which to group the data before calculating statistics.
+#' @param BPtmpdir Temporary directory for BPCells matrix processing.
 #'
 #' @return A Seurat object with appended ddqc metadata if `add.Seurat` is TRUE; otherwise, a data frame with the ddqc results.
 #' @details The 'Fail' value represents low-quality cells.
@@ -456,7 +456,7 @@ RunLQ_miQC <- function(object, model_type = "linear",  split.by= "orig.ident",
 #' Subramanian, Ayshwarya et al. “Biology-inspired data-driven quality control for scientific discovery in single-cell transcriptomics.” Genome biology vol. 23,1 267. 27 Dec. 2022, doi:10.1186/s13059-022-02820-w
 #'
 
-RunLQ_ddqc <- function(object,add.Seurat=TRUE,split.by=NULL,  ...) {
+RunLQ_ddqc <- function(object,add.Seurat=TRUE,split.by="orig.ident", BPtmpdir="./temp/SingleCellMQC_ddqc/", ...) {
   if(!("Seurat" %in% class(object)) ){
     stop("Error: Seurat object must be as input!!")
   }
@@ -465,26 +465,29 @@ RunLQ_ddqc <- function(object,add.Seurat=TRUE,split.by=NULL,  ...) {
     stop("Error: Please install the ddqcR package first.")
   }
 
-  if(!is.null(split.by)){
-    if(  length(unique(object@meta.data[[split.by]]))>1  ){
-      message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "-------- Split Seurat Object"))
-      split_object <- Seurat::SplitObject(object, split.by = split.by)
-    }else{
-      split_object <- list(Sample = object)
-      names(split_object) <- as.character(unique(object@meta.data[[split.by]]))
-    }
-  }else{
-    split_object <- list(Sample = object)
-  }
+
+  split_object <- splitObject(object, split.by = split.by, assay="RNA", tmpdir= BPtmpdir)
+
+  # split_object <- Seurat::SplitObject(object = object, split.by = split.by)
+  message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "-------- Low-quality detection (ddqc)"))
+
 
   known_params <- formals(ddqcR::ddqc.metrics)
   known_params$data <-NULL
   filtered_args <- list(...)
   updated_params <- .replace_params(known_params, filtered_args)
 
- out <- lapply( names(split_object) , function(x){
-    message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "-------- Low-quality detection (ddqc): ","Sample ",x))
-    object_sample <- split_object[[x]]
+  p <- progressr::progressor(along = 1:length(split_object))
+
+ out <- lapply( split_object , function(x){
+    object_sample <- x
+    SeuratObject::DefaultAssay(object_sample) <- "RNA"
+
+    if( is(SeuratObject::GetAssayData(object_sample, assay = "RNA", slot = "counts"), "IterableMatrix" ) ){
+      object_sample <- SeuratObject::SetAssayData(object_sample, assay = "RNA", slot = "counts",
+                                      new.data = as(object = SeuratObject::GetAssayData(object_sample, assay = "RNA", slot = "counts"), Class = "dgCMatrix") )
+    }
+
     result <- data.frame(lq_ddqc=rep(FALSE, length(rownames(object_sample@meta.data)) ))
     rownames(result) <- rownames(object_sample@meta.data)
     object_sample <- ddqcR::initialQC(object_sample)
@@ -501,7 +504,10 @@ RunLQ_ddqc <- function(object,add.Seurat=TRUE,split.by=NULL,  ...) {
 
     result$lq_ddqc <- ifelse(result$lq_ddqc == TRUE , "Fail", "Pass")
 
-    cat(" ", sum( result$lq_ddqc=="Fail" ), "fail cells \n", "", sum( result$lq_ddqc=="Pass" ), "pass cells \n" )
+    message( paste0(format(Sys.time(), "%H:%M:%S"), "-- ", getSampleName(object_sample, sample.by = split.by), ": ", sum( result$lq_ddqc=="Fail" ), " fail cells, ", sum( result$lq_ddqc=="Pass" ), " pass cells" ))
+    rm(object_sample)
+    gc()
+    p()
 
     return(result)
 
@@ -509,6 +515,10 @@ RunLQ_ddqc <- function(object,add.Seurat=TRUE,split.by=NULL,  ...) {
 
   names(out) <- NULL
   out <- do.call(rbind, out)
+
+  if (dir.exists(BPtmpdir)) {
+    unlink(BPtmpdir, recursive = TRUE)
+  }
 
   if(add.Seurat){
     object  <- AddSingleCellMQCData(object, listname = "LowQuality",metadata = out)
@@ -615,8 +625,6 @@ RunDbt_hybrid <- function(object, db.rate=NULL, split.db.rate.1000=0.008,
   filtered_args <- list(...)
   filtered_args <- filtered_args[names(filtered_args) %in% known_params]
 
-  gc()
-
   ## Run parallel processing
   p <- progressr::progressor(along = 1:length(split_object))
   db_hybrid <- smart_lapply(split_object, function(object_temp){
@@ -640,6 +648,9 @@ RunDbt_hybrid <- function(object, db.rate=NULL, split.db.rate.1000=0.008,
 
     message( paste0(format(Sys.time(), "%H:%M:%S"), "-- ", getSampleName(object_temp, sample.by = split.by), ": ",
                     sum( db_hybrid$db_hybrid=="Fail" ), " doublets, ", sum( db_hybrid$db_hybrid=="Pass" ), " singlets" ))
+
+    rm(x)
+    gc()
     p()
     return(db_hybrid)
   },future.seed = 1)
@@ -716,6 +727,8 @@ RunDbt_bcds <- function(object, db.rate=NULL, split.db.rate.1000=0.008, split.by
     db_bcds[db_qc, 2] <- "Fail"
 
     message( paste0(format(Sys.time(), "%H:%M:%S"), "-- ", getSampleName(object_temp, sample.by = split.by), ": ", sum( db_bcds$db_bcds=="Fail" ), " doublets, ", sum( db_bcds$db_bcds=="Pass" ), " singlets" ))
+    rm(x)
+    gc()
     p()
     return(db_bcds)
   }, future.seed=1)
@@ -786,6 +799,8 @@ RunDbt_cxds <- function(object, db.rate=NULL,  split.db.rate.1000=0.008, split.b
     db_cxds[db_qc, 2] <- "Fail"
 
     message( paste0(format(Sys.time(), "%H:%M:%S"), "-- ", getSampleName(object_temp, sample.by = split.by), ": ", sum( db_cxds$db_cxds=="Fail" ), " doublets, ", sum( db_cxds$db_cxds=="Pass" ), " singlets" ))
+    rm(x)
+    gc()
     p()
     return(db_cxds)
   },future.seed=1)
@@ -874,6 +889,8 @@ RunDbt_scDblFinder <- function(object, do.topscore=F, db.rate=NULL, split.db.rat
 
     message( paste0(format(Sys.time(), "%H:%M:%S"), "-- ", getSampleName(object_temp, sample.by = split.by), ": ",
                     sum( db_scDblFinder$db_scDblFinder=="Fail" ), " doublets ", "", sum( db_scDblFinder$db_scDblFinder=="Pass" ), " singlets" ))
+    rm(x)
+    gc()
     p()
     return(db_scDblFinder)
   }, future.seed=1)
@@ -1015,6 +1032,9 @@ RunDbt_DoubletFinder <- function(object,split.by="orig.ident",add.Seurat=TRUE, d
     colnames(dbt_DoubletFinder) <- c("db_DoubletFinder_score", "db_DoubletFinder")
     dbt_DoubletFinder$db_DoubletFinder <- ifelse(dbt_DoubletFinder$db_DoubletFinder == "Singlet", "Pass", "Fail")
     message(paste0(format(Sys.time(), "%H:%M:%S"), "-- ", getSampleName(object_temp, sample.by = split.by), ": ", sum( dbt_DoubletFinder$db_DoubletFinder=="Fail" ), " doublets, ", sum( dbt_DoubletFinder$db_DoubletFinder=="Pass" ), " singlets" ))
+
+    rm(currentSample)
+    gc()
 
     p()
     return(dbt_DoubletFinder)

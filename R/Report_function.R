@@ -856,7 +856,7 @@ RunReport <- function(object=NULL, VDJ_data=NULL, sample.by="orig.ident", output
 #' }
 #'
 #' @export
-RunPreprocess <- function(object, sample.by="orig.ident", db.method=c("scDblFinder"), lq.method=c("MAD") , preprocess = "rna.umap", ... ){
+RunPreprocess <- function(object, sample.by="orig.ident", db.method=c("scDblFinder", "hybrid"), lq.method=c("MAD") , preprocess = "rna.umap", ... ){
   object <- CalculateMetrics(object)
   object <- RunScType(object, split.by = sample.by)
   object <- RunDbt(object, methods = db.method, add.Seurat = T,split.by = sample.by)

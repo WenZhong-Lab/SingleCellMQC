@@ -65,6 +65,7 @@ Read10XData <- function(dir_GEX=NULL, dir_TCR=NULL, dir_BCR=NULL, sample=NULL, s
         names(dir_GEX) <- paste0("Sample",seq_along( dir_GEX) )
       }
     }
+    names(dir_GEX) <- .standardizeNames(names(dir_GEX))
 
     # Parallelize the processing of each matrix
     message("Reading GEX data...")
@@ -101,12 +102,12 @@ Read10XData <- function(dir_GEX=NULL, dir_TCR=NULL, dir_BCR=NULL, sample=NULL, s
     # merge matrix
     if("Gene Expression" %in% types){
       out[["Gene Expression"]] <- Filter(function(x) length(x) > 0, lapply(matrix_list, function(x) x[["Gene Expression"]]))
-      out[["Gene Expression"]] <- MergeMatrix(out[["Gene Expression"]], add_sample_ids = names(out[["Gene Expression"]]))
+      out[["Gene Expression"]] <- MergeMatrix(out[["Gene Expression"]])
     }
 
     if("Antibody Capture" %in% types){
       out[["Antibody Capture"]] <- Filter(function(x) length(x) > 0, lapply(matrix_list, function(x) x[["Antibody Capture"]]))
-      out[["Antibody Capture"]] <- MergeMatrix(out[["Antibody Capture"]], add_sample_ids = names(out[["Antibody Capture"]]))
+      out[["Antibody Capture"]] <- MergeMatrix(out[["Antibody Capture"]])
     }
     rm(matrix_list)
 
@@ -193,12 +194,15 @@ Read10XH5Data <- function(dir_GEX = NULL, dir_TCR = NULL, dir_BCR = NULL, sample
       names(dir_GEX) <- paste0("Sample", seq_along(dir_GEX))
     }
 
+    names(dir_GEX) <- .standardizeNames(names(dir_GEX))
+
     # Parallelize the processing of each matrix
     message("Reading GEX data...")
     p <- progressr::progressor(along = seq_along(names(dir_GEX)))
     matrix_list <- smart_lapply(names(dir_GEX), function(x) {
       suppressMessages(GEX <- Seurat::Read10X_h5(dir_GEX[x]))
       if ("dgCMatrix" %in% class(GEX)) {
+        colnames(GEX) <- paste0(x, "_", colnames(GEX))
         GEX <- list("Gene Expression" = GEX)
       }
 
@@ -208,12 +212,15 @@ Read10XH5Data <- function(dir_GEX = NULL, dir_TCR = NULL, dir_BCR = NULL, sample
           stop("BPCells is not installed. Please install BPCells to use saveBPCells.")
         }
         if (!is.null(GEX[["Gene Expression"]])) {
+          colnames(GEX[["Gene Expression"]]) <- paste0(x, "_", colnames(GEX[["Gene Expression"]]))
           GEX[["Gene Expression"]] <- ConvertToBPCells(
             GEX[["Gene Expression"]],
             BPdir = paste0(dir_BPCells, "/", x, "_RNA")
           )
         }
         if (!is.null(GEX[["Antibody Capture"]])) {
+          colnames( GEX[["Antibody Capture"]]) <- paste0(x, "_", colnames( GEX[["Antibody Capture"]]))
+
           GEX[["Antibody Capture"]] <- ConvertToBPCells(
             GEX[["Antibody Capture"]],
             BPdir = paste0(dir_BPCells, "/", x, "_ADT")

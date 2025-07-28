@@ -492,3 +492,23 @@ smart_lapply <- function(X, FUN, ..., .use_future = NULL, future.seed = TRUE) {
     lapply(X, FUN)
   }
 }
+
+
+.standardizeNames <- function(x) {
+  if (is.null(x)) {
+    stop("Input object has no `names` attribute.")
+  }
+
+  old_names <- x
+  new_names <- gsub("_", "-", old_names)
+
+  if (!identical(old_names, new_names)) {
+    warning(
+      "Warning: names have underscores ('_'), replacing with dashes ('-').",
+      call. = FALSE  # Suppresses the function call trace in the warning
+    )
+    x <- new_names
+  }
+
+  return(x)
+}
