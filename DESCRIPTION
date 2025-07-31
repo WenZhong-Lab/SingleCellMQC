@@ -2,7 +2,7 @@ Package: SingleCellMQC
 Type: Package
 Title: Single Cell Multi-Omics Quality Control Toolkit
 Version: 0.7.0
-Authors@R:c(
+Authors@R: c(
     person(given = "Daihan",   family = "Ji",    email = "ji_daihan@gzlab.ac.cn", role = c("aut", "cre", "ctb")),
     person(given = "Shuting",  family = "Lu",    email = "lu_shuting@gzlab.ac.cn", role = c("ctb")),
     person(given = "Jiaying",  family = "Zeng",  email = "zeng_jiaying@gzlab.ac.cn", role = c("ctb")),
@@ -14,7 +14,7 @@ Description: A comprehensive quality control tool for single-cell multi-omics se
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.2
 Depends: 
     R (>= 4.0.0),
     methods
@@ -60,9 +60,13 @@ Imports:
     uwot,
     future.apply,
     progressr,
-    future
+    future,
+    aricode,
+    bluster,
+    clusterSim,
+    fpc
 Suggests:
-    BPCells,
+    BPCells (>= 0.3.0),
     clusterProfiler,
     COSG,
     decontX,

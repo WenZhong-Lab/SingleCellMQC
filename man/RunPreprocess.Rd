@@ -7,7 +7,7 @@
 RunPreprocess(
   object,
   sample.by = "orig.ident",
-  db.method = c("scDblFinder"),
+  db.method = c("scDblFinder", "hybrid"),
   lq.method = c("MAD"),
   preprocess = "rna.umap",
   ...

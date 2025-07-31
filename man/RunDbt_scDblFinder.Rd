@@ -23,7 +23,7 @@ RunDbt_scDblFinder(
 
 \item{db.rate}{Numeric; the expected doublet rate for the top score method. Default is calculated as 0.08 * number of cells / 10000.}
 
-\item{split.db.rate.1000}{The expected doublet rate per 1000 cells. Default is 0.008, (so 0.016 among 1600 cells).}
+\item{split.db.rate.1000}{The expected doublet rate per 1000 cells. Default is 0.008.}
 
 \item{split.by}{A character string specifying the column in the Seurat object's metadata to use for stratifying the dataset before applying doublet detection (e.g., "orig.ident"). Default is "orig.ident".}
 

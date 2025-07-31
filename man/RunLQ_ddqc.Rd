@@ -4,7 +4,13 @@
 \alias{RunLQ_ddqc}
 \title{Low quality cells detection with ddqc}
 \usage{
-RunLQ_ddqc(object, add.Seurat = TRUE, split.by = NULL, ...)
+RunLQ_ddqc(
+  object,
+  add.Seurat = TRUE,
+  split.by = "orig.ident",
+  BPtmpdir = "./temp/SingleCellMQC_ddqc/",
+  ...
+)
 }
 \arguments{
 \item{object}{A Seurat object.}
@@ -12,6 +18,8 @@ RunLQ_ddqc(object, add.Seurat = TRUE, split.by = NULL, ...)
 \item{add.Seurat}{Logical; if TRUE, adds the ddqc results as metadata to the Seurat object and stored in \code{SingleCelMQC} slot in \code{misc}. Otherwise, returns a data.frame of the ddqc results.}
 
 \item{split.by}{Column name by which to group the data before calculating statistics.}
+
+\item{BPtmpdir}{Temporary directory for BPCells matrix processing.}
 
 \item{...}{Additional arguments to be passed to ddqcR::ddqc.metrics function.}
 }

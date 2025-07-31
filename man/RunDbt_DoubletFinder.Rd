@@ -26,7 +26,7 @@ as new metadata fields. If FALSE, the function will return a data frame containi
 \item{db.rate}{Numeric. The doublet rate score used to estimate the number of expected doublets.
 Default is calculated as 0.08 * ncol(object)/10000. If NULL, this default formula will be used.}
 
-\item{split.db.rate.1000}{Numeric. The expected doublet rate per 1000 cells. Default is 0.008, (so 0.016 among 1600 cells).}
+\item{split.db.rate.1000}{Numeric. The expected doublet rate per 1000 cells. Default is 0.008.}
 
 \item{PCs}{Numeric. The number of principal components. Default is 10.}
 

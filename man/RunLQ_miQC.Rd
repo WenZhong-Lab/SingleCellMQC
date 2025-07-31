@@ -12,6 +12,7 @@ RunLQ_miQC(
   name.percent.mt = "percent.mt",
   add.Seurat = TRUE,
   random.seed = 1,
+  BPtmpdir = "./temp/SingleCellMQC_miQC/",
   ...
 )
 }
@@ -29,6 +30,8 @@ RunLQ_miQC(
 \item{add.Seurat}{Logical; if TRUE, adds the miQC results as metadata to the Seurat object and stored in \code{SingleCelMQC} slot in \code{misc}. Otherwise, returns a data.frame of the miQC results.}
 
 \item{random.seed}{Random seed for reproducibility.}
+
+\item{BPtmpdir}{Temporary directory for BPCells matrix processing.}
 
 \item{...}{Additional arguments to be passed to \code{\link[miQC]{filterCells}} function from the \code{miQC} package.}
 }

@@ -602,7 +602,7 @@ RunDbt <- function( object, methods=c("hybrid", "bcds", "cxds", "scDblFinder"),
 #' @param split.by Column name by which to group the data before calculating statistics.
 #' @param add.Seurat Logical; if TRUE, adds the hybrid results as metadata to the Seurat object and stored in \code{SingleCelMQC} slot in \code{misc}. Otherwise, returns a data.frame of the hybrid results.
 #' @param ... Additional arguments to be passed to \code{\link[scds]{cxds_bcds_hybrid}} function from the `scds` package.
-#' @param split.db.rate.1000 The expected doublet rate per 1000 cells. Default is 0.008, (so 0.016 among 1600 cells).
+#' @param split.db.rate.1000 The expected doublet rate per 1000 cells. Default is 0.008.
 #' @param BPtmpdir Temporary directory for BPCells matrix processing. Default is "./temp/SingleCellMQC_BPCellsStepBPToPCAScale/".
 #' @return If `add.Seurat` is TRUE, a Seurat object with appended metadata; otherwise, a data frame with the hybrid results.
 #' @details The results contained hybrid method scores for each cell and classification as 'Pass' or 'Fail'.
@@ -679,7 +679,7 @@ RunDbt_hybrid <- function(object, db.rate=NULL, split.db.rate.1000=0.008,
 #' @param split.by Column name by which to group the data before calculating statistics.
 #' @param add.Seurat Logical; if TRUE, adds the bcds results as metadata to the Seurat object and stored in \code{SingleCelMQC} slot in \code{misc}. Otherwise, returns a data.frame of the bcds results.
 #' @param ... Additional arguments to be passed to \code{\link[scds]{bcds}} function from the `scds` package.
-#' @param split.db.rate.1000 The expected doublet rate per 1000 cells. Default is 0.008, (so 0.016 among 1600 cells).
+#' @param split.db.rate.1000 The expected doublet rate per 1000 cells. Default is 0.008.
 #' @param BPtmpdir Temporary directory for BPCells matrix processing. Default is "./temp/SingleCellMQC_BPCellsStepBPToPCAScale/".
 #'
 #' @return If `add.Seurat` is TRUE, a Seurat object with appended metadata; otherwise, a data frame with the bcds results.
@@ -756,7 +756,7 @@ RunDbt_bcds <- function(object, db.rate=NULL, split.db.rate.1000=0.008, split.by
 #' @param split.by Column name by which to group the data before calculating statistics.
 #' @param add.Seurat Logical; if TRUE, adds the cxds results as metadata to the Seurat object and stored in \code{SingleCelMQC} slot in \code{misc}. Otherwise, returns a data.frame of the cxds results.
 #' @param ... Additional arguments to be passed to \code{\link[scds]{cxds}} function from the `scds` package.
-#' @param split.db.rate.1000 The expected doublet rate per 1000 cells. Default is 0.008, (so 0.016 among 1600 cells).
+#' @param split.db.rate.1000 The expected doublet rate per 1000 cells. Default is 0.008.
 #' @param BPtmpdir Temporary directory for BPCells matrix processing. Default is "./temp/SingleCellMQC_BPCellsStepBPToPCAScale/".
 #' @return If `add.Seurat` is TRUE, a Seurat object with appended metadata; otherwise, a data frame with the cxds results.
 #' @details The results contained cxds method scores for each cell and classification as 'Pass' or 'Fail'.
@@ -830,7 +830,7 @@ RunDbt_cxds <- function(object, db.rate=NULL,  split.db.rate.1000=0.008, split.b
 #' @param seed Random seed for reproducibility. Default is 1.
 #' @param add.Seurat Logical; if TRUE, adds the doublet detection results as metadata to the Seurat object and stores it in the `SingleCelMQC` slot in `misc`. Otherwise, returns a data.frame of the doublet detection results. Default is FALSE.
 #' @param ... Additional arguments to be passed to \code{\link[scDblFinder]{scDblFinder}} function from the `scDblFinder` package.
-#' @param split.db.rate.1000 The expected doublet rate per 1000 cells. Default is 0.008, (so 0.016 among 1600 cells).
+#' @param split.db.rate.1000 The expected doublet rate per 1000 cells. Default is 0.008.
 #' @param BPtmpdir Temporary directory for BPCells matrix processing. Default is "./temp/SingleCellMQC_BPCellsStepBPToPCAScale/".
 #' @return If `add.Seurat` is TRUE, returns the modified Seurat object with doublet detection results added. Otherwise, returns a list or data.frame with the doublet scores and classifications.
 #' @details The results contained scDblFinder method scores for each cell and classification as 'Pass' or 'Fail'. 'Fail' represents doublets.
@@ -965,7 +965,7 @@ RunDbt_VDJ <- function(object,add.Seurat=T,...){
 #' @param db.rate Numeric. The doublet rate score used to estimate the number of expected doublets.
 #'        Default is calculated as 0.08 * ncol(object)/10000. If NULL, this default formula will be used.
 #' @param ... Additional arguments.
-#' @param split.db.rate.1000 Numeric. The expected doublet rate per 1000 cells. Default is 0.008, (so 0.016 among 1600 cells).
+#' @param split.db.rate.1000 Numeric. The expected doublet rate per 1000 cells. Default is 0.008.
 #' @param PCs Numeric. The number of principal components. Default is 10.
 #' @param BPtmpdir Temporary directory for BPCells matrix processing. Default is "./temp/SingleCellMQC_BPCellsStepBPToPCAScale/".
 #' @return If add.Seurat is TRUE, returns the input Seurat object with additional metadata fields for doublet detection.

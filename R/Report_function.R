@@ -174,12 +174,16 @@ report.sample <- function(object, VDJ_data=NULL, sample.by="orig.ident", color=N
 
     utils::capture.output(ellipse <- FindInterSamplePCTOutlier(object, return.type =c("table", "plot", "interactive_table"), celltype.by = celltype.by,  method = "ellipse", split.by = split.by))
     utils::capture.output(dbscan <- FindInterSamplePCTOutlier(object, return.type =c("table", "plot"), celltype.by = celltype.by,  method = "dbscan", split.by = split.by))
-    outlist$outlier_comp$pca_ellipse <- suppressWarnings(plotly::ggplotly(ellipse[["plot"]][["pca"]]+  ggplot2::geom_point(ggplot2::aes(shape = isOutlier, text=Sample), size = 3, alpha = 0.7)   ))
-    outlist$outlier_comp$pca_dbscan <- suppressWarnings(plotly::ggplotly(dbscan[["plot"]][["pca"]]+  ggplot2::geom_point(ggplot2::aes(shape = isOutlier, text=Sample), size = 3, alpha = 0.7)))
 
-    outlist$outlier_comp$interactive_table <- ellipse[["interactive_table"]][["contribution"]]
-    outlist$outlier_comp$name_ellipse <- ellipse$table$outlier$Sample[ellipse$table$outlier$isOutlier]
-    outlist$outlier_comp$name_dbscan <- dbscan$table$outlier$Sample[dbscan$table$outlier$isOutlier]
+    if(!is.na(ellipse)){
+      outlist$outlier_comp$pca_ellipse <- suppressWarnings(plotly::ggplotly(ellipse[["plot"]][["pca"]]+  ggplot2::geom_point(ggplot2::aes(shape = isOutlier, text=Sample), size = 3, alpha = 0.7)   ))
+      outlist$outlier_comp$pca_dbscan <- suppressWarnings(plotly::ggplotly(dbscan[["plot"]][["pca"]]+  ggplot2::geom_point(ggplot2::aes(shape = isOutlier, text=Sample), size = 3, alpha = 0.7)))
+
+      outlist$outlier_comp$interactive_table <- ellipse[["interactive_table"]][["contribution"]]
+      outlist$outlier_comp$name_ellipse <- ellipse$table$outlier$Sample[ellipse$table$outlier$isOutlier]
+      outlist$outlier_comp$name_dbscan <- dbscan$table$outlier$Sample[dbscan$table$outlier$isOutlier]
+
+    }
 
   }
 
@@ -229,9 +233,9 @@ report.sample <- function(object, VDJ_data=NULL, sample.by="orig.ident", color=N
   temp <- lapply( names(gene_mt), function(y){
     p1 = patchwork::wrap_plots( list(gene_mt[[y]],gene_count[[y]]) , ncol = 2)
     ggplot2::ggsave(paste0(plot_out, "/SingleCellMQC/plot/Cell_QC/LowCell/scatter/", y, ".png"),
-           plot=p1,
-           width= 11,
-           height = 5.5, dpi=150)
+                    plot=p1,
+                    width= 11,
+                    height = 5.5, dpi=150)
     return(NULL)
   } )
   outlist$scatter <- names(gene_mt)
@@ -347,25 +351,25 @@ report.cell <- function(object, sample.by="orig.ident", color=NULL,  plot_out=NU
 
   ##sample
   if(!is.null(split.by)){
-  ##RNA
-  if( "RNA" %in% names(object@assays) ){
-  SeuratObject::DefaultAssay(object) <- "RNA"
-  out <- RunVarExplained(object, assay = "RNA", variables = split.by)
-  out <- data.frame(Feature= rownames(out), out)
-  top_20 <- out[order(out[,2], decreasing = TRUE), ][1:20, ]
-  rownames(top_20) <-NULL
-  outlist$VE_RNA <- .re_table(top_20, maxWidth = NULL, csv.name = "VarExplained_RNA", elementId = "VarExplained_RNA", subtitle = "Top 20 features variance explained in RNA assay")
-  }
+    ##RNA
+    if( "RNA" %in% names(object@assays) ){
+      SeuratObject::DefaultAssay(object) <- "RNA"
+      out <- RunVarExplained(object, assay = "RNA", variables = split.by)
+      out <- data.frame(Feature= rownames(out), out)
+      top_20 <- out[order(out[,2], decreasing = TRUE), ][1:20, ]
+      rownames(top_20) <-NULL
+      outlist$VE_RNA <- .re_table(top_20, maxWidth = NULL, csv.name = "VarExplained_RNA", elementId = "VarExplained_RNA", subtitle = "Top 20 features variance explained in RNA assay")
+    }
 
-  ##ADT
-  if( "ADT" %in% names(object@assays) ){
-    SeuratObject::DefaultAssay(object) <- "ADT"
-  out <- RunVarExplained(object, assay = "ADT", variables = split.by)
-  out <- data.frame(Feature= rownames(out), out)
-  top_20 <- out[order(out[,2], decreasing = TRUE), ][1:20, ]
-  rownames(top_20) <-NULL
-  outlist$VE_ADT <- .re_table(top_20, maxWidth = NULL, csv.name = "VarExplained_ADT", elementId = "VarExplained_ADT", subtitle = "Top 20 features variance explained in ADT assay")
-  }
+    ##ADT
+    if( "ADT" %in% names(object@assays) ){
+      SeuratObject::DefaultAssay(object) <- "ADT"
+      out <- RunVarExplained(object, assay = "ADT", variables = split.by)
+      out <- data.frame(Feature= rownames(out), out)
+      top_20 <- out[order(out[,2], decreasing = TRUE), ][1:20, ]
+      rownames(top_20) <-NULL
+      outlist$VE_ADT <- .re_table(top_20, maxWidth = NULL, csv.name = "VarExplained_ADT", elementId = "VarExplained_ADT", subtitle = "Top 20 features variance explained in ADT assay")
+    }
   }
 
 
@@ -390,12 +394,12 @@ report.feature <- function(object, marker_name= c("CD3D","CD3E","CD19", "MS4A1",
 
 
 .batchSection1 <- function(object,
-         sample.by="orig.ident",
-         RNA.batch.by= "orig.ident",
-         ADT.batch.by="orig.ident", plot_out,
-         RNA.batch.covariate=c( "orig.ident" ,"percent.mt", "nFeature_RNA", "nCount_RNA"),
-         ADT.batch.covariate=c( "orig.ident" , "nFeature_ADT", "nCount_ADT"),
-         celltype.by=NULL){
+                           sample.by="orig.ident",
+                           RNA.batch.by= "orig.ident",
+                           ADT.batch.by="orig.ident", plot_out,
+                           RNA.batch.covariate=c( "orig.ident" ,"percent.mt", "nFeature_RNA", "nCount_RNA"),
+                           ADT.batch.covariate=c( "orig.ident" , "nFeature_ADT", "nCount_ADT"),
+                           celltype.by=NULL){
   message(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
                 "------ Run Batch QC: Sample-level"))
   metadata <- object@meta.data
@@ -688,7 +692,7 @@ report.batch <- function(object, RNA_cluster_name=NULL, ADT_cluster_name=NULL,
   if(1 %in% section){
     Batch$Section1  <- .batchSection1(object, RNA.batch.by=RNA.batch.by, ADT.batch.by=ADT.batch.by, plot_out=plot_out, sample.by=sample.by,
                                       RNA.batch.covariate=RNA.batch.covariate, ADT.batch.covariate=ADT.batch.covariate, celltype.by=celltype.by
-                                      )
+    )
   }
 
   if(2 %in% section){
@@ -696,7 +700,7 @@ report.batch <- function(object, RNA_cluster_name=NULL, ADT_cluster_name=NULL,
   }
 
   if(3 %in% section){
-   Batch$Section3  <- .batchSection3(object,sample.by=sample.by, RNA.batch.covariate=RNA.batch.covariate, ADT.batch.covariate=ADT.batch.covariate,  plot_out=plot_out)
+    Batch$Section3  <- .batchSection3(object,sample.by=sample.by, RNA.batch.covariate=RNA.batch.covariate, ADT.batch.covariate=ADT.batch.covariate,  plot_out=plot_out)
   }
   return(Batch)
 }
@@ -776,7 +780,7 @@ RunReport <- function(object=NULL, VDJ_data=NULL, sample.by="orig.ident", output
 
   if( !is.null(section.feature) ){
     out_list$Feature <- report.feature(object=object, marker_name= c("CD3D","CD3E","CD19", "MS4A1","CD79A",
-                                                                    "CD14","FCGR3A","CD68","FCN1","ITGAX"), celltype.by=celltype.by, sample.by=sample.by, plot_out=plot_out, section=1)
+                                                                     "CD14","FCGR3A","CD68","FCN1","ITGAX"), celltype.by=celltype.by, sample.by=sample.by, plot_out=plot_out, section=1)
   }
 
   if( !is.null(section.batch) ){
@@ -864,10 +868,3 @@ RunPreprocess <- function(object, sample.by="orig.ident", db.method=c("scDblFind
   object <- RunPipeline(object, preprocess = preprocess,...)
   return(object)
 }
-
-
-
-
-
-
-

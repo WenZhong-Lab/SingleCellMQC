@@ -31,7 +31,8 @@ if (getRversion() >= "2.15.1") {
       "nChain_BCR", "nChain_TCR", "new_name", "num.all", "num.select",
       "orig.ident", "parallel_paramSweep", "productive", "proportion",
       "receptor_subtype", "receptor_type", "row_id", "sample", "scores",
-      "stat_method", "total", "value", "values", "variable", "x", "top", "name", "object_temp"
+      "stat_method", "total", "value", "values", "variable", "x", "top", "name", "object_temp","method",
+      "overall_rank", "asw", "ch", "db", "ari", "nmi", "overall"
     )
   )
 }

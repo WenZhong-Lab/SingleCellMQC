@@ -8,7 +8,7 @@ clusterBench <- function(pca_value, clusters,  filter_columns){
 
 benchmark <- function(object, filter_columns, resolution=1, type="db"){
   if(filter_columns!="no_filter"){
-    capture.output(object <- FilterCells(object, filter_columns =filter_columns ))
+    utils::capture.output(object <- FilterCells(object, filter_columns =filter_columns ))
   }
 
   # pipeline
@@ -42,6 +42,19 @@ benchmark <- function(object, filter_columns, resolution=1, type="db"){
   return(out)
 }
 
+#' Benchmarking of doublet detection methods
+#'
+#' Benchmarking of RNA-based doublet detection methods
+#'
+#' @param object A Seurat object containing single-cell data.
+#' @param split.by String specifying metadata column to split object by. Default is "orig.ident".
+#' @param method_columns Character vector of method names (column names) for doublet detection.
+#' @param resolution A numeric vector of cluster resolutions to benchmark. Default is \code{seq(1, 1.5, 0.1)}.
+#' @param BPtmpdir Temporary directory for BPCells matrix processing. Default is "./temp/SingleCellMQC_BPCellBenchmark/".
+#'
+#' @returns A data.frame with one row per sample/method/resolution, containing clustering metric results.
+#' @export
+#'
 RunBenchmarkDoublet <- function(object, split.by="orig.ident", method_columns,resolution=seq(1,1.5,0.1),
                                    BPtmpdir= "./temp/SingleCellMQC_BPCellBenchmark/"){
   split_object <- splitObject(object, split.by = split.by, assay="RNA", tmpdir= BPtmpdir)
@@ -128,6 +141,20 @@ rankBenchValue <- function(object) {
 }
 
 
+#' Visualize Benchmarking Rank Distribution
+#'
+#' Plots the distribution of overall ranks for different doublet detection methods,
+#' showing how often each rank is achieved per method. Returns both the barplot
+#' and the summarized mean metric table.
+#'
+#' @param object A data.frame, as produced by \code{RunBenchmarkDoublet}.
+#' @param plot.ncol Number of columns in the facet plot grid. Default is 5.
+#'
+#' @return A list with two elements:
+#'   \item{plot}{A ggplot2 object of the barplot.}
+#'   \item{mean_value}{A data.frame of summarized metrics/ranks.}
+#' @export
+#'
 PlotBenchmarkDoublet <- function(object, plot.ncol=5){
   ave_value  <- rankBenchValue(object)
   df_counts <- ave_value %>%

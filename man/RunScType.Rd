@@ -17,7 +17,7 @@ RunScType(
   type.tissue = "Immune system",
   type.condition = NULL,
   type.cell = "Normal",
-  data_source = "Main",
+  data_source = "c",
   ntop = 30,
   ...
 )

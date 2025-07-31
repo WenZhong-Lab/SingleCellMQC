@@ -50,12 +50,12 @@
 
 RunScType <- function(object, split.by= NULL, return.name="ScType",
                       genelist= NULL, use_internal_data =TRUE,
-                              group.by="seurat_clusters",
-                              preprocess=NULL,
-                              resolution=1,
-                              cutoff=3,
-                              type.tissue = "Immune system",
-                              type.condition = NULL, type.cell="Normal",  data_source="c", ntop=30,
+                      group.by="seurat_clusters",
+                      preprocess=NULL,
+                      resolution=1,
+                      cutoff=3,
+                      type.tissue = "Immune system",
+                      type.condition = NULL, type.cell="Normal",  data_source="c", ntop=30,
                       ...
 ){
 
@@ -84,16 +84,16 @@ RunScType <- function(object, split.by= NULL, return.name="ScType",
 
       if ( "BPCells" %in% attr(class(Seurat::GetAssayData(sc_data, assay = "RNA", slot = "counts")), "package") ) {
         sc_data <- SeuratObject::SetAssayData(object = sc_data,
-                                          assay = "RNA",
-                                          slot = "counts",
-                                          new.data = as(Seurat::GetAssayData(sc_data, assay = "RNA", slot = "counts"), "dgCMatrix") )
+                                              assay = "RNA",
+                                              slot = "counts",
+                                              new.data = as(Seurat::GetAssayData(sc_data, assay = "RNA", slot = "counts"), "dgCMatrix") )
       }
 
       if(!is.null(preprocess)){
 
-          sc_data <- suppressMessages(RunPipeline(sc_data, preprocess =preprocess, resolution=resolution, ...))
+        sc_data <- suppressMessages(RunPipeline(sc_data, preprocess =preprocess, resolution=resolution, ...))
       }else{
-          sc_data <- suppressMessages(RunPipeline(sc_data, preprocess ="rna.umap", resolution=resolution, ...))
+        sc_data <- suppressMessages(RunPipeline(sc_data, preprocess ="rna.umap", resolution=resolution, ...))
       }
       ano_result <- .runScType(object = sc_data, genelist = genelist, group.by=group.by, cutoff=cutoff)
       rm(sc_data)
@@ -104,7 +104,7 @@ RunScType <- function(object, split.by= NULL, return.name="ScType",
     out <- do.call(rbind, out)
   }else{
     if(!is.null(preprocess)){
-        object <- suppressMessages(RunPipeline(object, preprocess =preprocess, resolution=resolution, ...))
+      object <- suppressMessages(RunPipeline(object, preprocess =preprocess, resolution=resolution, ...))
     }
     out <- .runScType(object = object, genelist = genelist, group.by=group.by, cutoff=cutoff)
   }
@@ -456,15 +456,15 @@ ShowDatabaseTissue <- function(database="ScType"){
 #'
 
 FindSampleMetricsWarning <- function(object,
-                                           sample.by="orig.ident",
-                                           metrics.by = NULL,
-                                           split.by = NULL,
-                                           type= NULL,
-                                           log= NULL,
-                                           nmads = rep(3, length(metrics.by)),
-                                           aggregate_type="median",
-                                           color=c('#A6CEE3'),
-                                           return.type=c("table")
+                                     sample.by="orig.ident",
+                                     metrics.by = NULL,
+                                     split.by = NULL,
+                                     type= NULL,
+                                     log= NULL,
+                                     nmads = rep(3, length(metrics.by)),
+                                     aggregate_type="median",
+                                     color=c('#A6CEE3'),
+                                     return.type=c("table")
 ){
   if("Seurat" %in% class(object)){
     QC_misc <- GetSingleCellMQCData(object)
@@ -662,17 +662,17 @@ FindSampleMetricsWarning <- function(object,
 #'
 #' @export
 FindInterSamplePCTOutlier <- function(object,
-                                       sample.by = "orig.ident",
-                                       celltype.by = "ScType",
-                                       split.by=NULL,
-                                       color.pca =NULL,
-                                       color.bar= "#56B4E9",
-                                       confidence_level = 0.95,
-                                       labelOnlyOutlier = T,
-                                       minPts=3,
-                                       method="ellipse",
-                                       top=Inf,
-                                       return.type=c("table")
+                                      sample.by = "orig.ident",
+                                      celltype.by = "ScType",
+                                      split.by=NULL,
+                                      color.pca =NULL,
+                                      color.bar= "#56B4E9",
+                                      confidence_level = 0.95,
+                                      labelOnlyOutlier = T,
+                                      minPts=3,
+                                      method="ellipse",
+                                      top=Inf,
+                                      return.type=c("table")
 
 ) {
 
@@ -697,6 +697,11 @@ FindInterSamplePCTOutlier <- function(object,
   plot_data[, freq := round(count / sum(count) *100,2 ), by = Sample]
   plot_data <- data.table::dcast(plot_data, Sample~ CellType, value.var = "freq")
   plot_data <- replace(plot_data, is.na(plot_data), 0)
+
+  if(dim(plot_data)[1]==1){
+    return(NA)
+  }
+
   pca_res <- stats::prcomp(plot_data[,-1],scale.=T)
   pca_out <- data.frame(Sample=plot_data$Sample ,pca_res$x )
   percentage <- round(pca_res$sdev/sum(pca_res$sdev) * 100,  2)
@@ -1039,6 +1044,7 @@ FindCommonPCTOutlier <- function(object,
   if("table" %in% return.type){
     out$table <- out_table
   }
+
   if("interactive_table" %in% return.type){
     out$interactive_table <- .outlier_reactable_pct(out_table$table)
   }
@@ -1113,6 +1119,8 @@ FindCommonPCTOutlier <- function(object,
   pct_table$proportion <- round(pct_table$proportion*100,3)
   colnames(pct_table)[5:7] <- paste0(colnames(pct_table)[5:7], "%")
 
+  out <-  list(table=pct_table)
+
   metrics.by <- unique(pct_table$CellType)
   pct_list <- lapply(seq_along(metrics.by), function(x){
     out <- pct_table$Sample[(pct_table$CellType %in% metrics.by[x]) & pct_table$isOutlier==TRUE ]
@@ -1122,7 +1130,23 @@ FindCommonPCTOutlier <- function(object,
     return(out)
   })
   names(pct_list) <- metrics.by
-  return(list(table=pct_table, list=pct_list) )
+  pct_list <- pct_list[!(sapply(pct_list, is.null) | sapply(pct_list, function(x) length(x) == 0))]
+  out$list <- pct_list
+
+  ##
+  if(length(pct_list)!=0){
+
+    # subset freq >= 3
+    freq_table <- as.data.frame(table( do.call(c, pct_list) ))
+    freq_table <- freq_table[freq_table$Freq >=3,]
+    freq_table <- freq_table[ order(freq_table$Freq, decreasing =T) , ]
+    cat_freq_word3ormore <- paste0( "Note: ", length(freq_table[,1]), " warning samples (celltype% outliers >= 3 ): ", paste0(freq_table[,1], collapse = ", ")," \n")
+    cat(cat_freq_word3ormore)
+    out$warining = as.character(freq_table[,1])
+  }else{
+    out$warining = NA
+  }
+  return(out )
 }
 
 
