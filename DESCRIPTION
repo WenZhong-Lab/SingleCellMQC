@@ -67,7 +67,6 @@ Imports:
     fpc
 Suggests:
     BPCells (>= 0.3.0),
-    clusterProfiler,
     COSG,
     decontX,
     DESeq2,

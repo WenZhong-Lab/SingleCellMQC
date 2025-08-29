@@ -5,6 +5,7 @@
 -   Optimized `RunReport()` and improved HTML report content.
 -   Add `RunBenchmarkDoublet` and `PlotBenchmarkDoublet` for benchmarking of doublet detection methods.
 -   Optimized `FindCommonPCTOutlier` function.
+-   Delete `RunCorrection_DecontPro`, `RunCorrection`, `RunLQReClustering`, `FindAllMarkerCOSG`, `PlotMarkerEnrichKegg`, `PlotFeatureCosineCiteSeq`, `PlotVEPerFeature`, `RunVarExplainedPerFeature` functions.
 
 # v0.6.1
 
