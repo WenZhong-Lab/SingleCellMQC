@@ -1,6 +1,5 @@
 
 
-# R square ----------------------------------------------------------------
 .lmR2 <- function(x, y) {
   if (ncol(x) != length(y)) {
     stop("The number of columns in x must match the length of y.")
@@ -113,60 +112,6 @@ RunVarExplained.default <- function(object, metadata, variables=NULL, ...) {
 }
 
 
-#' Calculate Per Molecular Feature Variance Explained by Variables
-#'
-#' @description
-#' This function calculates the percentage of variance explained by one or more variables of interest for each molecular feature (e.g., gene, protein).
-#'
-#' @param object Seurat object
-#' @param type Analysis type, must be either "cell" (single-cell level) or "pseudobulk" (pseudobulk level)
-#' @param assay Name of assay to use, default is "RNA"
-#' @param pseudobulk.sample.by Metadata sample column name to group cells for pseudobulk analysis (when type="pseudobulk")
-#' @param variables Variables to calculate variance explained for (must be specified)
-#'
-#' @return Return variance explained results for each molecular feature
-#'
-#' @export
-#'
-RunVarExplainedPerFeature <- function(object, type = "cell", assay = "RNA",
-                                      pseudobulk.sample.by = "orig.ident",
-                                      variables = NULL) {
-  # Parameter validation
-  if (!type %in% c("cell", "pseudobulk")) {
-    stop("'type' must be either 'cell' or 'pseudobulk'")
-  }
-
-  if (is.null(variables)) {
-    stop("'variables' parameter must be specified (cannot be NULL)")
-  }
-  metadata <- object@meta.data
-
-  if (!all(variables %in% colnames(metadata))) {
-    missing_vars <- setdiff(variables, colnames(metadata))
-    stop("The following variables were not found in object metadata: ",
-         paste(missing_vars, collapse = ", "))
-  }
-
-  out <- switch(type,
-                "cell" = {
-                  cell_var <- RunVarExplained(object, variables = variables, assay = assay)
-                  return(cell_var)
-                },
-                "pseudobulk" = {
-                  exp <- Seurat::GetAssayData(object, assay = assay, slot = "counts")
-                  exp_sum <- AggregateGroupAcrossCells(exp, metadata, group.by = pseudobulk.sample.by)
-                  exp_sum_nom <- suppressMessages(.getVstExp(exp_sum, assay = assay))
-                  index <- match(colnames(exp_sum_nom), metadata[[pseudobulk.sample.by]])
-                  sample_information <- .pseudobulkMetadata(object, sample.by = pseudobulk.sample.by, variable.by = variables)
-                  sample_information <- sample_information[match(colnames(exp_sum_nom), sample_information$Sample ),]
-                  pobulk_var <- RunVarExplained(exp_sum_nom, sample_information, variables = colnames(sample_information)[-1])
-                  return(pobulk_var)
-                }
-  )
-  return(out)
-}
-
-
 .getVarExplained <- function(object, metadata, variables = NULL) {
   if (is.null(variables)) {
     variables <- colnames(metadata)
@@ -216,41 +161,6 @@ RunVarExplainedPerFeature <- function(object, type = "cell", assay = "RNA",
 
 
 
-
-
-# batch sample ------------------------------------------------------------
-
-.svdSig <- function(pca_res, metadata, variables, maxPCs=5){
-  value <- pca_res$x
-  PCs <- colnames(value)
-  if(maxPCs > length(PCs)){
-    maxPCs <- length(PCs)
-  }
-
-  out <- lapply(1:maxPCs, function(PC){
-    pval_out <- lapply(variables, function(x){
-      n_samples <- nrow(value)
-      if( !is(metadata[[x]], "numeric")  ){
-        pval <- stats::kruskal.test(value[,PC] ~ as.factor(metadata[[x]]))$p.value
-      }else{
-        if (n_samples == 2) {
-          warning("Only 2 values for continuous variable '", x,
-                  "' (PC", PC,"). Using Kruskal-Wallis test instead of linear regression.")
-          pval <- stats::kruskal.test(value[, PC] ~ as.factor(metadata[[x]]))$p.value
-        } else {
-          pval <- summary(stats::lm(value[, PC] ~ metadata[[x]]))$coeff[2, 4]
-        }
-      }
-      return(pval)
-    })
-    pval_out <- do.call(c, pval_out)
-    return(pval_out)
-  })
-  out <- do.call(cbind, out)
-  colnames(out) <- colnames(value)[1:maxPCs]
-  rownames(out) <- variables
-  return(out)
-}
 
 #' Aggregate Counts by Group Across Cells
 #'
@@ -379,9 +289,6 @@ AggregateGroupAcrossCells <- function(object, metadata, group.by){
 }
 .pseudobulkExplanatory <- function(object, metadata){
   out <- RunVarExplained(t(object$x), variables= colnames(metadata)[-1], metadata= metadata)
-  # return(list(object=object,metadata=metadata))
-  #sce <- suppressWarnings(SingleCellExperiment::SingleCellExperiment(colData = metadata,reducedDims = list(PCA=object$x) ))
-  #out <- scater::getExplanatoryPCs(sce, variables=colnames(metadata)[-1])
   out <- data.frame(PCs= rownames(out), out, check.names = F)
   return(out)
 }
@@ -784,7 +691,6 @@ PlotSamplePCA <- function(object, assay = "RNA", sample.by = "orig.ident", svd.v
 
   return(out_list)
 }
-# PlotCovariateImpact -----------------------------------------------------
 
 
 #' @title Visualize Covariate Impact on Single-Cell Data
@@ -817,97 +723,6 @@ PlotCovariateImpact <- function(object, assay="RNA", variables=NULL, pseudobulk.
 
 }
 
-# batch ReducedDim --------------------------------------------------------
-
-
-
-
-
-#' @title Visualize Reduced Dimensional Data
-#' @description This function generates scatter plots of reduced dimensional data, either at the cell level or pseudobulk level. It supports two main visualization types: cell-level scatter plots (`"cell"`) and pseudobulk PCA plots (`"pseudobulk"`).
-#'
-#' @param object A Seurat object containing the single-cell data to be analyzed.
-#' @param group.by A character string specifying the metadata column used for grouping cells (default: `"seurat_clusters"`).
-#' @param plot.type A character string specifying the type of plot to generate. Options include `"cell"` and `"pseudobulk"` (default: `"cell"`).
-#' @param reduction A character string specifying the type of reduction to plot (default: `"rna.umap"`).
-#' @param split.by A character string specifying the metadata column used to split the data into subsets (default: `NULL`).
-#' @param ncol An integer specifying the number of columns for the facet plot (default: `NULL`).
-#' @param ggside Logical, whether to use ggside for facet plots (default: `FALSE`).
-#' @param color A vector of colors to use for visualizations (default: `NULL`).
-#' @param guide.nrow An integer specifying the number of rows for the legend (default: `10`).
-#' @param raster.cutoff An integer specifying the cutoff for rasterization (default: `100000`).
-#' @param do.preprocess Logical, whether to preprocess the data before plotting (default: `FALSE`).
-#' @param preprocess A character string specifying the type of preprocessing to apply (default: `"rna.umap"`).
-#' @param sample.by.pseudobulk A character string specifying the metadata column used for defining samples in the pseudobulk analysis (default: `"orig.ident"`).
-#' @param group.by.pseudobulk A character string specifying the metadata column used for grouping cells in the pseudobulk analysis (default: `"orig.ident"`).
-#' @param ... Additional arguments to be passed to the plotting functions.
-#'
-#' @return A plot based on the specified `plot.type`.
-#' @export
-#' @examples
-#' \dontrun{
-#' # Visualize reduced dimensional data
-#' PlotReducedDim(object, group.by = "seurat_clusters", plot.type = "cell")
-#' }
-#' @seealso \code{\link{PlotSamplePCA}}
-#'
-#'
-PlotReducedDim  <- function(object, group.by = "seurat_clusters",
-                            plot.type="cell",
-                            reduction="rna.umap", split.by= NULL, ncol=NULL,ggside=F,color = NULL,
-                            guide.nrow=10, raster.cutoff=100000,
-                            do.preprocess=F , preprocess="rna.umap",#rna.pca,adt.pca, rna.umap, adt.umap, wnn.umap
-                            sample.by.pseudobulk="orig.ident",
-                            group.by.pseudobulk="orig.ident",
-                            ...
-
-){
-  if( !("Seurat" %in% is(object)) ){
-    stop("Error: Input must be Seurat object.")
-  }
-
-  if( length(setdiff(plot.type, c("cell", "pseudobulk")))!=0 ){
-    stop("Invalid `plot.type`, only: `cell` or/and `pseudobulk` ")
-  }
-
-  plot_out <- switch(plot.type,
-                     "cell"={
-                       if(do.preprocess){
-                         object <- RunPipeline(object, preprocess=preprocess)
-                         reduction <- preprocess
-                       }
-
-                       cluster_data <- SeuratObject::Embeddings(object = object, reduction= reduction)
-                       index <- union(group.by, split.by)
-                       cluster_data <- data.frame(cluster_data, object@meta.data[, index, drop=F])
-                       if( is.null(color)){
-                         color <- get_colors( length(unique(cluster_data[[group.by]])))
-                       }
-                       sample_num <- length(unique(object@meta.data[,split.by]))
-                       if(is.null(ncol)){
-                         ncol = ceiling(sqrt(sample_num))
-                       }
-                       cluster_data[[group.by]] <- factor(cluster_data[[group.by]], levels = sort(unique(cluster_data[[group.by]])) )
-
-                       p <- plotScatter(cluster_data, x= colnames(cluster_data)[1] , y= colnames(cluster_data)[2], group.by = group.by, color = color,
-                                        log.x = F,log.y = F,ggside = ggside,split.by = split.by, ncol = ncol,guide.nrow=guide.nrow, raster.cutoff=raster.cutoff)
-
-                       p[["facet"]][["params"]][["ncol"]] <- ncol
-                       p[["facet"]][["params"]][["nrow"]] <- ceiling(sample_num / ncol)
-                       return(p)
-                     },
-                     "pseudobulk"= PlotSamplePCA(object, sample.by=sample.by.pseudobulk, pca.group.by=group.by.pseudobulk, color=color,plot.type = "pca",return.type = "plot", ...),
-                     stop("Invalid plot.type, only `cell` or `pseudobulk`  ")
-
-  )
-
-  return(plot_out)
-
-}
-
-
-
-# Batch test --------------------------------------------------------------
 
 #' @title Run Batch Test
 #' @description This function performs a batch test on a Seurat object to evaluate the presence of batch effects. It calculates the Kendall W statistic, pairwise Kendall correlations, and the number of negative correlations between samples.

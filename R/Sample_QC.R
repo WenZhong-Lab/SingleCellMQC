@@ -284,30 +284,6 @@ RunScType <- function(object, split.by= NULL, return.name="ScType",
   es.max
 }
 
-#' @title Show Database Tissue
-#' @description This function returns the unique tissue types in the ScType or Cell_Taxonomy database.
-#'
-#' @param database A character string specifying the database to use. Supported values include:
-#' \itemize{
-#' \item "ScType": Use the ScType database.
-#' \item "Cell_Taxonomy": Use the Cell_Taxonomy database.
-#' }
-#' @return A character vector of unique tissue types.
-#' @export
-#' @examples
-#' ShowDatabaseTissue("ScType")
-#' ShowDatabaseTissue("Cell_Taxonomy")
-#'
-
-ShowDatabaseTissue <- function(database="ScType"){
-  Tissue_unique <- switch (database,
-                           "ScType" = unique(marker_all$ScType$pos$Tissue_standard),
-                           "Cell_Taxonomy" = unique(marker_all$Cell_Taxonomy$pos$Tissue_standard),
-                           stop("Invalid database")
-  )
-  return(Tissue_unique)
-}
-
 
 
 
@@ -1150,13 +1126,4 @@ FindCommonPCTOutlier <- function(object,
 }
 
 
-#' Show Common PCT Tissue
-#'
-#' @param object NULL
-#'
-#' @return A character vector containing the available tissue types.
-#' @export
-ShowCommonPCTTissue <- function(object=NULL){
-  return(unique(pct_stat_out$tissue))
-}
 

@@ -1,21 +1,4 @@
 
-#' @title Show available cell quality control metrics
-#'
-#' @description This function retrieves and displays the names of available cell-level quality control metrics from a Seurat object.
-#'
-#' @param object A Seurat object containing the per-cell quality control metrics. The input must be a valid Seurat object to extract the quality control data.
-#'
-#' @return A character vector containing the names of the available cell quality control metrics in the Seurat object.
-#'
-#' @export
-ShowCellMetricsName <- function(object){
-  if(!("Seurat" %in% class(object)) ){
-    stop("Error: Seurat object must be as input!!")
-  }
-  QC_misc <- GetSingleCellMQCData(object)
-  out <- colnames(QC_misc$perQCMetrics$perCell)[-1]
-  return(out)
-}
 
 #' Plot Cell Metrics
 #'

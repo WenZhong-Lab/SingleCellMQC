@@ -115,32 +115,21 @@ CalculateMetricsPerCell.GEX <- function(object, add.Seurat=TRUE){
   message(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
                 "------CalculateMetricsPerCell.GEX"))
   GEX <- toSeuratObject(object)
+  genelist <- GetNoiseGeneList(GEX)
+
+  #GEX <- Seurat::CellCycleScoring(GEX, s.features = genelist$CellCycle_s, g2m.features = genelist$CellCycle_g2m)
   metric_name <-
     c("percent.mt",
       "percent.rb",
       "percent.hb",
       "percent.dissociation")
-  grep_type <-
-    c("^MT-", "^RP[SL]", "^HB[^(P)]",
-      "dissociation")
 
-  #Dissociation
-  Dissociation_gene <- c("ATF3","BTG2","CEBPB","CEBPB-AS1","CEBPD","CXCL1","EGR1","FOS","FOSB","FOSL1","FOSL1P1","FOSL2","ID3","IER2","JUN",
-                         "JUNB","JUND","MT1A","MT1B","MT1E","MT1F","MT1G","MT1H","MT1L","MT1M","MT1X","MT2A","NFKBIA","NR4A1","PPP1R15A","SOCS3",
-                         "UBC","ZFP36")
-  Dissociation_gene <- intersect(rownames(GEX), Dissociation_gene)
   metric_list <- mapply(function(x,y){
-    if(x=="percent.dissociation"){
-      #dissociation
-      out <- Seurat::PercentageFeatureSet(GEX,features = Dissociation_gene, assay ="RNA")
-    }else{
-      out <- Seurat::PercentageFeatureSet(GEX, pattern = y, assay ="RNA")
-    }
+    out <- Seurat::PercentageFeatureSet(GEX, features = y, assay ="RNA")
     out <- as.data.frame(out)
     colnames(out) <- x
     return(out)
-  }, x = metric_name, y = grep_type, SIMPLIFY = F)
-
+  }, x = metric_name, y = genelist[1:4], SIMPLIFY = F)
   metric_data <- do.call(cbind, metric_list)
 
   #RNA

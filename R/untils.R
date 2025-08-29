@@ -124,26 +124,7 @@ getSampleName.Seurat <- function(object, sample.by="orig.ident", ...) {
   return(unique(object@meta.data[[sample.by]]) )
 }
 
-#' @method splitObject Seurat
-splitObject.Seurat <- function(object, split.by = "orig.ident", assay=NULL,tmpdir= "./temp/SingleCellMQC_tempBPCellSplitSeurat/",  ...){
-  if(!is.null(split.by)){
-    if(  length(unique(object@meta.data[[split.by]]))>1  ){
-      message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "-------- Split Seurat Object"))
-      split_object <- .splitObjectSeurat(object, split.by = split.by, assay=assay, tmpdir=tmpdir)
-    }else{
-      split_object <- list(Sample = object)
-      names(split_object) <- as.character(unique(object@meta.data[[split.by]]))
-    }
-  }else{
-    split_object <- list(Sample = object)
-  }
-  return(split_object)
-}
 
-#' @method splitObject Seurat
-splitObject.list <- function(object, split.by = NULL, ...){
-  return(object)
-}
 
 .splitObjectSeurat <- function(object, assay=NULL, split.by="orig.ident", tmpdir= "./temp/SingleCellMQC_tempBPCellSplitSeurat/"){
   if(is.null(assay)){
@@ -512,3 +493,288 @@ smart_lapply <- function(X, FUN, ..., .use_future = NULL, future.seed = TRUE) {
 
   return(x)
 }
+
+
+
+.findDirValue <- function(obj) {
+  if (isS4(obj)) {   # 这里直接用isS4，无需加methods::
+    slots <- methods::slotNames(obj)
+    if ("dir" %in% slots) {
+      return(methods::slot(obj, "dir"))
+    } else {
+      for (s in slots) {
+        result <- .findDirValue(methods::slot(obj, s))
+        if (!is.null(result)) return(result)
+      }
+    }
+  }
+  return(NULL)
+}
+
+
+
+.bar_style <- function(width = 1, fill = "#e6e6e6", height = "100%",
+                       align = c("left", "right"), color = NULL) {
+  align <- match.arg(align)
+  if (align == "left") {
+    position <- paste0(width * 100, "%")
+    image <- sprintf("linear-gradient(90deg, %1$s %2$s, transparent %2$s)", fill, position)
+  } else {
+    position <- paste0(100 - width * 100, "%")
+    image <- sprintf("linear-gradient(90deg, transparent %1$s, %2$s %1$s)", position, fill)
+  }
+  list(
+    # paddingLeft = "0.5%",
+    backgroundImage = image,
+    backgroundSize = paste("92%", height),
+    backgroundRepeat = "no-repeat",
+    backgroundPosition = "left",
+    color = color
+  )
+}
+
+
+.add_custom_text <- function(table, text, font_size = 16) {
+  htmlwidgets::prependContent(
+    table,
+    htmltools::tags$p(
+      text,
+      style = paste0(
+        "color:#000;",
+        "background:#FFFFFF;",
+        "text-align:left;",
+        "font-size:", font_size, "px;",
+        "font-style:normal;",
+        "font-weight:bold;",
+        "text-decoration:none;",
+        "text-transform:none;",
+        "letter-spacing:normal;",
+        "word-spacing:normal;",
+        "text-shadow:none;",
+        "margin-top:0.5px;",
+        "margin-right:0px;",
+        "margin-bottom:0.5px;",
+        "margin-left:0px;"
+      )
+    )
+  )
+}
+
+.re_table <- function(object, csv.name="table", elementId="table", right.sparkline=F,
+                      down.sparkline=F, label=1, first_name=colnames(object)[1],
+                      other_sticky_column=NULL,
+                      maxWidth=85,
+                      number_type="auto",##auto, custom, initial
+                      number_fmr="paste0(value,'%')",
+                      subtitle=NULL
+){
+  count <- as.data.frame(object)
+  colnames(count)[1] <- first_name
+  filter_code <- "filterable = TRUE,
+  filterMethod = htmlwidgets::JS(
+    'function(rows, columnId, filterValue) {
+                  return rows.filter(function(row) {
+                    return row.values[columnId] >= filterValue
+                  })
+                }'
+  ),"
+
+  filter_input_code <- "
+  filterable=TRUE,
+    filterInput = function(values, name) {
+      htmltools::tags$select(
+        onchange = paste0('Reactable.setFilter(\\'', elementId, '\\', \\'', name, '\\', event.target.value || undefined)'),
+        htmltools::tags$option(value = '', 'All'),
+        lapply(unique(values), htmltools::tags$option),
+        'aria-label' = sprintf('Filter %s', name),
+        style = 'width: 100%; height: 28px;'
+      )
+    }
+"
+  cell_col <- switch(number_type,
+                     "initial" = "",
+                     "custom" = paste0("cell = function(value) { return(", number_fmr, ")}," ),
+                     "auto" =""
+  )
+
+
+
+
+  count_table <- lapply(colnames(count), function(column) {
+    if (is.numeric(count[[column]])) {
+      if(number_type=="auto"){
+        if(grepl("%", column)){
+          cell_col <- "cell = function(value) {
+            return(paste0( round(value,2),'%'))
+          },"
+        }else{
+          cell_col <- "cell = function(value) {
+              return(round(value,3))
+            },"
+        }
+      }
+
+      eval(parse(text = paste0("reactable::colDef(", cell_col,
+                               filter_code,
+                               "style = function(value) {",
+                               "  if (!is.na(value)) {.bar_style(width = value / max(count$`", column, "` *1, na.rm =T), fill = '#A6CEE3', color = 'black', height = '80%')}",
+                               "}, ",
+                               "align = 'left')"
+      )))
+    } else {
+      eval(parse(text = "reactable::colDef(
+          cell = function(value) {
+            return(value)
+          },
+          align = 'left'
+        )"))
+    }
+  })
+  names(count_table) <- colnames(count)
+
+  count_table[[first_name]] <- eval(parse(text = paste0("reactable::colDef( sticky = 'left', style=list(background='#f7f7f7'),",filter_input_code ,")" )))
+
+
+  if(!is.null(other_sticky_column)){
+    other_sticky_list <- lapply(other_sticky_column, function(x){
+      eval(parse(text = paste0("reactable::colDef( sticky = 'left', style=list(background='#f7f7f7'))" )))
+    })
+    names(other_sticky_list) <- colnames(count)[other_sticky_column]
+    count_table <- c(count_table, other_sticky_list )
+  }
+
+  if(right.sparkline){
+    count_table$Sparkline <-  eval(parse(text = paste0("reactable::colDef(sticky = 'right',style=list(background='#f7f7f7'), cell = function(values) {sparkline::sparkline(values, type = 'line')},",")" )))
+    count$Sparkline <- apply(count[,-c(label),drop=F],1,function(x){
+      c(as.numeric(x))
+    },simplify = F)
+  }
+  if(down.sparkline){
+    footer_function <- "function(values) {
+      if (!is.numeric(values)) return()
+      sparkline::sparkline(values, type = 'line')
+    }"
+  }else{
+    footer_function<-NULL
+  }
+
+  defaultColDef_list <- eval(parse(text = paste0(
+    "reactable::colDef(",",footer=", footer_function,
+    ",align = 'left',
+      maxWidth=",maxWidth,")")))
+
+
+  out <- htmltools::browsable(
+    htmltools::tagList(
+      htmltools::tags$button("Download as CSV", onclick = paste0("Reactable.downloadDataCSV('",elementId, "', '", csv.name, "')")) ,
+      reactable::reactable(
+        count,
+        columns = count_table,
+        filterable = TRUE,
+        theme = reactablefmtr::cosmo(header_font_size =14, font_size =14,  cell_padding =4),
+        showPageSizeOptions = TRUE,
+        elementId = elementId,
+        defaultPageSize =10 ,
+        defaultColDef = defaultColDef_list,
+        showPagination = TRUE
+      ) %>% .add_custom_text(subtitle, font_size = 16)
+    )
+  )
+  return(out)
+}
+
+
+.re_table_fmtr <- function(object, csv.name="table", elementId="table", max="single", right.sparkline=F,
+                           down.sparkline=F, label=1, first_name=colnames(object)[1],
+                           other_sticky_column=NULL,
+                           maxWidth=85,
+                           subtitle=NULL,
+                           bar_type= "data_bars(
+                             count,
+                             text_position = 'inside-base',
+                             number_fmt = scales::percent,
+                             fill_color 	='#A6CEE3',
+                             animation='none'
+                           )"
+){
+  count <- as.data.frame(object)
+  colnames(count)[1] <- first_name
+  filter_input_code <- "
+  filterable=TRUE,
+    filterInput = function(values, name) {
+      htmltools::tags$select(
+        onchange = paste0('Reactable.setFilter(\\'', elementId, '\\', \\'', name, '\\', event.target.value || undefined)'),
+        htmltools::tags$option(value = '', 'All'),
+        lapply(unique(values), htmltools::tags$option),
+        'aria-label' = sprintf('Filter %s', name),
+        style = 'width: 100%; height: 28px;'
+      )
+    }
+"
+  count_table <-list()
+
+
+  count_table[[first_name]] <- eval(parse(text = paste0("reactable::colDef( sticky = 'left', style=list(background='#f7f7f7'),",filter_input_code ,")" )))
+  if(!is.null(other_sticky_column)){
+    other_sticky_list <- lapply(other_sticky_column, function(x){
+      eval(parse(text = paste0("reactable::colDef( sticky = 'left', style=list(background='#f7f7f7'))" )))
+    })
+    names(other_sticky_list) <- colnames(count)[other_sticky_column]
+    count_table <- c(count_table, other_sticky_list )
+  }
+
+  if(right.sparkline){
+    count_table$Sparkline <-  eval(parse(text = paste0("reactable::colDef(sticky = 'right',style=list(background='#f7f7f7'), cell = function(values) {sparkline::sparkline(values, type = 'line')},",")" )))
+    count$Sparkline <- apply(count[,-c(label),drop=F],1,function(x){
+      c(as.numeric(x))
+    },simplify = F)
+  }
+  if(down.sparkline){
+    footer_function <- "function(values) {
+      if (!is.numeric(values)) return()
+      sparkline::sparkline(values, type = 'line')
+    }"
+  }else{
+    footer_function<-NULL
+  }
+
+
+  defaultColDef_list <- eval(parse(text = paste0(
+    "reactable::colDef(
+    cell = ", bar_type,",footer=", footer_function,
+    ",align = 'left',
+      maxWidth=",maxWidth,")")))
+
+  out <- htmltools::browsable(
+    htmltools::tagList(
+      htmltools::tags$button("Download as CSV", onclick = paste0("Reactable.downloadDataCSV('",elementId, "', '", csv.name, "')")) ,
+      reactable::reactable(
+        count,
+        columns = count_table,
+        filterable = TRUE,
+        theme = reactablefmtr::cosmo(header_font_size =14, font_size =14, cell_padding =4),
+        showPageSizeOptions = TRUE,
+        elementId = elementId,
+        defaultPageSize =10 ,
+        defaultColDef = defaultColDef_list,
+        showPagination = TRUE
+      ) %>% .add_custom_text(subtitle, font_size = 16)
+    )
+  )
+  return(out)
+}
+
+
+get_colors <- function(n) {
+  base_colors <- c("#A6CEE3", "#1F78B4", "#B2DF8A", "#33A02C", "#FDBF6F", "#FF7F00",
+                   "#FB9A99", "#E31A1C", "#CAB2D6", "#6A3D9A", "#FFFF99", "#B15928")
+  if (n <= length(base_colors)) {
+    return(base_colors[1:n])
+  } else {
+    color_palette <- colorRampPalette(base_colors)
+    return(color_palette(n))
+  }
+}
+
+
+

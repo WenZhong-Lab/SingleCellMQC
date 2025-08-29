@@ -122,8 +122,67 @@ splitObject <- function(object, split.by = "orig.ident", ...){
   UseMethod("splitObject")
 }
 
+#' @method splitObject Seurat
+splitObject.Seurat <- function(object, split.by = "orig.ident", assay=NULL,tmpdir= "./temp/SingleCellMQC_tempBPCellSplitSeurat/",  ...){
+  if(!is.null(split.by)){
+    if(  length(unique(object@meta.data[[split.by]]))>1  ){
+      message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "-------- Split Seurat Object"))
+      split_object <- .splitObjectSeurat(object, split.by = split.by, assay=assay, tmpdir=tmpdir)
+    }else{
+      split_object <- list(Sample = object)
+      names(split_object) <- as.character(unique(object@meta.data[[split.by]]))
+    }
+  }else{
+    split_object <- list(Sample = object)
+  }
+  return(split_object)
+}
+
+#' @method splitObject Seurat
+splitObject.list <- function(object, split.by = NULL, ...){
+  return(object)
+}
+
+
+# Get expression matrix
+getMatrix <- function(object, ...) {
+  UseMethod("getMatrix")
+}
+
+# Get cell metadata (supports Seurat and SingleCellExperiment formats)
+getMetaData <- function(object, ...) {
+  UseMethod("getMetaData")
+}
 
 
 
+#' @method getMatrix Seurat
+getMatrix.Seurat <- function(object, assay = "RNA", slot = "counts", ...) {
+  mat <- SeuratObject::GetAssayData(object = object, assay = assay, slot = slot)
+  return(mat)
+}
+
+#' @method getMatrix dgCMatrix
+getMatrix.dgCMatrix <- function(object, assay = "RNA", slot = "counts", ...) {
+  return(object)
+}
+
+#' @method getMatrix IterableMatrix
+getMatrix.IterableMatrix <- function(object, assay = "RNA", slot = "counts", ...) {
+  return(object)
+}
 
 
+
+# Seurat method
+#' @method getMetaData Seurat
+getMetaData.Seurat <- function(object, ...) {
+  meta <- object@meta.data
+  return(meta)
+}
+
+
+GetMatrix <- function(object, ...){
+  mat <- getMatrix(object, ...)
+  return(mat)
+}
