@@ -177,8 +177,7 @@ stepPCAToCluster <- function(object, assay="RNA", pca_name="rna.pca", output_clu
 
 # benchmarking del feature ------------------------------------------------
 
-PlotNoiseGeneClusterMetrics <- function(metrics, type="Variance_fractions"){
-  if(type == "Variance_fractions" ){
+PlotNoiseGeneClusterMetricsVar <- function(metrics ){
     df <- data.table(metrics)
     df <- melt(df[,-1], id.vars=c("Feature"))
     df <- na.omit(df)
@@ -202,16 +201,11 @@ PlotNoiseGeneClusterMetrics <- function(metrics, type="Variance_fractions"){
         legend.position = "right", # 图例位置
       )
     return(p1)
-  }
-
-
-  if(type=="Diff_Gini"){
-
-  }
-
 }
 
+PlotNoiseGeneClusterMetricsGini <- function(object, metrics){
 
+    }
 
 
 
