@@ -181,6 +181,12 @@ getMetaData.Seurat <- function(object, ...) {
   return(meta)
 }
 
+# default method
+#' @method getMetaData default
+getMetaData.default <- function(object, ...) {
+  meta <- object
+  return(meta)
+}
 
 GetMatrix <- function(object, ...){
   mat <- getMatrix(object, ...)

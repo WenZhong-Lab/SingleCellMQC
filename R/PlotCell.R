@@ -147,7 +147,6 @@ plotVln <-
                                ggplot2::theme_classic(base_size = 13) +
                                ggplot2::theme(
                                  axis.line = ggplot2::element_line(color = "black", linewidth = 0.8),
-                                 strip.background = ggplot2::element_blank(),
                                  strip.text.x = ggplot2::element_text(size = 13),
                                  axis.text = ggplot2::element_text(color = "black", size = 13),
                                  axis.text.x = ggplot2::element_text(

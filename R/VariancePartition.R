@@ -18,8 +18,8 @@ RunVarPartPseudobulk <- function(object, variables=NULL, formula=NULL){
     }
 
     message(paste0(format(Sys.time(), "%H:%M:%S"), "-------- Processing expression data: ", group_name))
+    print(formula)
     process_data <- dreamlet:::processOneAssay(exp, formula = formula, data = metadat, n.cells = ncells_vec)
-
     message(paste0(format(Sys.time(), "%H:%M:%S"), "-------- Variance partition: ", group_name))
     varPart_metadata <- metadat[match(colnames(process_data), rownames(metadat)), , drop=FALSE]
     formula <- dreamlet::removeConstantTerms(formula, varPart_metadata)
@@ -128,6 +128,7 @@ PlotVarPartVln <- function(object, color=NULL ){
     out <- lapply(index_name, function(x){
       plotVarPartVln(object[[x]], color = color )
     })
+    names(out) <- index_name
   }else{
     out <-  plotVarPartVln(object, color = color )
   }
@@ -139,7 +140,8 @@ plotVarPartVln <- function(object, color=NULL ){
   rsquared_long <- data.table::melt(rsquared_mat,id.vars="Feature")
   rsquared_long$value <- rsquared_long$value *100
   if(is.null(color)){
-    color <- get_colors(length(unique(rsquared_long$variable)))
+    color <- get_colors(length(unique(rsquared_long$variable))-1)
+    color <- c(color, "#D3D3D3")
   }
   varplot <- plotVln(object=rsquared_long, x="variable", y="value", log.y = F,combine = F,group.by="variable", color = color)[[1]] +
     ggplot2::theme(legend.position = "none")+
@@ -201,7 +203,7 @@ plotVarPartStackBar <- function(object,
   df_top <-data.table::data.table(df_top)
   df_long <- data.table::melt(df_top, id.vars = "Feature")
   df_long$value <- df_long$value * 100
-
+  df_long <- na.omit(df_long)
   if(is.null(color)){
     color <- get_colors(length(unique(df_long$variable))-1)
     color <- c(color, "#D3D3D3")

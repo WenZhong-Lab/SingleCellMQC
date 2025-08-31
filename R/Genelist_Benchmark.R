@@ -150,6 +150,7 @@ stepPCAToCluster <- function(object, assay="RNA", pca_name="rna.pca", output_clu
     message( paste0(format(Sys.time(), "%H:%M:%S"), "-------- cluster_graph_leiden with resolution ", x))
     temp <- knn_result %>% # Convert to a SNN graph
       BPCells::cluster_graph_leiden(resolution = x) # Perform graph-based clustering
+    temp <- as.character(temp)
     return(temp)
   })
   cluster_out <- do.call(cbind, cluster_out)
@@ -176,165 +177,42 @@ stepPCAToCluster <- function(object, assay="RNA", pca_name="rna.pca", output_clu
 
 # benchmarking del feature ------------------------------------------------
 
-plotNoiseGeneClusterMetrics <- function(metrics, type){
-
+PlotNoiseGeneClusterMetrics <- function(metrics, type="Variance_fractions"){
   if(type == "Variance_fractions" ){
-    VF = metrics$Variance_fractions
-    VF$variance_fractions <- round(VF$variance_fractions*100,1)
-    vf_plot <- ggplot(VF, aes(x = feature, y = cluster_type)) +
-      geom_point(aes(size = variance_fractions, color = variance_fractions), alpha = 0.8) +
-      geom_text(aes(label = variance_fractions),
-                size = 2.5, color = "#222222") +
-      scale_color_gradient(low = "#E5F2FB", high = "#2171b5") +
-      scale_size(range = c(0.5, 8), guide = "legend") +  # 可微调气泡大小范围
-      theme_classic(base_size = 13) +
-      labs(x = "Feature", y = "Cluster Type",
-           size = "Variance explained (%)", color = "Variance explained (%)") +
-      theme(
-        axis.text.x = element_text(angle = 45, hjust = 1),
-        axis.text.y = element_text(color = "black")
-      )
-    return(vf_plot)
-  }
-
-
-  if(type == "NMI_ARI"){
-    na = metrics$NMI_ARI
-    df <- data.frame(
-      name = rep(names(na$NMI),2),
-      metrics = rep(c("NMI", "ARI"),each=length(na$NMI)),
-      value = as.numeric(c(na$NMI, na$ARI) )
-    )
-    df$name <- factor(df$name, levels = unique(df$name) )
-    na_plot <-  ggplot(df, aes(x = value, y = name)) +
-      geom_bar(stat = "identity", fill = "steelblue") +
-      facet_wrap(~ metrics) +
-      theme_classic(base_size = 14) +
+    df <- data.table(metrics)
+    df <- melt(df[,-1], id.vars=c("Feature"))
+    df <- na.omit(df)
+    df <- df[!(df$variable %in% "Residuals"), ]
+    df$value <-df$value*100
+    p1 <- ggplot(df, aes(x = Feature, y = value, fill = variable)) +
+      geom_bar(stat = "identity", position = "dodge", width = 0.7) + # 关键改变: position = "dodge"
+      scale_fill_manual(values = get_colors(6)) + # 应用自定义颜色
       labs(
-        x = "Value",
-        y = "",
-        subtitle = "ARI and NMI comparison with del_all"
+        x = "",
+        y = "Variance explained (%)", # y轴标签可以根据你的数据含义修改，这里是"Value"
+        fill = ""
+      ) +
+      theme_classic(base_size = 13)+
+      theme(
+        axis.text.x = element_text(angle = 45, hjust = 1, color = "black"), # x轴文字旋转45度，右对齐，颜色黑色
+        axis.text.y = element_text(color = "black"), # y轴文字颜色黑色
+        axis.title.x = element_text(color = "black"), # x轴标题颜色黑色
+        legend.text = element_text(color = "black"), # 图例文字颜色黑色
+        plot.title = element_text(color = "black"), # 如果有主标题，也设置为黑色
+        legend.position = "right", # 图例位置
       )
-    return(na_plot)
+    return(p1)
   }
 
 
+  if(type=="Diff_Gini"){
 
-}
-
-
-
-RunNoiseGeneClusterMetrics <- function(object, cluster_info){
-  out_list <- lapply(cluster_info, function(x){
-    runNoiseGeneMetrics(object, x)
-  })
-  names(out_list) <- names(cluster_info)
-  return(out_list)
-}
-
-runNoiseGeneMetrics <- function(object, del_clusters){
-  metadata = getMetaData(object)
-  cluster_name <- colnames(del_clusters)
-  del_regress_name <- cluster_name[!grepl("regress", cluster_name)]
-
-  message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), ">>>>>>>>>>>> fitExtractVarPartModel "))
-
-  ## fitExtractVarPartModel variance fractions
-  varPartList <- lapply(cluster_name, function(x){
-    message( paste0(format(Sys.time(), "%H:%M:%S"), "-------- fitExtractVarPartModel ", x))
-    del_clusters[[x]] <- as.character(del_clusters[[x]])
-    form = stats::as.formula( paste0("~  (1 | ", x, ")"))
-    in_name <- intersect(colnames(metadata), c("percent.mt", "percent.rb", "percent.hb", "percent.dissociation") )
-    data = t(metadata[, c(in_name, "nCount_RNA"), drop=F ])
-    varPart <- variancePartition::fitExtractVarPartModel(data, form, del_clusters)
-  })
-  varPart <- do.call(rbind, lapply(varPartList, function(x){
-    data.frame(feature=rownames(x), cluster_type=colnames(x)[1], variance_fractions = x[,1] )
-  } )
-  )
-  varPart <- varPart[varPart$feature != "nCount_RNA", ]
-  varPart$cluster_type  <- factor(varPart$cluster_type,  levels = unique(varPart$cluster_type))
-  varPart$feature  <- factor(varPart$feature,  levels = unique(varPart$feature))
-
-  ## gini
-  message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), ">>>>>>>>>>>> gini "))
-
-  gini_list <- lapply(del_regress_name, function(x){
-    message( paste0(format(Sys.time(), "%H:%M:%S"), "-------- runGini ", x))
-    runGini(object, metadata = del_clusters, split.by = x)
-  })
-  names(gini_list) <- del_regress_name
-  pct.gini <- do.call(cbind, lapply(gini_list, function(x){x$pct.gini}) )
-  colnames(pct.gini) <- del_regress_name
-  rownames(pct.gini) <- rownames(object)
-  mean.gini <- do.call(cbind, lapply(gini_list, function(x){x$mean.gini}) )
-  colnames(mean.gini) <- del_regress_name
-  rownames(mean.gini) <- rownames(object)
-  diff_pct.gini <- pct.gini[, -1] - pct.gini[, 1]
-  diff_mean.gini <- mean.gini[, -1] - mean.gini[, 1]
-
-
-  message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), ">>>>>>>>>>>> nmi & ari "))
-
-  ## nmi & ari
-  get_similarity_vector <- function(df, FUN) {
-    n <- ncol(df)
-    sapply(2:n, function(i) FUN(df[[1]], df[[i]]))
   }
-  del_regress_clusters <- del_clusters[,match(del_regress_name, colnames(del_clusters)), drop=F]
-  ari_vec <- get_similarity_vector(del_regress_clusters, aricode::ARI)
-  nmi_vec <- get_similarity_vector(del_regress_clusters, aricode::NMI)
 
-  names(ari_vec) <- colnames(del_regress_clusters)[-1]
-  names(nmi_vec) <- colnames(del_regress_clusters)[-1]
-
-  return(list(Variance_fractions=varPart,
-              Gini = list(pct.gini=pct.gini, mean.gini=mean.gini),
-              Diff_Gini = list(pct.gini=diff_pct.gini, mean.gini=diff_mean.gini),
-              NMI_ARI=list(NMI=nmi_vec, ARI= ari_vec)) )
 }
 
 
 
-runGini <- function(object, metadata, split.by){
-  mat <- getMatrix(object, slot="data")
-  if( !("BPCells" %in% attr(class(mat), "package"))){
-    mat <- as(mat, "IterableMatrix")
-  }
-  row_indices <- split(1:ncol(mat), metadata[[split.by]])
-  split_matrices <- lapply(row_indices, function(idx) mat[, idx, drop = FALSE])
-
-  out_list <- lapply( names(split_matrices), function(y){
-    stats <- BPCells::matrix_stats(split_matrices[[y]], row_stats="mean")
-    stats[["row_stats"]]["nonzero", ] <- stats[["row_stats"]]["nonzero", ]/dim(split_matrices[[y]])[2]
-    #stats$pct <- stats$nonzero / dim(y)[2]
-    return(stats)
-  })
-  names(out_list) <- names(split_matrices)
-  pct_value <- do.call(cbind, lapply(out_list, function(x){x[["row_stats"]]["nonzero", ]}) )
-  mean_value <- do.call(cbind, lapply(out_list, function(x){x[["row_stats"]]["mean", ]}) )
-  pct_metrics <- calGini(pct_value)
-  mean_metrics <- calGini(mean_value)
-  out <- cbind(pct_metrics, mean_metrics)
-  colnames(out) <- c("pct.gini", "mean.gini")
-  return(out)
-}
-
-# expr: genes x cells (matrix or data.frame)
-calGini <- function(expr) {
-  # Gini
-  gini_coef <- function(x) {
-    n <- length(x)
-    x <- as.numeric(x)
-    if (all(x == 0)) return(0) # 预防全零
-    x_sorted <- sort(x)
-    index <- seq_along(x_sorted)
-    G <- (2 * sum(index * x_sorted) / (n * sum(x_sorted))) - ((n + 1) / n)
-    return(G)
-  }
-  ginis <- apply(expr, 1, gini_coef)
-  data.frame(Gini = ginis, row.names = rownames(expr))
-}
 
 
 RunNoiseGeneCluster <-function(object,
@@ -369,21 +247,21 @@ RunNoiseGeneCluster <-function(object,
     stepPCAToCluster(output_cluster_name= "del_all", resolution = resolution)
 
 
-  in_name <- intersect(colnames(metadata), c("percent.mt", "percent.rb", "percent.hb", "percent.dissociation") )
-  if(length(in_name)!=0){
-    regress_cluster <- lapply(in_name, function(x){
-      message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), ">>>>>>>>>>>> del all regress ", x))
-      out <- stepRNAToPCA(object, nfeatures=nfeatures, exclude_custom_features=del_all_gene, tmpdir=tmpdir, only.returnPCA=T, vars.to.regress = x) %>%
-        harmony::RunHarmony(
-          meta_data = metadata,
-          vars_use = har.batch.by,
-          return_object = FALSE
-        ) %>%
-        stepPCAToCluster(output_cluster_name= paste0("del_all_regress_", x), resolution = resolution)
-      return(out)
-    })
-    cluster_del_all <- cbind(cluster_del_all, do.call(cbind, regress_cluster))
-  }
+  # in_name <- intersect(colnames(metadata), c("percent.mt", "percent.rb", "percent.hb", "percent.dissociation") )
+  # if(length(in_name)!=0){
+  #   regress_cluster <- lapply(in_name, function(x){
+  #     message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), ">>>>>>>>>>>> del all regress ", x))
+  #     out <- stepRNAToPCA(object, nfeatures=nfeatures, exclude_custom_features=del_all_gene, tmpdir=tmpdir, only.returnPCA=T, vars.to.regress = x) %>%
+  #       harmony::RunHarmony(
+  #         meta_data = metadata,
+  #         vars_use = har.batch.by,
+  #         return_object = FALSE
+  #       ) %>%
+  #       stepPCAToCluster(output_cluster_name= paste0("del_all_regress_", x), resolution = resolution)
+  #     return(out)
+  #   })
+  #   cluster_del_all <- cbind(cluster_del_all, do.call(cbind, regress_cluster))
+  # }
 
   ## split by
   cluster_dellist <- lapply( names(gene_list), function(x){
@@ -433,9 +311,6 @@ GetNoiseGeneList <- function(object){
     "ZFY", "USP9Y", "UTY", "PRKY", "CYorf15A", "CYorf15B",
     "RPS4Y1", "NCRNA00185", "KDM5D", "EIF1AY", "DDX3Y"
   )
-
-  KIR23_gene <- grep("^KIR2|^KIR3", gene_name, value=TRUE)
-
   gene_list <- list(
     "mt" = intersect(mt_gene, gene_name),
     "rb" = intersect(rb_gene,gene_name),
@@ -443,13 +318,12 @@ GetNoiseGeneList <- function(object){
     "dissociation" = intersect(dis_gene,gene_name),
     "TCRab" = intersect(TCRab_gene,gene_name),
     "BCR" = intersect(BCR_gene,gene_name),
-    "KIR2/3" = intersect(KIR23_gene,gene_name),
     "Sex_chromosome" = intersect(sex_gene,gene_name)
   )
   return(gene_list)
 }
 
-
+#KIR23_gene <- grep("^KIR2|^KIR3", gene_name, value=TRUE)
 # cell_cycle_s <- c("MCM5", "PCNA", "TYMS", "FEN1", "MCM2", "MCM4", "RRM1", "UNG", "GINS2",
 #                       "MCM6", "CDCA7", "DTL", "PRIM1", "UHRF1", "MLF1IP", "HELLS", "RFC2",
 #                       "RPA2", "NASP", "RAD51AP1", "GMNN", "WDR76", "SLBP", "CCNE2", "UBR7",
@@ -463,5 +337,163 @@ GetNoiseGeneList <- function(object){
 #                "NCAPD2", "DLGAP5", "CDCA2", "CDCA8", "ECT2", "KIF23", "HMMR", "AURKA", "PSRC1",
 #                "ANLN", "LBR", "CKAP5", "CENPE", "CTCF", "NEK2", "G2E3", "GAS2L3", "CBX5", "CENPA")
 
+
+
+# test --------------------------------------------------------------------
+RunVarPartMetadata <- function(object,
+                               features,
+                               formula,
+                               split.by =NULL,
+                               do.log1p=T){
+  object <- getMetaData(object)
+  if(is.null(split.by)){
+    out <- calMetadataVarPart(object, formula= formula, group_name = "No split.by",features=features, do.log1p=do.log1p )
+  }else{
+    split_object <- split(object, object[[split.by]])
+    index_name <- names(split_object)
+    out <- lapply(index_name, function(x){
+      calMetadataVarPart(split_object[[x]], formula= formula, group_name = x,features=features, do.log1p=do.log1p )
+    })
+    out <- do.call(gtools::smartbind, out)
+  }
+  rownames(out) <- NULL
+  return(out)
+}
+
+calMetadataVarPart <- function(object,
+                               formula,
+                               group_name,
+                               do.log1p=T,
+                               features = c("percent.mt", "percent.rb", "percent.hb", "percent.dissociation")){
+  metadata = getMetaData(object)
+  in_name <- intersect(colnames(metadata), features )
+  data = t(metadata[, c(in_name), drop=F ])
+  if(do.log1p){
+    data = log1p(data)
+  }
+  varPart <- variancePartition::fitExtractVarPartModel(data, formula, metadata)
+  varPart <- data.frame(Group = group_name, Feature=rownames(varPart), data.frame(varPart))
+  return(varPart)
+}
+
+
+test4 <- function(object){
+
+}
+
+
+
+CalNoiseGeneClusterMetrics <- function(object, cluster_info){
+  out_list <- lapply(cluster_info, function(x){
+    calNoiseGeneMetrics(object, x)
+  })
+  names(out_list) <- names(cluster_info)
+  return(out_list)
+}
+
+
+
+
+
+calNoiseGeneMetrics <- function(object, del_clusters){
+  metadata = getMetaData(object)
+  del_clusters <- del_clusters[match(rownames(metadata), rownames(del_clusters) ),]
+  metadata <- cbind(metadata, del_clusters )
+  cluster_name <- colnames(del_clusters)
+
+  message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), ">>>>>>>>>>>> fitExtractVarPartModel "))
+  ## fitExtractVarPartModel variance fractions
+  del_all <- grep("del_all", cluster_name, value = T)
+  del_all_out <- calMetadataVarPart(metadata, formula= stats::as.formula(paste0("~ (1 |", del_all, ")")),
+                            group_name = "del_all",
+                            features=c("percent.mt", "percent.rb", "percent.hb", "percent.dissociation"),
+                            do.log1p=T )
+
+  #
+  varPartList <- lapply(c("mt", "rb", "hb", "dissociation"), function(x){
+    in_name <- intersect(colnames(metadata), c( paste0("percent." , x) ))
+    if(length(in_name)==0){
+      return(NULL)
+    }
+    index_name <- grep(x, cluster_name, value = T)
+    form = stats::as.formula( paste0("~  (1 | ", index_name, ")"))
+    out <- calMetadataVarPart(metadata, formula= form,
+                                      group_name ="add",
+                                      features=c(in_name, "nCount_RNA"),
+                                      do.log1p=T )
+    out <- out[out$Feature != "nCount_RNA", ,drop=F]
+    return(out)
+  })
+  varPartList <- do.call(gtools::smartbind, c(list(del_all_out) , varPartList) )
+  varPartList <- varPartList[, c(setdiff(names(varPartList), "Residuals"), "Residuals")]
+
+  ## gini
+  message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), ">>>>>>>>>>>> gini "))
+  del_index <- lapply(c("mt", "rb", "hb", "dissociation"), function(x){grep(x, cluster_name, value = T)})
+  cluster_name_gini <- setdiff(cluster_name, del_index)
+  gini_list <- lapply(cluster_name_gini, function(x){
+    message( paste0(format(Sys.time(), "%H:%M:%S"), "-------- runGini ", x))
+    runGini(object, metadata = del_clusters, split.by = x)
+  })
+  names(gini_list) <- cluster_name_gini
+  pct.gini <- do.call(cbind, gini_list )
+  colnames(pct.gini) <- cluster_name_gini
+  rownames(pct.gini) <- rownames(object)
+  diff_pct.gini <- pct.gini[, -1] - pct.gini[, 1]
+  noise_list <- GetNoiseGeneList(object)
+
+  for (x in c("TCRab", "BCR", "Sex_chromosome")) {
+    index_cols <- grep(x, colnames(diff_pct.gini), value = TRUE)
+    if (length(index_cols) == 0) {
+      next
+    } else {
+      diff_pct.gini[[index_cols]][!(rownames(diff_pct.gini) %in% noise_list[[x]]) ] <-NA # (C)
+    }
+  }
+  diff_pct.gini <- data.table::data.table(Feature=rownames(diff_pct.gini), diff_pct.gini)
+  diff_pct.gini <- data.table::melt(diff_pct.gini, id.vars="Feature")
+  diff_pct.gini <- na.omit(diff_pct.gini)
+  return(list(Variance_fractions=varPartList,
+              Diff_Gini = diff_pct.gini ))
+}
+
+
+
+runGini <- function(object, metadata, split.by){
+  mat <- getMatrix(object, slot="data")
+  noise_list <- GetNoiseGeneList(object)
+  if( !("BPCells" %in% attr(class(mat), "package"))){
+    mat <- as(mat, "IterableMatrix")
+  }
+  row_indices <- split(1:ncol(mat), metadata[[split.by]])
+  split_matrices <- lapply(row_indices, function(idx) mat[, idx, drop = FALSE])
+
+  out_list <- lapply( names(split_matrices), function(y){
+    stats <- BPCells::matrix_stats(split_matrices[[y]], row_stats="nonzero")
+    stats[["row_stats"]]["nonzero", ] <- stats[["row_stats"]]["nonzero", ]/dim(split_matrices[[y]])[2]
+    #stats$pct <- stats$nonzero / dim(y)[2]
+    return(stats)
+  })
+  names(out_list) <- names(split_matrices)
+  pct_value <- do.call(cbind, lapply(out_list, function(x){x[["row_stats"]]["nonzero", ]}) )
+  pct_metrics <- calGini(pct_value)
+  return(pct_metrics)
+}
+
+# expr: genes x cells (matrix or data.frame)
+calGini <- function(expr) {
+  # Gini
+  gini_coef <- function(x) {
+    n <- length(x)
+    x <- as.numeric(x)
+    if (all(x == 0)) return(0) # 预防全零
+    x_sorted <- sort(x)
+    index <- seq_along(x_sorted)
+    G <- (2 * sum(index * x_sorted) / (n * sum(x_sorted))) - ((n + 1) / n)
+    return(G)
+  }
+  ginis <- apply(expr, 1, gini_coef)
+  data.frame(Gini = ginis, row.names = rownames(expr))
+}
 
 

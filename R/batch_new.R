@@ -228,7 +228,8 @@ runPseudobulkPCA <- function(object, metadata){
   seu <- Seurat::NormalizeData(object = seu, verbose =F)
   seu <- Seurat::FindVariableFeatures(object = seu, verbose =F)
   seu <- Seurat::ScaleData(object = seu, verbose =F)
-  seu <- Seurat::RunPCA(object = seu, verbose =F)
+  npcs = min(20, nrow(metadata)-1)
+  seu <- Seurat::RunPCA(object = seu, verbose =F, npcs= npcs)
   #seu <- Seurat::RunUMAP(object = seu, verbose =F)
   return(seu)
 
@@ -238,24 +239,37 @@ runPseudobulkPCA <- function(object, metadata){
 
 
 
-
-
-PlotGTEBar <- function(object, color=NULL){
+PlotGTEBar <- function(object, color = NULL, ntop = 10){
+  if(is.null(color)){
+    color = get_colors(2)[2]
+  }
   object <- data.table::data.table(object)
-  rsquared_long <- data.table::melt(object,id.vars="Feature")
+  rsquared_long <- data.table::melt(object, id.vars = "Feature")
   rsquared_long <- rsquared_long[order(rsquared_long$value, decreasing = TRUE)]
-  rsquared_long$Feature <- factor(rsquared_long$Feature, levels =  rev(unique(rsquared_long$Feature))  )
-  ggplot2::ggplot(data = rsquared_long) +
-    ggplot2::geom_col(ggplot2::aes(x=Feature, y = .data[["value"]]),alpha=0.7,fill=color)+
-    ggplot2::coord_flip()+
-    ggplot2::theme_classic(base_size = 13)+
+
+  if (!is.null(ntop) && is.numeric(ntop) && ntop > 0) {
+    if (ntop > nrow(rsquared_long)) {
+      warning("ntop (", ntop, ") is greater than the number of available features (", nrow(rsquared_long), "). Plotting all available features.")
+    }
+    rsquared_long <- head(rsquared_long, ntop)
+  }
+
+  rsquared_long$Feature <- factor(rsquared_long$Feature, levels =  rev(unique(rsquared_long$Feature)))
+
+  p <- ggplot2::ggplot(data = rsquared_long) +
+    ggplot2::geom_col(ggplot2::aes(x = Feature, y = .data[["value"]]), alpha = 0.7, fill = color) +
+    ggplot2::coord_flip() +
+    ggplot2::theme_classic(base_size = 13) +
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1),
                    axis.text = ggplot2::element_text(color = "black"),
                    axis.title.y = ggplot2::element_blank()
-    )+
-    # ggplot2::theme(panel.grid.major=ggplot2::element_blank(),panel.grid.minor=ggplot2::element_blank())+
-    ggplot2::labs( y = "GTE score")
+    ) +
+    ggplot2::labs(y = "GTE score")
+
+  return(p)
 }
+
+
 
 
 
