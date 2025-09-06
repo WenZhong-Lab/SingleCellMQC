@@ -12,7 +12,7 @@
 #' @param feature.RNA2 Character vector specifying additional RNA features for ADT doublet detection method.
 #' @param feature.ADT1 Character vector specifying ADT features for ADT doublet detection method.
 #' @param feature.ADT2 Character vector specifying additional ADT features for ADT doublet detection method.
-#' @param split.db.rate.1000 The expected doublet rate per 1000 cells. Default is 0.008, (so 0.016 among 1600 cells).
+#' @param split.db.rate.1000 The expected doublet rate per 1000 cells. Default is 0.008.
 #' @param ... Additional arguments passed to individual doublet detection methods. \code{\link{RunDbt_hybrid}}; \code{\link{RunDbt_bcds}}; \code{\link{RunDbt_cxds}}; \code{\link{RunDbt_scDblFinder}}; \code{\link{RunDbt_DoubletFinder}}; \code{\link{RunDbt_VDJ}}; \code{\link{RunDbt_ADT}};
 #'
 #' @return If `add.Seurat` is TRUE, returns the modified Seurat object with doublet detection results added. Otherwise, returns a list or dataframe with the doublet scores and classifications.
@@ -29,17 +29,24 @@ RunDbt <- function( object, methods=c("hybrid", "bcds", "cxds", "scDblFinder"),
   if (!all(methods %in% valid_methods)) {
     stop("Unknown method(s) found. Valid methods are: ", paste(valid_methods, collapse = ", "))
   }
+
+
   object_list <- splitObject(object = object, split.by = split.by)
   results <- lapply(methods, function(method){
     func_name <- paste0("RunDbt_", method)
     func <- match.fun(func_name)
-    out <- func(
-      object_list,
-      split.by = split.by,
-      db.rate = db.rate,
-      add.Seurat = F,
-      ...
-    )
+
+    if("VDJ" %in% valid_methods){
+      out = func(object, add.Seurat=F)
+    }else{
+      out <- func(
+        object_list,
+        split.by = split.by,
+        db.rate = db.rate,
+        add.Seurat = F,
+        ...
+      )
+    }
     out <- data.table::data.table(cell = rownames(out), out)
     return(out)
   })
@@ -310,7 +317,7 @@ RunDbt_cxds <- function(object, db.rate=NULL,  split.db.rate.1000=0.008, split.b
 #' @references
 #' Germain, Pierre-Luc et al. “Doublet identification in single-cell sequencing data using scDblFinder.” F1000Research vol. 10 979. 28 Sep. 2021, doi:10.12688/f1000research.73600.2
 #'
-RunDbt_scDblFinder <- function(object, do.topscore=F, db.rate=NULL, split.db.rate.1000=0.008, split.by="orig.ident", seed=1,add.Seurat=T,BPtmpdir= "./temp/SingleCellMQC_BPCellsStepBPToPCAScale/", ...){
+RunDbt_scDblFinder <- function(object, do.topscore=T, db.rate=NULL, split.db.rate.1000=0.008, split.by="orig.ident", seed=1,add.Seurat=T,BPtmpdir= "./temp/SingleCellMQC_BPCellsStepBPToPCAScale/", ...){
   if(!requireNamespace("scDblFinder", quietly = TRUE)){
     stop("Error: Please install the scDblFinder package first.")
   }
@@ -406,7 +413,6 @@ RunDbt_VDJ <- function(object,add.Seurat=T,...){
   }else{
     metadata <- object
   }
-
   if(!("chain_pair" %in% colnames(metadata)) ){
     stop("Error: Please run `CalculateMetrics` function first !!")
   }

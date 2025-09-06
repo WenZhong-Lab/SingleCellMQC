@@ -308,17 +308,23 @@ RunLQ_MAD <- function(object, nmads  = 3, split.by=NULL, add.Seurat=T, share.med
     stop("metadata colnames not obtain `nCount_RNA`, `nFeature_RNA`, `percent.mt`")
   }
 
-  nCount_RNA <- do.call(scater::isOutlier, c(list("metric" = .get_named_column(metadata, col_name="nCount_RNA"), "batch"=metadata[[split.by]], "log"=T, "nmads"=nmads), filtered_args))
-  nFeature_RNA <- do.call(scater::isOutlier, c(list("metric" = .get_named_column(metadata, col_name="nFeature_RNA"), "batch"=metadata[[split.by]], "log"=T, "nmads"=nmads), filtered_args))
-  mt <- do.call(scater::isOutlier, c(list("metric" = .get_named_column(metadata, col_name="percent.mt"), "batch"=metadata[[split.by]], "log"=F, "nmads"=nmads), filtered_args))
+  nCount_RNA <- do.call(scater::isOutlier, c(list("metric" = .get_named_column(metadata, col_name="nCount_RNA"),
+                                                  "batch"=metadata[[split.by]], "log"=T, "nmads"=nmads, type="lower"), filtered_args))
+  nFeature_RNA <- do.call(scater::isOutlier, c(list("metric" = .get_named_column(metadata, col_name="nFeature_RNA"),
+                                                    "batch"=metadata[[split.by]], "log"=T, "nmads"=nmads, type="lower"), filtered_args))
+  mt <- do.call(scater::isOutlier, c(list("metric" = .get_named_column(metadata, col_name="percent.mt"),
+                                          "batch"=metadata[[split.by]], "log"=F, "nmads"=nmads, type="higher"), filtered_args))
   mad_result <- data.frame(nCount_RNA, nFeature_RNA, mt)
   colnames(mad_result) <- c( paste0(c("lq_RNA_umi_","lq_RNA_gene_","lq_RNA_mt_"), nmads, c("mad")) )
 
   if( length(intersect(c("nFeature_ADT", "nCount_ADT", "percent.isotype"), colnames(metadata))==2) ){
     cat("--------ADT --------")
-    nCount_ADT <- do.call(scater::isOutlier, c(list("metric" = .get_named_column(metadata, col_name="nCount_ADT"), "batch"=metadata[[split.by]], "log"=T, "nmads"=nmads), filtered_args))
-    nFeature_ADT <- do.call(scater::isOutlier, c(list("metric" = .get_named_column(metadata, col_name="nFeature_ADT"), "batch"=metadata[[split.by]], "log"=T, "nmads"=nmads), filtered_args))
-    isotype <- do.call(scater::isOutlier, c(list("metric" = .get_named_column(metadata, col_name="percent.isotype"), "batch"=metadata[[split.by]], "log"=F, "nmads"=nmads), filtered_args))
+    nCount_ADT <- do.call(scater::isOutlier, c(list("metric" = .get_named_column(metadata, col_name="nCount_ADT"),
+                                                    "batch"=metadata[[split.by]], "log"=T, "nmads"=nmads, type="lower"), filtered_args))
+    nFeature_ADT <- do.call(scater::isOutlier, c(list("metric" = .get_named_column(metadata, col_name="nFeature_ADT"),
+                                                      "batch"=metadata[[split.by]], "log"=T, "nmads"=nmads, type="lower"), filtered_args))
+    isotype <- do.call(scater::isOutlier, c(list("metric" = .get_named_column(metadata, col_name="percent.isotype"),
+                                                 "batch"=metadata[[split.by]], "log"=F, "nmads"=nmads, type="higher"), filtered_args))
     mad_result <- cbind(mad_result, nCount_ADT, nFeature_ADT, isotype)
     colnames(mad_result) <- c( paste0(c("lq_RNA_umi_","lq_RNA_gene_","lq_RNA_mt_", "lq_ADT_umi_","lq_ADT_pro_", "lq_ADT_isotype_"), nmads, c("mad")) )
   }
