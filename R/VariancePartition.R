@@ -120,32 +120,55 @@ RunVarPartPseudobulkPCA <- function(object, variables=NULL, nPCs=2, formula=NULL
 }
 
 
-PlotVarPartVln <- function(object, color=NULL ){
-  group_len <- length(unique(object$Group))
-  if(group_len!=1){
-    object <- split(object, object$Group)
-    index_name = names(object)
-    out <- lapply(index_name, function(x){
-      plotVarPartVln(object[[x]], color = color )
-    })
-    names(out) <- index_name
+PlotVarPartVln <- function(object, color=NULL, do.split=F ){
+  if(!do.split){
+    group_len <- length(unique(object$Group))
+    if(group_len!=1){
+      object <- split(object, object$Group)
+      index_name = names(object)
+      out <- lapply(index_name, function(x){
+        plotVarPartVln(object[[x]], color = color )
+      })
+      names(out) <- index_name
+    }else{
+      out <-  plotVarPartVln(object, color = color )
+    }
   }else{
-    out <-  plotVarPartVln(object, color = color )
+    out <-  plotVarPartVln(object, color = color, do.split=T )
+
   }
   return(out)
+
 }
 
-plotVarPartVln <- function(object, color=NULL ){
-  rsquared_mat <- data.table::data.table(object[, -1, drop=F])
-  rsquared_long <- data.table::melt(rsquared_mat,id.vars="Feature")
+plotVarPartVln <- function(object, color=NULL, do.split=F ){
+  if(!do.split){
+    rsquared_mat <- data.table::data.table(object[, -1, drop=F])
+    rsquared_long <- data.table::melt(rsquared_mat,id.vars="Feature")
+  }else{
+    rsquared_mat <- data.table::data.table(object)
+    rsquared_long <- data.table::melt(rsquared_mat,id.vars=c("Feature", "Group") )
+  }
+
   rsquared_long$value <- rsquared_long$value *100
   if(is.null(color)){
     color <- get_colors(length(unique(rsquared_long$variable))-1)
     color <- c(color, "#D3D3D3")
   }
-  varplot <- plotVln(object=rsquared_long, x="variable", y="value", log.y = F,combine = F,group.by="variable", color = color)[[1]] +
+
+  if(!do.split){
+  varplot <- plotVln(object=rsquared_long, x="variable", y="value", log.y = F,combine = F,  group.by="variable", color = color)[[1]] +
     ggplot2::theme(legend.position = "none")+
     ggplot2::labs(y = "Variance explained (%)")
+  }else{
+    varplot <- plotVln(object=rsquared_long, x="variable", y="value", log.y = F,combine = F,  group.by="variable", color = color)[[1]] +
+      ggplot2::theme(legend.position = "none")+
+      ggplot2::labs(y = "Variance explained (%)")  +
+      ggplot2::facet_wrap(~ Group,  ncol  = 3)
+
+  }
+
+
   return(varplot)
 }
 

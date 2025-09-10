@@ -54,8 +54,8 @@ RunScType <- function(object, split.by= NULL, return.name="ScType",
                       preprocess=NULL,
                       resolution=1,
                       cutoff=3,
-                      type.tissue = "Immune system",
-                      type.condition = NULL, type.cell="Normal",  data_source="c", ntop=30,
+                      type.tissue = NULL,
+                      type.condition = NULL, type.cell=NULL,  data_source="Main", ntop=30,
                       ...
 ){
 

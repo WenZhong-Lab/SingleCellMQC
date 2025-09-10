@@ -302,7 +302,7 @@ RunDbt_cxds <- function(object, db.rate=NULL,  split.db.rate.1000=0.008, split.b
 #' Performs doublet detection using a scDblFinder method in the `scDblFinder` package on a Seurat object.
 #'
 #' @param object A Seurat object. The input must be a valid Seurat object containing single-cell RNA-seq data.
-#' @param do.topscore Logical; if TRUE, uses a top scoring method to identify doublets based on scDblFinder scores. Default is FALSE.
+#' @param do.topscore Logical; if TRUE, uses a top scoring method to identify doublets based on scDblFinder scores.
 #' @param db.rate Numeric; the expected doublet rate for the top score method. Default is calculated as 0.08 * number of cells / 10000.
 #' @param split.by A character string specifying the column in the Seurat object's metadata to use for stratifying the dataset before applying doublet detection (e.g., "orig.ident"). Default is "orig.ident".
 #' @param seed Random seed for reproducibility. Default is 1.

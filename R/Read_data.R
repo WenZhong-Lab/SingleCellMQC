@@ -33,8 +33,7 @@ ReadVDJ <- function(dir10x, sample=seq_along(dir10x)){
 #' A vector or named vector can be given in order to load several data directories.
 #' @param dir_TCR  Directory for TCR data provided by 10X. Directory containing filtered_contig_annotations.csv file provided by 10X. A vector or named vector can be given in order to load several data directories.
 #' @param dir_BCR  Directory for BCR data provided by 10X. Directory containing filtered_contig_annotations.csv file provided by 10X. A vector or named vector can be given in order to load several data directories.
-#' @param saveBPCells Logical; whether to save the GEX matrix using BPCells for more efficient data handling. Defaults to `FALSE`.
-#' @param dir_BPCells Directory to save BPCells data. Used if `saveBPCells` is set to `TRUE`. Defaults to `./BPCellData`.
+#' @param dir_BPCells Directory to save BPCells data. Used if is not NULL. Defaults : NULL.
 #' @param gene.column Integer; the column of the features.tsv file that contains gene names. Defaults to `2`.
 #' @param sample Optional; sample identifiers. If not provided, default names will be generated.
 #' @param return.type Character; specifies the format of the returned GEX data. Options are `"Seurat"` (returns a Seurat object) or `"matrix"` (returns a dgCMatrix or IterableMatrix ).
@@ -47,9 +46,10 @@ ReadVDJ <- function(dir10x, sample=seq_along(dir10x)){
 #'
 #'   If only one component is loaded (e.g., only GEX data), the function returns that component directly instead of a list.
 #' @export
-Read10XData <- function(dir_GEX=NULL, dir_TCR=NULL, dir_BCR=NULL, sample=NULL, saveBPCells=F,
-                         dir_BPCells="./BPCellData",  gene.column=2, return.type="Seurat"){
+Read10XData <- function(dir_GEX=NULL, dir_TCR=NULL, dir_BCR=NULL, sample=NULL,
+                         dir_BPCells=NULL,  gene.column=2, return.type="Seurat"){
   out_list <- list()
+  saveBPCells = !is.null(dir_BPCells)
   #exp
   if(length(dir_GEX) != 0){
     if ("Seurat" %in% return.type & saveBPCells) {
@@ -78,7 +78,7 @@ Read10XData <- function(dir_GEX=NULL, dir_TCR=NULL, dir_BCR=NULL, sample=NULL, s
       if(saveBPCells){
         # check BPCells
         if(!requireNamespace("BPCells", quietly = TRUE)){
-          stop("BPCells is not installed. Please install BPCells to use saveBPCells.")
+          stop("BPCells is not installed. Please install BPCells to use BPCells.")
         }
         if( !is.null(GEX[["Gene Expression"]]) ){
           GEX[["Gene Expression"]] <- ConvertToBPCells(GEX[["Gene Expression"]], BPdir = paste0(dir_BPCells, "/", x, "_RNA"))
@@ -157,8 +157,7 @@ Read10XData <- function(dir_GEX=NULL, dir_TCR=NULL, dir_BCR=NULL, sample=NULL, s
 #' @param dir_TCR Directory for TCR data provided by 10X. Directory containing filtered_contig_annotations.csv file provided by 10X. A vector or named vector can be given in order to load several data directories.
 #' @param dir_BCR Directory for BCR data provided by 10X. Directory containing filtered_contig_annotations.csv file provided by 10X. A vector or named vector can be given in order to load several data directories.
 #' @param sample Optional; sample identifiers.
-#' @param saveBPCells Logical; whether to save the GEX matrix using BPCells for more efficient data handling. Defaults to `FALSE`.
-#' @param dir_BPCells Directory to save BPCells data. Used if `saveBPCells` is set to `TRUE`. Defaults to `./BPCellData`.
+#' @param dir_BPCells Directory to save BPCells data. Used if is not NULL. Defaults : NULL.
 #' @param gene.column Integer; the column of the features.tsv file that contains gene names. Defaults to `2`.
 #' @param sample Optional; sample identifiers. If not provided, default names will be generated.
 #' @param return.type Character; specifies the format of the returned GEX data. Options are `"Seurat"` (returns a Seurat object) or `"matrix"` (returns a dgCMatrix or IterableMatrix ).
@@ -173,9 +172,10 @@ Read10XData <- function(dir_GEX=NULL, dir_TCR=NULL, dir_BCR=NULL, sample=NULL, s
 #' @export
 #'
 Read10XH5Data <- function(dir_GEX = NULL, dir_TCR = NULL, dir_BCR = NULL, sample = NULL,
-                          saveBPCells = FALSE, dir_BPCells = "./BPCellData", gene.column = 2,
+                           dir_BPCells = NULL, gene.column = 2,
                           return.type = "Seurat") {
   out_list <- list()
+  saveBPCells = !is.null(dir_BPCells)
 
   # GEX data processing
   if (length(dir_GEX) != 0) {
@@ -209,7 +209,7 @@ Read10XH5Data <- function(dir_GEX = NULL, dir_TCR = NULL, dir_BCR = NULL, sample
       # Save as BPCells if enabled
       if (saveBPCells) {
         if (!requireNamespace("BPCells", quietly = TRUE)) {
-          stop("BPCells is not installed. Please install BPCells to use saveBPCells.")
+          stop("BPCells is not installed. Please install BPCells to use BPCells.")
         }
         if (!is.null(GEX[["Gene Expression"]])) {
           colnames(GEX[["Gene Expression"]]) <- paste0(x, "_", colnames(GEX[["Gene Expression"]]))
@@ -392,43 +392,8 @@ Read10XMetrics <- function(file_path, sample_name=NULL){
 
 
 
-#' @rdname Add10XMetrics
-#' @method Add10XMetrics Seurat
-#' @export
-Add10XMetrics.Seurat <- function(object, Metrics, ...) {
-  object@misc$SingleCellMQC$perQCMetrics$perSample$Metrics_10x <- Metrics
-  return(object)
-}
-
-#' @rdname Add10XMetrics
-#' @method Add10XMetrics default
-#' @export
-Add10XMetrics.default <- function(object, Metrics, ...) {
-  stop("Add10XMetrics is not implemented for objects of class ", class(object))
-}
 
 
-
-
-
-#' @rdname AddSampleMeta
-#' @method AddSampleMeta Seurat
-#' @export
-AddSampleMeta.Seurat <- function(object, merge_by_object = "orig.ident", SampleMeta, merge_by_meta, ...) {
-  metadata <- SampleMeta[match(object@meta.data[[merge_by_object]],
-                               SampleMeta[[merge_by_meta]]), ]
-  rownames(metadata) <- rownames(object@meta.data)
-  metadata <- metadata[,-(match(merge_by_meta, colnames(SampleMeta))), drop=F]
-  object <- SeuratObject::AddMetaData(object = object, metadata = metadata)
-  return(object)
-}
-
-#' @rdname AddSampleMeta
-#' @method AddSampleMeta default
-#' @export
-AddSampleMeta.default <- function(object, merge_by_object = "orig.ident", SampleMeta, merge_by_meta, ...) {
-  stop("AddSampleMeta is not implemented for objects of class ", class(object))
-}
 
 
 

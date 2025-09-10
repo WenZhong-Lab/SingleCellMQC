@@ -1,6 +1,5 @@
 
 
-# pipeline function -------------------------------------------------------
 
 # add_custom_features will add hvg features =  nfeatures + add_custom_features
 # exclude_custom_features & exclude_patterns will contain always hvg features = nfeatures
@@ -82,9 +81,11 @@ stepRNAToPCA <- function(object,
   message( paste0(format(Sys.time(), "%H:%M:%S"), "-------- PCA"))
   if(is.null(threads)){
     k <- min(nrow(mat_norm), 50)
+    set.seed(1)
     svd <- BPCells::svds(mat_norm, k=k)
   }else{
     k <- min(nrow(mat_norm), 50)
+    set.seed(1)
     svd <- BPCells::svds(mat_norm, k=k, threads=threads)
   }
   pca <- BPCells::multiply_cols(svd$v, svd$d)
@@ -175,9 +176,8 @@ stepPCAToCluster <- function(object, assay="RNA", pca_name="rna.pca", output_clu
 
 
 
-# benchmarking del feature ------------------------------------------------
-
 PlotNoiseGeneClusterMetricsVar <- function(metrics ){
+  metrics = metrics$Variance_fractions
     df <- data.table(metrics)
     df <- melt(df[,-1], id.vars=c("Feature"))
     df <- na.omit(df)
@@ -192,9 +192,10 @@ PlotNoiseGeneClusterMetricsVar <- function(metrics ){
         fill = ""
       ) +
       theme_classic(base_size = 13)+
+      ggplot2::coord_flip()+
       theme(
-        axis.text.x = element_text(angle = 45, hjust = 1, color = "black"), # x轴文字旋转45度，右对齐，颜色黑色
-        axis.text.y = element_text(color = "black"), # y轴文字颜色黑色
+       # axis.text.x = element_text(angle = 45, hjust = 1, color = "black"), # x轴文字旋转45度，右对齐，颜色黑色
+        axis.text = element_text(color = "black"), # y轴文字颜色黑色
         axis.title.x = element_text(color = "black"), # x轴标题颜色黑色
         legend.text = element_text(color = "black"), # 图例文字颜色黑色
         plot.title = element_text(color = "black"), # 如果有主标题，也设置为黑色
@@ -203,10 +204,38 @@ PlotNoiseGeneClusterMetricsVar <- function(metrics ){
     return(p1)
 }
 
-PlotNoiseGeneClusterMetricsGini <- function(object, metrics){
+PlotNoiseGeneClusterMetricsGini <- function(object, metrics, cluster_res,  ntop=10, color.bar="#1F78B4"){
+  metrics = metrics$Diff_Gini
+  metrics_list <- split(metrics, metrics$variable)
+  p_list <- lapply(names(metrics_list), function(x){
+    df <- data.frame(metrics_list[[x]])
+    df <- df[order(df$value, decreasing = T)[1:ntop], ]
+    df$Feature <- factor(df$Feature, levels = rev(df$Feature))
+    bar_p <- ggplot2::ggplot(df, ggplot2::aes(x=Feature, y=value)) +
+      ggplot2::geom_bar(stat="identity", fill=color.bar) +
+      ggplot2::theme_classic(base_size = 13)+
+      ggplot2::coord_flip()+
+      ggplot2::labs( x="", y="Gini(add) - Gini(del)")+
+      ggplot2::theme(
+        axis.text = ggplot2::element_text(color = "black")
+      )
 
-    }
-
+    ## dotplot
+    object <- Seurat::AddMetaData(object, metadata = cluster_res)
+    middle <- stringr::str_extract(x, "(?<=add_)[^_]+")
+    add <- grep(middle,  colnames(cluster_res), value = T)
+    del <- grep("del_all",  colnames(cluster_res), value = T)
+    suppressMessages({add_dotplot <- Seurat::DotPlot(object, features = c( rev(as.character(df$Feature))), group.by = add)+ggplot2::coord_flip()+
+      ggplot2::scale_size_area(max_size = 6, limits = c(0,100), breaks = c(0,25,50,75,100))  #ggplot2::scale_size_area()
+})
+    suppressMessages({del_dotplot <- Seurat::DotPlot(object, features =c(rev(as.character(df$Feature))), group.by = del)+ggplot2::coord_flip()+
+      ggplot2::scale_size_area(max_size = 6, limits = c(0,100), breaks = c(0,25,50,75,100))  #ggplot2::scale_size_area()
+    })
+    return(list(diff_gini = bar_p, add_dotplot = add_dotplot, del_dotplot=del_dotplot))
+  })
+  names(p_list) <-names(metrics_list)
+  return(p_list)
+}
 
 
 RunNoiseGeneCluster <-function(object,
@@ -232,41 +261,31 @@ RunNoiseGeneCluster <-function(object,
   # for in genelist to clustering (before & after)
   ### del all genes
   message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), ">>>>>>>>>>>> del all "))
-  cluster_del_all <- stepRNAToPCA(object, nfeatures=nfeatures, exclude_custom_features=del_all_gene, tmpdir=tmpdir, only.returnPCA=T) %>%
-    harmony::RunHarmony(
-      meta_data = metadata,
-      vars_use = har.batch.by,
-      return_object = FALSE
-    ) %>%
-    stepPCAToCluster(output_cluster_name= "del_all", resolution = resolution)
+  set.seed(1)
+  cluster_del_all <- stepRNAToPCA(object, nfeatures=nfeatures, exclude_custom_features=del_all_gene, tmpdir=tmpdir, only.returnPCA=T)
+  set.seed(1)
+  cluster_del_all <- harmony::RunHarmony(cluster_del_all,
+    meta_data = metadata,
+    vars_use = har.batch.by,
+    return_object = FALSE
+  )
+  set.seed(1)
+  cluster_del_all <- stepPCAToCluster(cluster_del_all, output_cluster_name= "del_all", resolution = resolution)
 
-
-  # in_name <- intersect(colnames(metadata), c("percent.mt", "percent.rb", "percent.hb", "percent.dissociation") )
-  # if(length(in_name)!=0){
-  #   regress_cluster <- lapply(in_name, function(x){
-  #     message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), ">>>>>>>>>>>> del all regress ", x))
-  #     out <- stepRNAToPCA(object, nfeatures=nfeatures, exclude_custom_features=del_all_gene, tmpdir=tmpdir, only.returnPCA=T, vars.to.regress = x) %>%
-  #       harmony::RunHarmony(
-  #         meta_data = metadata,
-  #         vars_use = har.batch.by,
-  #         return_object = FALSE
-  #       ) %>%
-  #       stepPCAToCluster(output_cluster_name= paste0("del_all_regress_", x), resolution = resolution)
-  #     return(out)
-  #   })
-  #   cluster_del_all <- cbind(cluster_del_all, do.call(cbind, regress_cluster))
-  # }
 
   ## split by
   cluster_dellist <- lapply( names(gene_list), function(x){
     message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), ">>>>>>>>>>>> add ", x))
-    cluster_del <- stepRNAToPCA(object, nfeatures=nfeatures, exclude_custom_features=del_all_gene, add_custom_features=gene_list[[x]], tmpdir=tmpdir) %>%
-      harmony::RunHarmony(
+    set.seed(1)
+    cluster_del <- stepRNAToPCA(object, nfeatures=nfeatures, exclude_custom_features=del_all_gene, add_custom_features=gene_list[[x]], tmpdir=tmpdir)
+    set.seed(1)
+    cluster_del <- harmony::RunHarmony(cluster_del,
         meta_data = metadata,
         vars_use = har.batch.by,
         return_object = FALSE
-      ) %>%
-      stepPCAToCluster(output_cluster_name= paste0("add_", x) ,resolution=resolution)
+      )
+    set.seed(1)
+    cluster_del <- stepPCAToCluster(cluster_del, output_cluster_name= paste0("add_", x) ,resolution=resolution)
     return(cluster_del)
   })
   cluster_del_all <- cbind(cluster_del_all, do.call(cbind, cluster_dellist))
@@ -294,8 +313,7 @@ GetNoiseGeneList <- function(object){
   TCRab_gene <- grep("^TRA[JV].*|^TRB[VDJ].*", gene_name, value = T)
   BCR_gene <- grep(paste0(c("^IGH[VDJ].*",
                               "^IGK[JV].*",
-                              "^IGL[JLV].*",
-                              "^IGL[ON].*"), collapse = "|"), gene_name, value = T)
+                              "^IGL[JV].*"), collapse = "|"), gene_name, value = T)
   sex_gene <- c(
     # X chromosome
     "ARSD", "CXorf15", "DDX3X", "HDHD1A", "KDM5C", "PNPLA4",
@@ -333,7 +351,6 @@ GetNoiseGeneList <- function(object){
 
 
 
-# test --------------------------------------------------------------------
 RunVarPartMetadata <- function(object,
                                features,
                                formula,
@@ -357,32 +374,48 @@ RunVarPartMetadata <- function(object,
 calMetadataVarPart <- function(object,
                                formula,
                                group_name,
+                               cluster_name,
                                do.log1p=T,
                                features = c("percent.mt", "percent.rb", "percent.hb", "percent.dissociation")){
+
   metadata = getMetaData(object)
   in_name <- intersect(colnames(metadata), features )
-  data = t(metadata[, c(in_name), drop=F ])
+  data = metadata[, c(in_name), drop=F ]
   if(do.log1p){
     data = log1p(data)
   }
-  varPart <- variancePartition::fitExtractVarPartModel(data, formula, metadata)
-  varPart <- data.frame(Group = group_name, Feature=rownames(varPart), data.frame(varPart))
+  data <- data.frame(data, metadata[, cluster_name, drop=F])
+
+
+  var_list <- lapply(in_name, function(x){
+    formula <- stats::update(formula, as.formula( paste0(x, " ~ .")) )
+    print(formula)
+    fm <- lmerTest::lmer(formula, data = data)
+    varPart <- variancePartition::calcVarPart(fm)
+  })
+  var_list <- do.call(rbind, var_list)
+  rownames(var_list) <- in_name
+
+  # varPart <- variancePartition::fitExtractVarPartModel(data, formula, metadata)
+  varPart <- data.frame(Group = group_name, Feature=rownames(var_list), data.frame(var_list))
+  print(11111)
+
   return(varPart)
 }
 
 
-test4 <- function(object){
-
-}
-
 
 
 CalNoiseGeneClusterMetrics <- function(object, cluster_info){
-  out_list <- lapply(cluster_info, function(x){
-    calNoiseGeneMetrics(object, x)
-  })
-  names(out_list) <- names(cluster_info)
-  return(out_list)
+  if(is.list(cluster_info)){
+    out_list <- lapply(cluster_info, function(x){
+      calNoiseGeneMetrics(object, x)
+    })
+    names(out_list) <- names(cluster_info)
+    return(out_list)
+  }else{
+    return(calNoiseGeneMetrics(object, cluster_info))
+  }
 }
 
 
@@ -398,10 +431,12 @@ calNoiseGeneMetrics <- function(object, del_clusters){
   message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), ">>>>>>>>>>>> fitExtractVarPartModel "))
   ## fitExtractVarPartModel variance fractions
   del_all <- grep("del_all", cluster_name, value = T)
-  del_all_out <- calMetadataVarPart(metadata, formula= stats::as.formula(paste0("~ (1 |", del_all, ")")),
+  del_all_out <- calMetadataVarPart(metadata, formula= stats::as.formula(paste0( "~ (1 |", del_all, ")")),
                             group_name = "del_all",
+                            cluster_name=del_all,
                             features=c("percent.mt", "percent.rb", "percent.hb", "percent.dissociation"),
                             do.log1p=T )
+
 
   #
   varPartList <- lapply(c("mt", "rb", "hb", "dissociation"), function(x){
@@ -409,10 +444,12 @@ calNoiseGeneMetrics <- function(object, del_clusters){
     if(length(in_name)==0){
       return(NULL)
     }
+    print(in_name)
     index_name <- grep(x, cluster_name, value = T)
     form = stats::as.formula( paste0("~  (1 | ", index_name, ")"))
     out <- calMetadataVarPart(metadata, formula= form,
                                       group_name ="add",
+                              cluster_name=index_name,
                                       features=c(in_name, "nCount_RNA"),
                                       do.log1p=T )
     out <- out[out$Feature != "nCount_RNA", ,drop=F]

@@ -175,6 +175,7 @@ PlotBenchmarkDoublet <- function(object, plot.ncol=5){
     ggplot2::facet_wrap(~ method, ncol = plot.ncol) +
     ggplot2::labs(x = "Overal Rank", y = "Count")+
     ggplot2::theme(text = ggplot2::element_text(color = "black"),
+                   axis.text =  ggplot2::element_text(color = "black"),
                    legend.position = "none")
   return(list(plot=p1, mean_value = ave_value))
 }

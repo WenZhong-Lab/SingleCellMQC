@@ -14,10 +14,10 @@ RunScType(
   preprocess = NULL,
   resolution = 1,
   cutoff = 3,
-  type.tissue = "Immune system",
+  type.tissue = NULL,
   type.condition = NULL,
-  type.cell = "Normal",
-  data_source = "c",
+  type.cell = NULL,
+  data_source = "Main",
   ntop = 30,
   ...
 )

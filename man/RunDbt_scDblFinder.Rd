@@ -6,7 +6,7 @@
 \usage{
 RunDbt_scDblFinder(
   object,
-  do.topscore = F,
+  do.topscore = T,
   db.rate = NULL,
   split.db.rate.1000 = 0.008,
   split.by = "orig.ident",
@@ -19,7 +19,7 @@ RunDbt_scDblFinder(
 \arguments{
 \item{object}{A Seurat object. The input must be a valid Seurat object containing single-cell RNA-seq data.}
 
-\item{do.topscore}{Logical; if TRUE, uses a top scoring method to identify doublets based on scDblFinder scores. Default is FALSE.}
+\item{do.topscore}{Logical; if TRUE, uses a top scoring method to identify doublets based on scDblFinder scores.}
 
 \item{db.rate}{Numeric; the expected doublet rate for the top score method. Default is calculated as 0.08 * number of cells / 10000.}
 

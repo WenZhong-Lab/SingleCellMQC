@@ -9,8 +9,7 @@ Read10XData(
   dir_TCR = NULL,
   dir_BCR = NULL,
   sample = NULL,
-  saveBPCells = F,
-  dir_BPCells = "./BPCellData",
+  dir_BPCells = NULL,
   gene.column = 2,
   return.type = "Seurat"
 )
@@ -25,9 +24,7 @@ A vector or named vector can be given in order to load several data directories.
 
 \item{sample}{Optional; sample identifiers. If not provided, default names will be generated.}
 
-\item{saveBPCells}{Logical; whether to save the GEX matrix using BPCells for more efficient data handling. Defaults to \code{FALSE}.}
-
-\item{dir_BPCells}{Directory to save BPCells data. Used if \code{saveBPCells} is set to \code{TRUE}. Defaults to \code{./BPCellData}.}
+\item{dir_BPCells}{Directory to save BPCells data. Used if is not NULL. Defaults : NULL.}
 
 \item{gene.column}{Integer; the column of the features.tsv file that contains gene names. Defaults to \code{2}.}
 

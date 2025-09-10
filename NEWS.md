@@ -1,6 +1,7 @@
-# v0.7.0 (250731)
+# v0.7.0 (25)
 
 -   Fixed bugs in `Read10XH5Data()`.
+-   Fixed  逻辑错误 in `RunLQ_MAD()`.
 -   Optimized cell method functions.
 -   Optimized `RunReport()` and improved HTML report content.
 -   Add `RunBenchmarkDoublet` and `PlotBenchmarkDoublet` for benchmarking of doublet detection methods.

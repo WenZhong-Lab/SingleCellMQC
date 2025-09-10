@@ -29,7 +29,7 @@ RunDbt(
 
 \item{db.rate}{The expected doublet rate, if known; otherwise, it will be estimated 0.08*nCell/10000. Not applicable to VDJ and ADT methods.}
 
-\item{split.db.rate.1000}{The expected doublet rate per 1000 cells. Default is 0.008, (so 0.016 among 1600 cells).}
+\item{split.db.rate.1000}{The expected doublet rate per 1000 cells. Default is 0.008.}
 
 \item{feature.RNA1}{Character vector specifying RNA features for ADT doublet detection method.}
 

@@ -137,7 +137,9 @@ CalculateMetricsPerCell.GEX <- function(object, add.Seurat=TRUE){
 
   if("ADT" %in% names(GEX@assays)){
     metric_data$per_feature_count_ADT <- GEX@meta.data$nCount_ADT / GEX@meta.data$nFeature_ADT
-    metric_data$percent.isotype <- Seurat::PercentageFeatureSet(GEX, pattern = "(?i).*isotype.*", assay ="ADT")
+    iso <- Seurat::PercentageFeatureSet(GEX, pattern = "(?i).*isotype.*", assay ="ADT")
+    metric_data$percent.isotype <- NA
+    metric_data$percent.isotype[match(names(iso), rownames(metric_data))] <- iso
     metric_data <- data.frame(GEX@meta.data[, c("nCount_ADT", "nFeature_ADT")], metric_data)
   }
 
