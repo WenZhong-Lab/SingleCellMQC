@@ -1,9 +1,4 @@
 
-
-# Doublet method Benchmark ---------------------------------------------------------
-
-
-
 clusterBench <- function(pca_value, clusters,  filter_columns){
   sil_value <- bluster::approxSilhouette(pca_value, clusters = clusters)
   sil_value <- mean(sil_value$width)

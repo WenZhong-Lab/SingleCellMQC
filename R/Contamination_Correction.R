@@ -1,4 +1,3 @@
-# Background --------------------------------------------------------------
 #' Detect the comtamination causing genes by scCDC package
 #'
 #' This function identifies potential contamination features in a given Seurat object. It utilizes the

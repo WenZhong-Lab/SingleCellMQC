@@ -1,4 +1,3 @@
-# Low Quality Cell Detection ----------------------------------------------
 
 #' Low-Quality Cells Detection
 #'

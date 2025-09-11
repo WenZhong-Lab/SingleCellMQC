@@ -389,8 +389,7 @@ getMatrix.IterableMatrix <- function(object, assay = "RNA", slot = "counts", ...
 }
 
 
-#' @description
-#' Get cell metadata (supports Seurat and SingleCellExperiment formats)
+# Get cell metadata (supports Seurat and SingleCellExperiment formats)
 getMetaData <- function(object, ...) {
   UseMethod("getMetaData")
 }

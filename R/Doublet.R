@@ -1,4 +1,3 @@
-# Doublet Detection ---------------------------------------------------------------------
 
 #' @title Doublet Detection in Single-Cell Data
 #' @description A wrapper function that applies various doublet detection methods to a single-cell dataset and optionally adds results to Seurat object.
@@ -75,7 +74,7 @@ RunDbt <- function( object, methods=c("hybrid", "bcds", "cxds", "scDblFinder"),
 #'
 #' Performs doublet detection using a hybrid method in the `scds` package on a Seurat object.
 #'
-#' @param object A Seurat object.
+#' @param object A single-cell object (e.g., Seurat object).
 #' @param db.rate The expected doublet rate, if known; otherwise, it will be estimated 0.08*nCell/10000.
 #' @param split.by Column name by which to group the data before calculating statistics.
 #' @param add.Seurat Logical; if TRUE, adds the hybrid results as metadata to the Seurat object and stored in \code{SingleCelMQC} slot in \code{misc}. Otherwise, returns a data.frame of the hybrid results.
@@ -152,7 +151,7 @@ RunDbt_hybrid <- function(object, db.rate=NULL, split.db.rate.1000=0.008,
 #'
 #' @description Performs doublet detection using a bcds method in the `scds` package on a Seurat object.
 #'
-#' @param object A Seurat object.
+#' @param object A single-cell object (e.g., Seurat object).
 #' @param db.rate The expected doublet rate, if known; otherwise, it will be estimated 0.08*nCell/10000.
 #' @param split.by Column name by which to group the data before calculating statistics.
 #' @param add.Seurat Logical; if TRUE, adds the bcds results as metadata to the Seurat object and stored in \code{SingleCelMQC} slot in \code{misc}. Otherwise, returns a data.frame of the bcds results.
@@ -229,7 +228,7 @@ RunDbt_bcds <- function(object, db.rate=NULL, split.db.rate.1000=0.008, split.by
 #' @title Doublet Detection with cxds
 #' @description Performs doublet detection using a cxds method in the `scds` package on a Seurat object.
 #'
-#' @param object A Seurat object.
+#' @param object A single-cell object (e.g., Seurat object).
 #' @param db.rate The expected doublet rate, if known; otherwise, it will be estimated 0.08*nCell/10000.
 #' @param split.by Column name by which to group the data before calculating statistics.
 #' @param add.Seurat Logical; if TRUE, adds the cxds results as metadata to the Seurat object and stored in \code{SingleCelMQC} slot in \code{misc}. Otherwise, returns a data.frame of the cxds results.
@@ -301,7 +300,7 @@ RunDbt_cxds <- function(object, db.rate=NULL,  split.db.rate.1000=0.008, split.b
 #'
 #' Performs doublet detection using a scDblFinder method in the `scDblFinder` package on a Seurat object.
 #'
-#' @param object A Seurat object. The input must be a valid Seurat object containing single-cell RNA-seq data.
+#' @param object A single-cell object (e.g., Seurat object).
 #' @param do.topscore Logical; if TRUE, uses a top scoring method to identify doublets based on scDblFinder scores.
 #' @param db.rate Numeric; the expected doublet rate for the top score method. Default is calculated as 0.08 * number of cells / 10000.
 #' @param split.by A character string specifying the column in the Seurat object's metadata to use for stratifying the dataset before applying doublet detection (e.g., "orig.ident"). Default is "orig.ident".

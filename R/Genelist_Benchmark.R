@@ -175,7 +175,23 @@ stepPCAToCluster <- function(object, assay="RNA", pca_name="rna.pca", output_clu
 
 
 
-
+#' Plot Variance Explained by Noise Gene Cluster
+#'
+#' @description
+#' This function visualizes the proportion of variance explained by different
+#' factors. It generates
+#' a stacked bar chart (or dodged bar chart in this specific re-implementation).
+#'
+#' @param metrics An object containing variance fraction metrics, typically
+#'   the `Variance_fractions` component from the output of `CalNoiseGeneClusterMetrics` function.
+#'
+#' @return A `ggplot` object representing the bar plot of variance explained.
+#'
+#' @importFrom data.table data.table melt
+#' @importFrom ggplot2 ggplot aes geom_bar scale_fill_manual labs theme_classic
+#'   coord_flip theme element_text element_blank
+#' @importFrom RColorBrewer brewer.pal
+#' @export
 PlotNoiseGeneClusterMetricsVar <- function(metrics ){
   metrics = metrics$Variance_fractions
     df <- data.table(metrics)
@@ -204,6 +220,41 @@ PlotNoiseGeneClusterMetricsVar <- function(metrics ){
     return(p1)
 }
 
+
+#' Plot Gini Coefficient Differences for Noise Genes
+#'
+#' @description
+#' This function visualizes the differences in Gini coefficients before and
+#' after removing specific noise gene sets. It generates bar plots for the
+#' top features (genes) with the largest Gini coefficient differences, and
+#' accompanying dot plots showing the expression patterns of these genes across
+#' clusters.
+#'
+#' @param object A Seurat object containing single-cell expression data
+#'   and metadata.
+#' @param metrics An object containing Gini coefficient differences, typically
+#'   the `Diff_Gini` component from the output of `CalNoiseGeneClusterMetrics`.
+#' @param cluster_res A data frame or matrix containing the clustering results from `RunNoiseGeneCluster` function.
+#' @param ntop An integer specifying the number of top features (genes) to display
+#'   in the bar plot based on Gini difference. Defaults to 10.
+#' @param color.bar A character string specifying the color for the Gini
+#'   difference bar plot. Defaults to "#1F78B4".
+#'
+#' @return A named list of lists. Each top-level element corresponds to a
+#'   noise gene set (e.g., "mt_add"). Each inner list contains:
+#'   \itemize{
+#'     \item `diff_gini`: A `ggplot` object of the Gini difference bar plot.
+#'     \item `add_dotplot`: A `ggplot` object of the DotPlot for features in
+#'       clusters *after* adding back the specific noise gene set.
+#'     \item `del_dotplot`: A `ggplot` object of the DotPlot for features in
+#'       clusters *after* removing *all* noise genes (from `GetNoiseGeneList` function).
+#'   }
+#'
+#' @importFrom data.table data.table melt
+#' @importFrom ggplot2 ggplot aes geom_bar theme_classic coord_flip labs theme element_text
+#' @importFrom Seurat AddMetaData DotPlot
+#' @importFrom stringr str_extract
+#' @export
 PlotNoiseGeneClusterMetricsGini <- function(object, metrics, cluster_res,  ntop=10, color.bar="#1F78B4"){
   metrics = metrics$Diff_Gini
   metrics_list <- split(metrics, metrics$variable)
@@ -237,7 +288,55 @@ PlotNoiseGeneClusterMetricsGini <- function(object, metrics, cluster_res,  ntop=
   return(p_list)
 }
 
-
+#' Run Noise Gene Clustering Benchmark
+#'
+#' @description
+#' This function performs a benchmark to evaluate the impact of removing different
+#' sets of "noise" genes (e.g., mitochondrial, ribosomal, dissociation-induced)
+#' on the clustering of single-cell RNA-seq data. It compares clustering results
+#' after removing all noise genes versus removing all noise genes but then adding
+#' back specific subsets.
+#'
+#' @param object A single-cell object (e.g., Seurat object) from which
+#'   expression data and metadata will be extracted.
+#' @param gene_list (Optional) A named list of character vectors, where each
+#'   vector contains gene names considered as a specific type of "noise" (e.g.,
+#'   `list(mt = c("MT-G1", "MT-G2"))`). If `NULL`, `GetNoiseGeneList` is used
+#'   to define common noise gene sets.
+#' @param nfeatures An integer specifying the number of highly variable features
+#'   to use for PCA. Defaults to 2000.
+#' @param har.batch.by A character string or vector specifying the metadata
+#'   columns to use for batch correction with Harmony.
+#' @param resolution A numeric vector of resolution values for Leiden clustering.
+#'   Defaults to `c(1, 2)`.
+#' @param tmpdir A character string specifying a temporary directory for large
+#'   intermediate files (particularly from `BPCells`). Defaults to
+#'   "./temp_SingleCellMQC/BenchmarkDelGene/".
+#'
+#' @return A named list of data frames. Each element in the list corresponds
+#'   to a clustering `resolution` (e.g., `resolution=1`, `resolution=2`).
+#'   Each data frame contains clustering assignments for each cell, with columns
+#'   like 'del_all' (clustering after removing all noise genes) and 'add_X'
+#'   (clustering after removing all noise genes and then adding back noise set X).
+#'
+#' @details
+#' The function first defines or takes specific noise gene sets. It then performs
+#' the following steps:
+#' 1. **"Del All" Baseline**: Runs PCA and Harmony (for batch correction) after
+#'    excluding *all* genes specified in the combined `gene_list`. Clustering
+#'    is then performed.
+#' 2. **"Add Back" Scenarios**: For each individual noise gene set in `gene_list`,
+#'    it repeats the PCA and Harmony process, but this time, after excluding
+#'    all noise genes, it *adds back* the genes from the current specific noise set.
+#'    Clustering is then performed.
+#' All PCA, Harmony, and clustering steps are performed with fixed random seeds
+#' for reproducibility across comparisons.
+#'
+#' @seealso
+#' \code{\link{GetNoiseGeneList}}.
+#'
+#' @importFrom harmony RunHarmony
+#' @export
 RunNoiseGeneCluster <-function(object,
                                   gene_list =NULL,
                                   nfeatures=2000,
@@ -297,7 +396,33 @@ RunNoiseGeneCluster <-function(object,
 }
 
 
-
+#' Get Predefined Noise Gene Lists
+#'
+#' @description
+#' This function generates a named list of common "noise" gene sets that are
+#' often excluded or analyzed separately in single-cell RNA-seq data.
+#'
+#' @param object A single-cell object (e.g., Seurat object) from which gene names
+#'   will be extracted.
+#'
+#' @return A named list, where each element is a character vector of gene names
+#'   belonging to a specific noise category:
+#'   \itemize{
+#'     \item `mt`: Mitochondrial genes (e.g., "MT-").
+#'     \item `rb`: Ribosomal protein genes (e.g., "RPS", "RPL").
+#'     \item `hb`: Hemoglobin genes.
+#'     \item `dissociation`: Genes commonly associated with dissociation stress.
+#'     \item `TCRab`: T-cell receptor alpha/beta chain V(D)J genes.
+#'     \item `BCR`: B-cell receptor (immunoglobulin, V(D)J) genes.
+#'     \item `Sex_chromosome`: Genes located on X and Y chromosomes.
+#'   }
+#'   Genes lists are intersected with the actual gene names present in the `object`.
+#' @details
+#' The function contains predefined patterns and lists of genes for various
+#' noise categories. It matches these against the rownames of the expression
+#' matrix from the provided `object` to return only the genes present in the dataset.
+#'
+#' @export
 GetNoiseGeneList <- function(object){
   mat <- getMatrix(object)
   gene_name <- rownames(mat)
@@ -351,61 +476,48 @@ GetNoiseGeneList <- function(object){
 
 
 
-RunVarPartMetadata <- function(object,
-                               features,
-                               formula,
-                               split.by =NULL,
-                               do.log1p=T){
-  object <- getMetaData(object)
-  if(is.null(split.by)){
-    out <- calMetadataVarPart(object, formula= formula, group_name = "No split.by",features=features, do.log1p=do.log1p )
-  }else{
-    split_object <- split(object, object[[split.by]])
-    index_name <- names(split_object)
-    out <- lapply(index_name, function(x){
-      calMetadataVarPart(split_object[[x]], formula= formula, group_name = x,features=features, do.log1p=do.log1p )
-    })
-    out <- do.call(gtools::smartbind, out)
-  }
-  rownames(out) <- NULL
-  return(out)
-}
-
-calMetadataVarPart <- function(object,
-                               formula,
-                               group_name,
-                               cluster_name,
-                               do.log1p=T,
-                               features = c("percent.mt", "percent.rb", "percent.hb", "percent.dissociation")){
-
-  metadata = getMetaData(object)
-  in_name <- intersect(colnames(metadata), features )
-  data = metadata[, c(in_name), drop=F ]
-  if(do.log1p){
-    data = log1p(data)
-  }
-  data <- data.frame(data, metadata[, cluster_name, drop=F])
-
-
-  var_list <- lapply(in_name, function(x){
-    formula <- stats::update(formula, as.formula( paste0(x, " ~ .")) )
-    print(formula)
-    fm <- lmerTest::lmer(formula, data = data)
-    varPart <- variancePartition::calcVarPart(fm)
-  })
-  var_list <- do.call(rbind, var_list)
-  rownames(var_list) <- in_name
-
-  # varPart <- variancePartition::fitExtractVarPartModel(data, formula, metadata)
-  varPart <- data.frame(Group = group_name, Feature=rownames(var_list), data.frame(var_list))
-  print(11111)
-
-  return(varPart)
-}
-
-
-
-
+#' Calculate Noise Gene Cluster Metrics
+#'
+#' @description
+#' This function calculates various metrics to evaluate the impact of noise
+#' gene removal strategies on clustering and metadata variable associations.
+#' It computes variance fractions explained by `del_all` and `add_X` clusterings,
+#' and differences in Gini coefficients for relevant genes.
+#'
+#' @param object A single-cell object (e.g., Seurat object) from which
+#'   expression data and metadata will be extracted for Gini calculations.
+#' @param cluster_info A data frame or a named list of data frames containing
+#'   clustering results, typically the output of `RunNoiseGeneCluster`.
+#'   Each data frame should have columns 'del_all' and 'add_X' for different
+#'   noise gene removal scenarios.
+#'
+#' @return If `cluster_info` is a single data frame, returns a list with:
+#'   \itemize{
+#'     \item `Variance_fractions`: A data frame summarizing the variance
+#'       explained by clusterings for various metadata features (e.g., %MT, %RB, inferred cell cycle, dissociation genes).
+#'     \item `Diff_Gini`: A data frame summarizing the differences in Gini
+#'       coefficients for specific marker genes across 'add_X' vs 'del_all' scenarios.
+#'   }
+#'   If `cluster_info` is a list (e.g., for different resolutions), returns
+#'   a named list of such lists, where names correspond to the resolutions.
+#'
+#' @details
+#' The function uses two main types of metrics:
+#' 1. **Variance Fractions**: For each metadata variable (e.g., percent.mt, percent.rb),
+#'    it fits a mixed-effects model using `lmerTest::lmer` and
+#' `variancePartition::calcVarPart` to calculate the fraction of variance
+#' explained by the noise-aware clusterings
+#'    (`del_all`, `add_X`). `calMetadataVarPart` (an internal helper) is used for this.
+#' 2. **Gini Coefficient Differences**: For specific marker genes (e.g., from TCR, BCR, sex chromosomes),
+#'    it calculates the Gini coefficient
+#'    for gene expression proportion (pct) across clusters for both `del_all` and `add_X` scenarios.
+#'    The differences (add_X - del_all) are then reported, indicating if adding back
+#'    certain noise genes worsens the localized expression proportion of these markers.
+#'
+#' @importFrom stats as.formula
+#' @importFrom gtools smartbind
+#' @importFrom data.table data.table melt
+#' @export
 CalNoiseGeneClusterMetrics <- function(object, cluster_info){
   if(is.list(cluster_info)){
     out_list <- lapply(cluster_info, function(x){
@@ -428,8 +540,8 @@ calNoiseGeneMetrics <- function(object, del_clusters){
   metadata <- cbind(metadata, del_clusters )
   cluster_name <- colnames(del_clusters)
 
-  message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), ">>>>>>>>>>>> fitExtractVarPartModel "))
-  ## fitExtractVarPartModel variance fractions
+  message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), ">>>>>>>>>>>> Variance Partitioning "))
+  ## Variance Partitioning variance fractions
   del_all <- grep("del_all", cluster_name, value = T)
   del_all_out <- calMetadataVarPart(metadata, formula= stats::as.formula(paste0( "~ (1 |", del_all, ")")),
                             group_name = "del_all",
