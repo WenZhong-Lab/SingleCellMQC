@@ -22,13 +22,11 @@ library(SingleCellMQC)
 Version 0.7.0 is scheduled for release in September. This will be an entirely new version, featuring numerous optimizations, bug fixes, and added functions. The logical error present in the RunLQ_MAD function of Version 0.6 will also be fixed in 0.7.0. We highly recommend using our future new version, as Version 0.6 will subsequently be deprecated.
 
 
-
-
 ### Integrated QC Tools in SingleCellMQC
 
-[scater](https://bioconductor.org/packages/release/bioc/html/scater.html), [Seurat](https://satijalab.org/seurat/), [miQC](https://github.com/greenelab/miQC), [ddqc](https://github.com/ayshwaryas/ddqc), [decontX/DecontPro](https://github.com/campbio/decontX), [scCDC](https://github.com/ZJU-UoE-CCW-LAB/scCDC), [scDblFinder](https://github.com/plger/scDblFinder), [scds](https://github.com/kostkalab/scds), [DoubletFinder](https://github.com/chris-mcginnis-ucsf/DoubletFinder), [DropletUtils](https://github.com/MarioniLab/DropletUtils), [scRepertoire](https://github.com/BorchLab/scRepertoire).
+[scater](https://bioconductor.org/packages/release/bioc/html/scater.html), [Seurat](https://satijalab.org/seurat/), [miQC](https://github.com/greenelab/miQC), [ddqc](https://github.com/ayshwaryas/ddqc), [decontX/DecontPro](https://github.com/campbio/decontX), [scCDC](https://github.com/ZJU-UoE-CCW-LAB/scCDC), [scDblFinder](https://github.com/plger/scDblFinder), [scds](https://github.com/kostkalab/scds), [DoubletFinder](https://github.com/chris-mcginnis-ucsf/DoubletFinder), [DropletUtils](https://github.com/MarioniLab/DropletUtils), [scRepertoire](https://github.com/BorchLab/scRepertoire), [GTEs](https://github.com/yzhou1999/GTEs/).
 
-**Other Key Packages For QC**: [BPCells](https://github.com/bnprks/BPCells), [COSG](https://github.com/genecell/COSGR), [ScType](https://github.com/IanevskiAleksandr/sc-type#readme), [clusterProfiler](https://github.com/YuLab-SMU/clusterProfiler), [reactable](https://glin.github.io/reactable/index.html)
+**Other Key Packages For QC**: [BPCells](https://github.com/bnprks/BPCells), [COSG](https://github.com/genecell/COSGR), [ScType](https://github.com/IanevskiAleksandr/sc-type#readme), [variancePartition](https://github.com/GabrielHoffman/variancePartition), [dreamlet](https://github.com/GabrielHoffman/dreamlet), [reactable](https://glin.github.io/reactable/index.html)
 
 
 
