@@ -24,7 +24,7 @@ Version 0.7.0 is scheduled for release in September. This will be an entirely ne
 
 ### Integrated QC Tools in SingleCellMQC
 
-[scater](https://bioconductor.org/packages/release/bioc/html/scater.html), [Seurat](https://satijalab.org/seurat/), [miQC](https://github.com/greenelab/miQC), [ddqc](https://github.com/ayshwaryas/ddqc), [decontX/DecontPro](https://github.com/campbio/decontX), [scCDC](https://github.com/ZJU-UoE-CCW-LAB/scCDC), [scDblFinder](https://github.com/plger/scDblFinder), [scds](https://github.com/kostkalab/scds), [DoubletFinder](https://github.com/chris-mcginnis-ucsf/DoubletFinder), [DropletUtils](https://github.com/MarioniLab/DropletUtils), [scRepertoire](https://github.com/BorchLab/scRepertoire), [GTEs](https://github.com/yzhou1999/GTEs/).
+[scater](https://bioconductor.org/packages/release/bioc/html/scater.html), [Seurat](https://satijalab.org/seurat/), [miQC](https://github.com/greenelab/miQC), [ddqc](https://github.com/ayshwaryas/ddqc), [decontX](https://github.com/campbio/decontX), [scCDC](https://github.com/ZJU-UoE-CCW-LAB/scCDC), [scDblFinder](https://github.com/plger/scDblFinder), [scds](https://github.com/kostkalab/scds), [DoubletFinder](https://github.com/chris-mcginnis-ucsf/DoubletFinder), [DropletUtils](https://github.com/MarioniLab/DropletUtils), [scRepertoire](https://github.com/BorchLab/scRepertoire), [GTEs](https://github.com/yzhou1999/GTEs/).
 
 **Other Key Packages For QC**: [BPCells](https://github.com/bnprks/BPCells), [COSG](https://github.com/genecell/COSGR), [ScType](https://github.com/IanevskiAleksandr/sc-type#readme), [variancePartition](https://github.com/GabrielHoffman/variancePartition), [dreamlet](https://github.com/GabrielHoffman/dreamlet), [reactable](https://glin.github.io/reactable/index.html)
 
