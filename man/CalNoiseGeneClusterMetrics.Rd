@@ -44,6 +44,6 @@ explained by the noise-aware clusterings
 it calculates the Gini coefficient
 for gene expression proportion (pct) across clusters for both \code{del_all} and \code{add_X} scenarios.
 The differences (add_X - del_all) are then reported, indicating if adding back
-certain noise genes improves/worsens the localized expression proportion of these markers.
+certain noise genes worsens the localized expression proportion of these markers.
 }
 }

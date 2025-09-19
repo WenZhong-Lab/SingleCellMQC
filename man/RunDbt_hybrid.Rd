@@ -15,7 +15,7 @@ RunDbt_hybrid(
 )
 }
 \arguments{
-\item{object}{A Seurat object.}
+\item{object}{A single-cell object (e.g., Seurat object).}
 
 \item{db.rate}{The expected doublet rate, if known; otherwise, it will be estimated 0.08*nCell/10000.}
 

@@ -453,7 +453,7 @@ plotVarPartStackBar <- function(object,
     top_features <- df$Feature[ord][1:min(ntop, nrow(df))]
 
   } else {
-    top_features <- head(df$Feature, ntop)
+    top_features <- utils::head(df$Feature, ntop)
   }
 
   # Filter for top_features

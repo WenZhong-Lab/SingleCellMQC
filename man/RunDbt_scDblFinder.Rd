@@ -17,7 +17,7 @@ RunDbt_scDblFinder(
 )
 }
 \arguments{
-\item{object}{A Seurat object. The input must be a valid Seurat object containing single-cell RNA-seq data.}
+\item{object}{A single-cell object (e.g., Seurat object).}
 
 \item{do.topscore}{Logical; if TRUE, uses a top scoring method to identify doublets based on scDblFinder scores.}
 

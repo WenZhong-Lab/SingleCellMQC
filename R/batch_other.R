@@ -217,7 +217,7 @@ PlotGTEBar <- function(object, color = NULL, ntop = 10){
     if (ntop > nrow(rsquared_long)) {
       warning("ntop (", ntop, ") is greater than the number of available features (", nrow(rsquared_long), "). Plotting all available features.")
     }
-    rsquared_long <- head(rsquared_long, ntop)
+    rsquared_long <- utils::head(rsquared_long, ntop)
   }
 
   rsquared_long$Feature <- factor(rsquared_long$Feature, levels =  rev(unique(rsquared_long$Feature)))

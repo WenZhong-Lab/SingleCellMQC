@@ -335,7 +335,6 @@ PlotNoiseGeneClusterMetricsGini <- function(object, metrics, cluster_res,  ntop=
 #' @seealso
 #' \code{\link{GetNoiseGeneList}}.
 #'
-#' @importFrom harmony RunHarmony
 #' @export
 RunNoiseGeneCluster <-function(object,
                                   gene_list =NULL,

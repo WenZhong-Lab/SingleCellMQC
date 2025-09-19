@@ -64,9 +64,15 @@ Imports:
     aricode,
     bluster,
     clusterSim,
-    fpc
-Suggests:
+    fpc,
+    GTEs,
+    RColorBrewer,
+    dreamlet,
+    gtools,
+    lmerTest,
+    variancePartition,
     BPCells (>= 0.3.0),
+Suggests:
     COSG,
     decontX,
     DESeq2,

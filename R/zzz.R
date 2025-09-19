@@ -32,7 +32,7 @@ if (getRversion() >= "2.15.1") {
       "orig.ident", "parallel_paramSweep", "productive", "proportion",
       "receptor_subtype", "receptor_type", "row_id", "sample", "scores",
       "stat_method", "total", "value", "values", "variable", "x", "top", "name", "object_temp","method",
-      "overall_rank", "asw", "ch", "db", "ari", "nmi", "overall"
+      "overall_rank", "asw", "ch", "db", "ari", "nmi", "overall","Feature"
     )
   )
 }
