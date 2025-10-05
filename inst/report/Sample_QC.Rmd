@@ -1,52 +1,36 @@
----
-title: "per sample"
-output: 
-  html_document:
-    css: sixicustom.css
-    toc: true
-    toc_float: 
-      collapsed: true      
-      smooth_scroll: true  
-    number_sections: true
-    self_contained: false
----
-
 # Sample QC 
 
 **The main tasks of sample-level QC include: (i) Sample quality assessment: detecting technical artifacts that may be caused by library construction, insufficient sequencing depth, amplification biases, or contaminations; (ii) Outlier sample detection: identifying samples with unexpected cell type compositions; and (iii) Sample identity verification: identifying incorrect sample labeling caused by errors in sample handling.**
 
 
-
-**Sample QC Module Overview**
-
--   [**Sample quality assessment -**](#md1-sec1) Detecting technical and biological abnormalities.
--   [**PCT outlier sample detection -**](#md1-sec2) Identifying cell type composition deviations.
--   [**Sample identity verification -**](#md1-sec3) Verifying label-data consistency.
-
-
-
 ------------------------------------------------------------------------
 
-```{r Sample quality assessment setup, echo=FALSE, results='asis', warning=FALSE, message=FALSE}
+## QC summary
+
+```{r summary, echo=FALSE, results='asis', warning=FALSE, message=FALSE}
 
 if(length(data$Sample$Section1$Metrics )!=0){
-  cat("
-## Sample quality assessment {#md1-sec1}
-
-**Key components overview: **
-
-- **10X Genomics Metrics (if available):** From Cell Ranger output.
-- **Basic QC Metrics:** From SingleCellMQC, including RNA, ADT and V(D)J metrics.
-
-------------------------------------------------------------------------
-")
+  # cat( paste0(data$Sample$Section1$Metrics$note, collapse = "  \n") )
+  note_grey(paste0(data$Sample$Section1$Metrics$note, collapse = "  \n"))
   cat('\n\n')
-}
-
+  }
 
 ```
 
+## QC details {.tabset }
 
+```{r Key components overview, echo=FALSE, results='asis', warning=FALSE, message=FALSE}
+  generate_primary_card(
+  header_content = "**Key components overview: **",
+    card_title =NULL,
+  body_content = "
+- **10X Genomics Metrics (if available):** From Cell Ranger output. 
+- **Basic QC Metrics:** From SingleCellMQC, including RNA, ADT and V(D)J metrics.
+  "
+  )
+ 
+
+```
 
 ```{r cellranger warning, echo=FALSE, results='asis', warning=FALSE, message=FALSE}
 
@@ -54,7 +38,7 @@ if (!is.null(data$Sample$Section1$Metrics$Metrics_10X$base) &&
     length(data$Sample$Section1$Metrics$Metrics_10X$base) > 0){
   
   cat("
-### 10X Genomics Metrics 
+### 10X Genomics metrics {.tabset .unnumbered}
 
 This section summarizes 10X metrics alerts generated from [10X Genomics CellRanger](https://github.com/10XGenomics/cellranger) standards. Alerts are categorized as **errors** (indicating critical sample issues) or **warnings** (highlighting potential concerns), as detailed below:
       ")
@@ -85,30 +69,9 @@ if (!is.null(data$Sample$Section1$Metrics$Metrics_10X$base) &&
 
 ```
 
-------------------------------------------------------------------------
 
 
-```{r metrics introduction, echo=FALSE, results='asis', warning=FALSE, message=FALSE}
-if (length(data$Sample$Section1$Metrics )!=0) {
-  cat("
-### Basic QC Metrics { .tabset}
-
-This section provides comprehensive single-cell quality control metrics calculated by SingleCellMQC to evaluate single-cell data quality at the sample level for RNA sequencing, surface protein profiling (ADT), and TCR/BCR sequencing to enable a systematic evaluation across multiple omics layers. For scRNA-seq, key QC metrics include indicators such as the total number of cells (nCell), the number of detected genes (nGene_RNA), the distribution of UMI counts per cell (nCount_RNA), the distribution of the number of genes detected per cell (nFeature_RNA), and the distribution of the proportion of mitochondrial reads per cell (percent.mt). For ADT data, metrics including the total number of proteins detected per sample (nPro_ADT), the distribution of total UMIs associated with antibody-derived tags per cell (nCount_ADT) and the distribution of the proportion of isotype control reads per cell (percent.isotype) are assessed to evaluate surface protein quality. For TCR/BCR sequencing, SingleCellMQC evaluates metrics such as the number of cells with detected TCR or BCR chains (nCell_TCR and nCell_BCR), the proportion of cells with specific TCR or BCR subtypes, the proportion of cells with specific receptor groups (e.g., TCR, BCR, TRA+TRB, single IGH, multichain_T), the distribution of CDR3 length per cell and the percentage of unique clones. 
-
-To systematically identify potential outlier samples, SingleCellMQC utilizes the `FindSampleMetricsWarning` function, which applies Median Absolute Deviation (MAD, median +/- 3×MAD) to flag deviations in key QC metrics—including nCount_RNA, nFeature_RNA, nCount_ADT, nFeature_ADT, percent.mt, and percent.isotype—relative to dataset-wide distributions. Detailed results are presented below:  
-
-")
-  cat('\n\n')
-}
-
-if(length(data$Sample$Section1$Metrics )!=0){
-  # cat( paste0(data$Sample$Section1$Metrics$note, collapse = "  \n") )
-  note_grey(paste0(data$Sample$Section1$Metrics$note, collapse = "  \n"))
-  cat('\n\n')
-  }
-
-```
-
+### RNA & ADT metrics {.tabset .unnumbered}
 
 ```{r metrics outlier, echo=FALSE, results='asis', warning=FALSE, message=FALSE}
 
@@ -118,19 +81,22 @@ if(length(data$Sample$Section1$outlier_metrics)!=0){
     cat_word <- do.call(c, lapply(names(table_data), function(x){
       paste0( "- ", length(table_data[[x]])," ", x," outlier samples: ", paste0(table_data[[x]],  collapse = ", "), " \n")
     }))
-    warning_alert_orange( paste0("Metrics outlier results (MAD Statistics): \n\n ",paste0(cat_word, collapse = ""),   " \n",
+    warning_alert( paste0("Metrics outlier results (MAD Statistics): \n\n ",paste0(cat_word, collapse = ""),   " \n",
          "**Notice: ** The above prediction results represent samples that may have potential abnormalities, and are for reference only. Please interpret the results in combination with the actual situation of the data.", "\n"))
     
- }
+  }
+  
+  generate_primary_card(
+  header_content = NULL,
+    card_title =NULL,
+  body_content = data$Sample$Section1$outlier_metrics$interactive_table,
+  footer_content= "For the table, `type`: define the direction of outlier detection (`lower` for values below the median threshold or `higher` for values above it); `log`: whether metrics were log-transformed prior to analysis. ")
+  
   cat("\n\n")
-  subchunkify(data$Sample$Section1$outlier_metrics$interactive_table,seed="interactive_table_metrics_outlier")
-  cat("\n\n")
-  cat("For the table, `type`: define the direction of outlier detection (`lower` for values below the median threshold or `higher` for values above it); `log`: whether metrics were log-transformed prior to analysis. ")
-  cat("\n\n")
+
 }
 
 ```
-
 
 ```{r metrics information, echo=FALSE, results='asis', warning=FALSE, message=FALSE}
 
@@ -140,8 +106,7 @@ if(length(data$Sample$Section1$Metrics )!=0){
 if (!is.null(data$Sample$Section1$Metrics$count$base) && 
     length(data$Sample$Section1$Metrics$count$base) > 0) {
   
-  cat(paste0("#### RNA & ADT", " {.tabset .unnumbered}\n"))
-  cat(paste0("##### Basic information", " {.tabset .unnumbered}\n"))
+  cat(paste0("#### Basic information", " {.tabset .unnumbered}\n"))
   subchunkify(data$Sample$Section1$Metrics$count$base, seed="count base information")
   cat('\n\n')
 }
@@ -155,11 +120,11 @@ if (!is.null(data$Sample$Section1$Metrics$count$statistics) &&
 # Check and output Statistical summary if data exists
 stat_data <- data$Sample$Section1$Metrics$summary
 if (!is.null(stat_data) && length(stat_data) > 0) {
-  cat(paste0("##### Descriptive statistics of cell QC metrics per sample", " {.tabset .unnumbered}\n"))
+  cat(paste0("#### Descriptive statistics of cell QC metrics per sample", " {.tabset .unnumbered}\n"))
   i=1000
   for (g in names(stat_data)) {
     if (!is.null(stat_data[[g]]$base) && length(stat_data[[g]]$base) > 0) {
-      cat('###### ', g, "{.unnumbered}",' \n')
+      cat('##### ', g, "{.unnumbered}",' \n')
       subchunkify(stat_data[[g]]$base, seed=paste0("summary_",g))
       cat("\n\n")
     }
@@ -174,23 +139,29 @@ if (!is.null(stat_data) && length(stat_data) > 0) {
 ```
 
 
-
 ```{r vdj information, echo=FALSE, results='asis', warning=FALSE, message=FALSE}
 if(length(data$Sample$Section1$VDJ )!=0){
   
   cat("
-#### V(D)J { .tabset .unnumbered}
+### V(D)J { .tabset .unnumbered}
 ")
   cat('\n\n')
   cat("This section summarizes the V(D)J repertoire analysis, including V(D)J chain composition, V(D)J subtype composition, V(D)J gene usage (geneUsage), clonotype quantification (clonalQuant), and CDR3 sequence length profiles (CDR3). Gene usage frequencies (geneUsage) and clonal expansion metrics (clonalQuant) are derived using the [scRepertoire](https://github.com/ncborcherding/scRepertoire) package, which also processes CDR3 length distributions (CDR3). Detailed results are presented below. The details below: \n\n")
   stat_data <- data$Sample$Section1$VDJ
   i=1000
   
-  note_grey( paste0(data$Sample$Section1$VDJ$note, collapse = "  \n") ) 
+  generate_primary_card(
+  header_content = "**Notes**",
+    card_title =NULL,
+  body_content = gsub("> -", "", paste0(data$Sample$Section1$VDJ$note, collapse = "  \n"))
+)
+  
+  # note_grey( paste0(data$Sample$Section1$VDJ$note, collapse = "  \n") ) 
+  
   cat('\n\n')
   
   for (g in c("V(D)J chain", "V(D)J subtype") ) {
-      cat('##### ', g, "{.unnumbered}",  ' \n')
+      cat('#### ', g, "{.unnumbered}",  ' \n')
       subchunkify(stat_data[[g]]$base,seed=paste0("VDJ_",g))
       cat("\n\n")
       subchunkify(stat_data[[g]]$statistics,seed=paste0("VDJ_statistics_",g))
@@ -205,10 +176,10 @@ if(length(data$Sample$Section1$VDJ )!=0){
 if( length(data$Sample$Section1$VDJ$geneUsage )!=0 ){
   vdj_data <- data$Sample$Section1$VDJ$geneUsage
   name <- names(vdj_data)
-  cat(paste0("##### geneUsage", " {.tabset .unnumbered}\n"))
+  cat(paste0("#### geneUsage", " {.tabset .unnumbered}\n"))
 
   for (i in name) {
-    cat(paste0("###### ", i, " {.tabset .unnumbered}\n"))
+    cat(paste0("##### ", i, " {.tabset .unnumbered}\n"))
     subchunkify(vdj_data[[i]],seed= paste0(i, "_geneUsage") )
     cat('\n\n')
   }
@@ -220,10 +191,10 @@ if( length(data$Sample$Section1$VDJ$geneUsage )!=0 ){
 if( length(data$Sample$Section1$VDJ$clonalQuant )!=0 ){
   vdj_data <- data$Sample$Section1$VDJ$clonalQuant
   name <- names(vdj_data)
-  cat(paste0("##### clonalQuant", " {.tabset .unnumbered}\n"))
+  cat(paste0("#### clonalQuant", " {.tabset .unnumbered}\n"))
 
   for (i in name) {
-    cat(paste0("###### ", i, " {.tabset .unnumbered}\n"))
+    cat(paste0("##### ", i, " {.tabset .unnumbered}\n"))
     subchunkify(vdj_data[[i]],seed= paste0(i, "_clonalQuant") )
     cat('\n\n')
   }
@@ -235,10 +206,10 @@ if( length(data$Sample$Section1$VDJ$clonalQuant )!=0 ){
 if( length(data$Sample$Section1$VDJ$CDR3 )!=0 ){
   vdj_data <- data$Sample$Section1$VDJ$CDR3
   name <- names(vdj_data)
-  cat(paste0("##### CDR3", " {.tabset .unnumbered}\n"))
+  cat(paste0("#### CDR3", " {.tabset .unnumbered}\n"))
 
   for (i in name) {
-    cat(paste0("###### ", i, " {.tabset .unnumbered}\n"))
+    cat(paste0("##### ", i, " {.tabset .unnumbered}\n"))
     cat("![](", paste0(cell_dir, "/Sample_QC/VDJ/CDR3/",  paste0(i,"_CDR3.png")), ")")
     cat("<p align='middle' style='font-size: 16px; color: black;'>**Figure: ** The distribution of CDR3 length. </p> \n\n")
         cat(paste0( "**IF you want to see interactive plotly object for details, you can see it by click the link ", "[plotly_link](", paste0( "./SingleCellMQC/plot/Sample_QC/VDJ/CDR3/",  paste0(i, "_CDR3.html")), ")", ".**\n\n")) 
@@ -247,7 +218,6 @@ if( length(data$Sample$Section1$VDJ$CDR3 )!=0 ){
 
   cat('\n\n')
 }
-
 
 
 
@@ -260,11 +230,9 @@ if( length(data$Sample$Section1$VDJ$CDR3 )!=0 ){
 if(length(data$Sample$Section2$outlier_comp)!=0){
   
   cat("
-## PCT outlier sample detection {#md1-sec2 .tabset}
+### Celltype% outlier sample detection {.tabset .unnumbered}
 
 **Outlier sample detection in SingleCellMQC focuses on identifying deviations in cell type compositions. ** Deviations in cell type composition within samples from the same experimental group are often indicative of potential technical issues, such as prolonged processing time, variations in storage conditions, experimental processing errors, and batch effects, all of which can compromise the integrity of the data. To address this issue, SingleCellMQC incorporates cell type composition analysis as a additional outlier detection approach. This section include two main approaches: 1) **Reference-based outlier analysis**: Identification of outliers via deviation from reference cell type proportions; 2) **PCA-based outlier analysis**: Detection of inter-sample outliers via aberrant cell type proportionds within cohort. The details below:
-
-------------------------------------------------------------------------
 ")
   cat('\n\n')
   comp_data <- data$Sample$Section2$outlier_comp
@@ -281,12 +249,21 @@ if(length(data$Sample$Section2$outlier_comp)!=0){
       freq_table <- freq_table[ order(freq_table$Freq, decreasing =T) , ]
       cat_freq_word3ormore <- paste0( "- ", length(freq_table[,1]), " warning samples (celltype% outliers >= 3 ): ", paste0(freq_table[,1], collapse = ", ")," \n")
       
-      cat_word <- do.call(c, lapply(names(table_data), function(x){
-        paste0( "- ", length(table_data[[x]])," ", x," outlier samples: ", paste0(table_data[[x]],  collapse = ", "), " \n")
-      }))
-      warning_alert_orange( paste0("Reference-based outlier analysis: \n\n ", cat_freq_word3ormore,
-                                   paste0(cat_word, collapse = ""),   " \n",
-           "**Notice: ** The above prediction results represent samples that may have potential abnormalities, and are for reference only. Please interpret the results in combination with the actual situation of the data.", "\n"))
+      # cat_word <- do.call(c, lapply(names(table_data), function(x){
+      #   paste0( "- ", length(table_data[[x]])," ", x," outlier samples: ", paste0(table_data[[x]],  collapse = ", "), " \n")
+      # }))
+      # warning_alert_orange( paste0("Reference-based outlier analysis: \n\n ", cat_freq_word3ormore, " \n",
+      #      "**Notice: ** The above prediction results represent samples that may have potential abnormalities, and are for reference only. Please interpret the results in combination with the actual situation of the data.", "\n"))
+      warning_alert(
+        text =  paste0(
+          cat_freq_word3ormore,
+          " \n",
+          "**Notice: ** The above prediction results represent samples that may have potential abnormalities, and are for reference only. Please interpret the results in combination with the actual situation of the data.",
+          "\n"
+        ),
+        title = "Warning! (Reference-based analysis)"
+      )
+      
       
   }
   
@@ -310,15 +287,31 @@ if(length(data$Sample$Section2$outlier_comp)!=0){
   }
   
   if(!is.null(ellipse_pa) | !is.null(DBSCAN_pa) ){
-    warning_alert_orange(paste0(ellipse_pa,  " \n", DBSCAN_pa,  " \n", 
-                                "**Notice: ** The above prediction results represent samples that may have potential abnormalities, and are for reference only. Please interpret the results in combination with the actual situation of the data.", "\n"))
+    
+    warning_alert(
+      text =  paste0(ellipse_pa,  " \n", DBSCAN_pa,  " \n", 
+                                "**Notice: ** The above prediction results represent samples that may have potential abnormalities, and are for reference only. Please interpret the results in combination with the actual situation of the data.", "\n"),
+      title = "Warning! (PCA-based analysis)"
+    )
+    
+    # warning_alert_orange(paste0(ellipse_pa,  " \n", DBSCAN_pa,  " \n", 
+    #                             "**Notice: ** The above prediction results represent samples that may have potential abnormalities, and are for reference only. Please interpret the results in combination with the actual situation of the data.", "\n"))
   }
-    subchunkify(comp_data$CellTypePCT,seed="CellTypePCT")
+  
+  
+  generate_primary_card(
+    header_content = NULL,
+    card_title = NULL,
+    body_content = comp_data$CellTypePCT,
+    footer_content = "Note: The per-sample cell type annotation by [ScType](https://github.com/IanevskiAleksandr/sc-type) method, and then quantifies cell type proportions per sample."
+  )
+    
+    # subchunkify(comp_data$CellTypePCT,seed="CellTypePCT")
     cat("\n\n")
-    cat("Note: The per-sample cell type annotation by [ScType](https://github.com/IanevskiAleksandr/sc-type) method, and then quantifies cell type proportions per sample")
-    cat("\n\n")
+    # cat("Note: The per-sample cell type annotation by [ScType](https://github.com/IanevskiAleksandr/sc-type) method, and then quantifies cell type proportions per sample")
+    # cat("\n\n")
 
-    cat(paste0("### Reference-based outlier analysis", " {.tabset .unnumbered}\n"))
+    cat(paste0("#### Reference-based outlier analysis", " {.tabset .unnumbered}\n"))
     cat("SingleCellMQC established the reference ranges for nine major cell types across ten human tissues by analyzing 2,299 scRNA-seq samples from the Deeply Integrated Human Single-Cell Omics data [(DISCO)](https://www.immunesinglecell.org/) database. Samples with deviations from these tissue-specific reference cell type compositions are automatically flagged as outlier samples using the `FindCommonPCTOutlier` function. \n")
   cat('\n\n')
 
@@ -329,7 +322,7 @@ if(length(data$Sample$Section2$outlier_comp)!=0){
     
     
     cat("\n\n")
-    cat(paste0("### PCA-based outlier analysis", " {.tabset .unnumbered}\n"))
+    cat(paste0("#### PCA-based outlier analysis", " {.tabset .unnumbered}\n"))
     
     cat("A PCA-based outlier detection method using confidence ellipse or Density-Based Spatial Clustering of Applications with Noise (DBSCAN) to identify samples with unusual cell type proportions within sample groups was also provided in this section. Additionally, contributions of each cell type composition to PCs were calculated, providing further insights into potential outliers and ensuring the reliability of the dataset for downstream analysis. \n")
     cat("\n\n")
@@ -337,24 +330,19 @@ if(length(data$Sample$Section2$outlier_comp)!=0){
   subchunkify(comp_data$interactive_table,seed="outlier_comp_interactive_table")
   cat("\n\n")
 
-  cat(paste0("#### Ellipse", " {.tabset .unnumbered} \n\n"))
+  cat(paste0("##### Ellipse", " {.tabset .unnumbered} \n\n"))
   subchunkify(comp_data$pca_ellipse, seed="outlier_comp_ellipse", fig_width=8)
   cat("\n\n")
   cat("PCA of cell proportions across samples. The Ellipse panel highlights the outlier identification based on the 95% confidence ellipse, where the blue circle represents the range of the 95% confidence ellipse.")
   cat("\n\n")
 
-  cat(paste0("#### DBSCAN", " {.tabset .unnumbered} \n\n"))
+  cat(paste0("##### DBSCAN", " {.tabset .unnumbered} \n\n"))
   subchunkify(comp_data$pca_dbscan, seed="outlier_comp_dbscan", fig_width=8)
   cat("PCA of cell proportions across samples. The outliers were identified by DBSCAN clustering. The blue ellipse indicates the 95% confidence region of the core population.")
   cat("\n\n")
 }
 
-
-
-
-
 ```
-
 
 
 
@@ -363,24 +351,35 @@ if(length(data$Sample$Section2$outlier_comp)!=0){
 
 if(!is.null(data$Sample$Section3)){
   
-  cat('## Sample identity verification {#md1-sec3}
+  cat('### Predicted sex information {.unnumbered}
 
 To avoid potential recording mistakes and data transmission errors, checking whether the file labeling is consistent with analyzed data features is necessary at the beginning of sample QC. In this section, by default, sex-specific genes, including XIST, DDX3Y, UTY, and RPS4Y1, can be evaluated to verify the alignment with recorded sex information.')
   cat('\n\n')
 
+  generate_primary_card(
+    header_content = "**The predicted sex information**",
+    card_title = NULL,
+    body_content = data$Sample$Section3$identity,
+    footer_content = NULL
+  )
   
-identity <- data$Sample$Section3$identity
-subchunkify(reactablefmtr::add_source(identity, "Table: The predicted sex information"), seed="identity")
+  
+# identity <- data$Sample$Section3$identity
+# subchunkify(reactablefmtr::add_source(identity, "Table: The predicted sex information"), seed="identity")
+  generate_primary_card(
+    header_content = "**Notes**",
+    card_title = NULL,
+    body_content = paste0("- **XIST** is female-expressed from its function in X-chromosome inactivation. **DDX3Y**, **UTY** and **RPS4Y1** are Y-chromosome-specific. **`Predict`** column represents the analyzed sex.  \n", '-  The analyzed sex results: **Female: ', sum(data$Sample$Section3$num %in% "Female") , " ;  Male: ", sum(data$Sample$Section3$num %in% "Male"), " ;**"),
+    footer_content = NULL
+  )
 
-
- note_grey(paste0("> **NOTE:**  \n>  \n> - **XIST** is female-expressed from its function in X-chromosome inactivation. **DDX3Y**, **UTY** and **RPS4Y1** are Y-chromosome-specific. **`Predict`** column represents the analyzed sex.  \n", '> -  The analyzed sex results: **Female: ', sum(data$Sample$Section3$num %in% "Female") , " ;  Male: ", sum(data$Sample$Section3$num %in% "Male"), " ;**"))
+ # note_grey(paste0("> **NOTE:**  \n>  \n> - **XIST** is female-expressed from its function in X-chromosome inactivation. **DDX3Y**, **UTY** and **RPS4Y1** are Y-chromosome-specific. **`Predict`** column represents the analyzed sex.  \n", '> -  The analyzed sex results: **Female: ', sum(data$Sample$Section3$num %in% "Female") , " ;  Male: ", sum(data$Sample$Section3$num %in% "Male"), " ;**"))
 cat("\n\n")
 }
 
 
 ```
 
-<hr>
 
 
 

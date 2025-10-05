@@ -169,6 +169,7 @@ dark_alert <- function(text, title = "Dark Message", dismissible = FALSE) {
 }
 ```
 
+
 ```{r setup Bootstrap Card, include=FALSE}
 # 通用函数来生成 Bootstrap Card
 generate_bs_card <- function(header_content = NULL, # 用于卡片头部的内容
@@ -260,18 +261,16 @@ generate_primary_card <- function(
   header_content = "Header",
   card_title = "Primary card title",
   body_content = "Some quick example text to build on the card title and make up the bulk of the card's content.",
-  footer_content = NULL, # 新增 footer_content 参数，默认 NULL
   card_class = "mb-4"
 ) {
   generate_bs_card(
     header_content = header_content,
     card_title = card_title,
     body_content = body_content,
-    footer_content = footer_content, # 传递 footer_content
-    header_bg = NULL,
-    body_bg = NULL,
-    text_color = NULL,
-    border_color = "black",
+    header_bg = NULL, # Primary 风格通常header没有特定背景，或者和body一致
+    body_bg = NULL,   # Primary 风格的body通常没有特定背景，或者默认白色
+    text_color = NULL, # Primary 风格的文字通常是默认的深色
+    border_color = "black", # 特定的黑色边框
     card_class = card_class
   )
 }
@@ -280,18 +279,16 @@ generate_info_card <- function(
   header_content = "Header",
   card_title = "Info card title",
   body_content = "Some quick example text to build on the card title and make up the bulk of the card's content.",
-  footer_content = NULL, # 新增 footer_content 参数，默认 NULL
   card_class = "mb-4"
 ) {
   generate_bs_card(
     header_content = header_content,
     card_title = card_title,
     body_content = body_content,
-    footer_content = footer_content, # 传递 footer_content
-    header_bg = "info",
-    body_bg = "info",
-    text_color = "white",
-    border_color = "info",
+    header_bg = "info",    # Header 背景色为 info (蓝色)
+    body_bg = "info",      # Body 背景色为 info (蓝色)
+    text_color = "white",  # 文字颜色为白色
+    border_color = "info", # 边框颜色为 info (蓝色)
     card_class = card_class
   )
 }
@@ -300,35 +297,23 @@ generate_light_card <- function(
   header_content = "Header",
   card_title = "Light card title",
   body_content = "Some quick example text to build on the card title and make up the bulk of the card's content.",
-  footer_content = NULL, # 新增 footer_content 参数，默认 NULL
   card_class = "mb-4"
 ) {
   generate_bs_card(
     header_content = header_content,
     card_title = card_title,
     body_content = body_content,
-    footer_content = footer_content, # 传递 footer_content
-    header_bg = "light",
-    body_bg = "light",
-    text_color = "black",
-    border_color = "light",
+    header_bg = "light",   # Header 背景色为 light (浅灰色)
+    body_bg = "light",     # Body 背景色为 light (浅灰色)
+    text_color = "black",   # 文字颜色为深色
+    border_color = "light", # 边框颜色为 light (浅灰色)
     card_class = card_class
   )
 }
-
 ```
 
 
 ```{r, results='asis'}
-
-generate_primary_card(
-  header_content = "Primary Header",
-  card_title = "Primary Title",
-  body_content = "This is a primary card with a footer.",
-  footer_content = "Primary Footer Text here.",
-  card_class = "mb-3"
-)
-
 generate_bs_card(
   header_content = "Header", # 卡片头部内容
   card_title = "Primary card title", # 卡片主体内部的标题

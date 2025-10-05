@@ -6,7 +6,7 @@
 \usage{
 PlotSampleLabel(
   object,
-  split.by = "orig.ident",
+  sample.by = "orig.ident",
   assay = "RNA",
   feature_list = list(Female = "XIST", Male = c("DDX3Y", "UTY", "RPS4Y1")),
   color = c("#A6CEE3", "#B2DF8A"),
@@ -16,7 +16,7 @@ PlotSampleLabel(
 \arguments{
 \item{object}{A Seurat object or a data frame containing the percentage of features in each sample.}
 
-\item{split.by}{The column name in the meta.data slot of the Seurat object to split the data by.}
+\item{sample.by}{The column name in the meta.data slot of the Seurat object to split the data by.}
 
 \item{assay}{The assay to use for the feature calculation.}
 

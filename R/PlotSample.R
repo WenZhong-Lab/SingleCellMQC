@@ -762,7 +762,7 @@ CalculateFeaturePCT <- function(object,  split.by="orig.ident", assay="RNA", fea
 #' @title Plot Sample Label
 #' @description The function is used to plot sample labels based on the percentage of features in each sample.
 #' @param object A Seurat object or a data frame containing the percentage of features in each sample.
-#' @param split.by The column name in the meta.data slot of the Seurat object to split the data by.
+#' @param sample.by The column name in the meta.data slot of the Seurat object to split the data by.
 #' @param assay The assay to use for the feature calculation.
 #' @param feature_list A list of features to calculate the percentage of. The list should be named, with each element containing a vector of feature names.
 #' @param color A vector of colors to use for the bar fill, corresponding to the unique values in `color.by`.
@@ -771,11 +771,11 @@ CalculateFeaturePCT <- function(object,  split.by="orig.ident", assay="RNA", fea
 #' @return A ggplot2::ggplot object representing the bar plot.
 #' @export
 #'
-PlotSampleLabel <- function(object,  split.by="orig.ident", assay="RNA", feature_list= list(Female="XIST", Male=c("DDX3Y", "UTY", "RPS4Y1") ),
+PlotSampleLabel <- function(object,  sample.by="orig.ident", assay="RNA", feature_list= list(Female="XIST", Male=c("DDX3Y", "UTY", "RPS4Y1") ),
                             color=c("#A6CEE3", "#B2DF8A"),
                             return.type="plot"){
   if( ("Seurat" %in% is(object)) ){
-    object <- CalculateFeaturePCT(object, split.by=split.by, assay=assay, feature_list=feature_list)
+    object <- CalculateFeaturePCT(object, split.by=sample.by, assay=assay, feature_list=feature_list)
   }
 
   ##
