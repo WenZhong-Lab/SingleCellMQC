@@ -5,26 +5,20 @@
 #'
 #' @param object A Seurat object processed through the \code{\link{CalculateMetrics}} or \code{\link{CalculateMetricsPerFeature}} function.
 #' @param assay A character string specifying the assay to analyze. The default is `"RNA"`.
-#' @param type A character string specifying the type of feature metric to visualize.
-#' Valid options include:"pct", "mean", "nCell", "variance", "variance.standardized". Default is "pct".
+#' @param metric A character string specifying the feature metric to visualize. Default is "pct".
 #'
 #' @param sample Optional. Character string specifying a sample name to subset the data. If `NULL`, the entire dataset is used.
 #' @param log.x Logical. If `TRUE`, the x-axis will be scaled logarithmically. Default is `TRUE`.
 #' @param color Character string specifying the color of the plot (in hex or other color formats). Default is `"#0072B2"`.
 #' @param ntop Numeric. Specifies the number of top features to highlight in the bar plot. Default is `10`.
-#' @param ylab Character string specifying the y-axis label for the top bar plot. Default is the same as the `type` parameter.
-#' @param return.type Character string or vector indicating the type of output to return. Options are `"plot"`, `"interactive_table"`, or both. Default is `"plot"`.
+#' @param ylab Character string specifying the y-axis label for the top bar plot. Default is the same as the `metric` parameter.
 #'
-#' @return The function returns either a `ggplot` object, an interactive table, or both, depending on the `return.type` specified.
-#'   \itemize{
-#'     \item If `"plot"` is specified, a `ggplot` object showing the distribution of feature metrics is returned.
-#'     \item If `"interactive_table"` is specified, an interactive table showing the feature metrics is returned.
-#'     \item If both are specified, a list containing both the plot and the interactive table is returned.
-#'   }
+#' @return The function returns a `ggplot` object.
 #'
 #' @export
 #'
-PlotFeatureMetrics <- function(object, assay = "RNA", type="pct", sample=NULL, log.x=T, color="#0072B2", ntop=10, ylab=type, return.type="plot" ){
+PlotFeatureMetrics <- function(object, assay = "RNA", metric="pct", sample=NULL,
+                               log.x=F, color="#0072B2", ntop=10, ylab=metric){
   if( "Seurat" %in% is(object)){
     misc_data <- GetSingleCellMQCData(object)$perQCMetrics$perFeature
     if(is.null(misc_data)){
@@ -35,64 +29,90 @@ PlotFeatureMetrics <- function(object, assay = "RNA", type="pct", sample=NULL, l
   }else{
     exp_bind <- object[[assay]]
   }
-  if( length(setdiff(return.type, c("plot", "interactive_table")))!=0 ){
-    stop("Invalid `return.type`, only: `plot` or/and `interactive_table` ")
-  }
-  if (!(type %in% c("Feature", "nCell", "pct", "mean", "variance", "variance.standardized") )) {
-    stop(sprintf("Error: 'type' '%s' is not allowed! Allowed types are: %s",
-                 type, paste(c("Feature", "nCell", "pct", "mean", "variance", "variance.standardized"), collapse = ", ")))
-  }
 
   if( !is.null(sample) ){
     exp_bind <- exp_bind[sample]
   }
 
-  out <- list()
-
-  if("interactive_table" %in% return.type){
-
-    out$interactive_table <- lapply(exp_bind, function(x){
-      rownames(x) <- NULL
-      reactable::reactable(x)
-    })
-    names(out$interactive_table) <- names(exp_bind)
-    if(length(out$interactive_table)==1){
-      out$interactive_table <- out$interactive_table[[1]]
-    }
-  }
-
-  if("plot" %in% return.type){
-    plot_list <- lapply(exp_bind, function(x){
-      p1 <- ggplot2::ggplot(x, ggplot2::aes_string(x = type)) +
-        ggplot2::geom_line(stat = "density",alpha = 0.8, linewidth = 1) +
-        # scale_color_manual(values =color )+
-        ggplot2::theme_bw(base_size = 14)+
+  plot_list <- lapply(exp_bind, function(x) {
+    if(metric=="pct"){
+      data_df <- data.frame(Proportion = x$pct)
+      breaks <- c(0,0.01, seq(0.05, 1, by=0.05))
+      num_zero_proportion = sum(data_df$Proportion<=0)
+      num_zero_proportion_0.1 = sum(data_df$Proportion<=0.001)
+      num_all <- dim(data_df)[1]
+      p1 <- ggplot2::ggplot(data_df, ggplot2::aes(x = Proportion)) +
+        ggplot2::geom_histogram(
+          breaks = breaks,
+          fill = "#A6CEE3"
+        ) +
+        ggplot2::geom_text(
+          stat = "bin",
+          breaks = breaks,
+          ggplot2::aes(label = ggplot2::after_stat(count), y = ggplot2::after_stat(count)),
+          vjust = -0.5, color = "black", size=3
+        ) +
+        ggplot2::scale_x_continuous(
+          breaks = breaks,
+          limits = c(0, 1),
+          labels = paste0( c(0,1,seq(5, 100, by=5)) )
+        ) +
+        ggplot2::labs(subtitle = "Expression proportion distribution (5% Bins)",
+             x = "Feature expression proportion (%)",
+             y = "Frequency")+
+        ggplot2::annotate("text",
+                 x = 0.1,
+                 y = Inf,
+                 label = paste0(num_zero_proportion, "/",num_all,  " features with <= 0% proportion"),
+                 hjust = -0.05, vjust = 2.5, #
+                 color = "red", size = 4) +
+        ggplot2::annotate("text",
+                 x = 0.1,
+                 y = Inf,
+                 label = paste0(num_zero_proportion_0.1,"/",num_all,  " features with <= 0.1% proportion"),
+                 hjust = -0.05, vjust = 5, #
+                 color = "red", size = 4) +
+        ggplot2::theme_classic(base_size = 13)+
         ggplot2::theme(#text = element_text(face = "bold"),
-          panel.border = ggplot2::element_rect(color = "black", linewidth = 0.8, fill = NA),
-
+          axis.text = ggplot2::element_text(color = "black")
+        )
+    }else{
+      p1 <- ggplot2::ggplot(x, ggplot2::aes_string(x = metric)) +
+        ggplot2::geom_line(stat = "density",
+                           alpha = 0.8,
+                           linewidth = 1) +
+        # scale_color_manual(values =color )+
+        ggplot2::theme_classic(base_size = 13) +
+        ggplot2::theme(
           axis.text = ggplot2::element_text(color = "black"),
-          axis.text.x = ggplot2::element_text(angle = 45,hjust = 1,vjust = 1)
-        )+
-        ggplot2::labs(x=paste0(assay, " ", type)  )
-      if(log.x){
-        p1 <- p1+ggplot2::scale_x_log10()
+          axis.text.x = ggplot2::element_text(
+            angle = 45,
+            hjust = 1,
+            vjust = 1
+          )
+        ) +
+        ggplot2::labs(x = paste0(assay, " ", metric))
+      if (log.x) {
+        p1 <- p1 + ggplot2::scale_x_log10()
       }
-      p2 <- .gene_top_bar(x, type, color = color, subtitle ="", ntop=ntop, ylab=ylab)
-
-      return(p1+p2)
-    })
-    names(plot_list) <- names(exp_bind)
-    if(length(plot_list)==1){
-      plot_list <- plot_list[[1]]
     }
-    out$plot <- plot_list
+
+    p2 <- .gene_top_bar(
+      x,
+      metric,
+      color = color,
+      subtitle = "",
+      ntop = ntop,
+      ylab = ylab
+    )
+    return(patchwork::wrap_plots(list(p1,p2), widths =c(2,1) ))
+  })
+  names(plot_list) <- names(exp_bind)
+  if (length(plot_list) == 1) {
+    plot_list <- plot_list[[1]]
   }
 
-
-  if(length(out)==1){
-    out <- out[[1]]
-  }
-  return(out)
+  return(plot_list)
 }
 
 .gene_top_bar <- function(object, metrics, color, subtitle=NULL, ntop=10, ylab="% variance explained"){
@@ -105,10 +125,8 @@ PlotFeatureMetrics <- function(object, assay = "RNA", type="pct", sample=NULL, l
     ggplot2::labs(y = ylab)+
     # geom_text(aes(x = gene, y = .data[[metrics]], label = round(.data[[metrics]],1)),hjust = 1.2,color="black",fontface="bold") +
     ggplot2::coord_flip()+
-    ggplot2::theme_bw(base_size = 14)+
+    ggplot2::theme_classic(base_size = 14)+
     ggplot2:: theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1),
-          panel.border = ggplot2::element_rect(color = "black", linewidth = 0.8, fill = NA),
-
           axis.text = ggplot2::element_text(color = "black"),
           axis.title.y = ggplot2::element_blank()
     )+
@@ -142,7 +160,8 @@ PlotFeatureMetrics <- function(object, assay = "RNA", type="pct", sample=NULL, l
 #' @export
 #'
 PlotFeatureMetricsScatter <- function(object, group.by=NULL, metrics.by = NULL, color=NULL,assay="RNA",sample=NULL,
-                                      ggside=T, log.x = T, log.y = T,log.z=T, raster.cutoff=100000, size =0.3, size.raster= 1, ticks=NULL){
+                                      ggside=T, log.x = F, log.y = F,log.z=F,
+                                      raster.cutoff=100000, size =0.3, size.raster= 1, ticks=NULL){
 
   if( "Seurat" %in% is(object)){
     misc_data <- GetSingleCellMQCData(object)$perQCMetrics$perFeature
@@ -176,7 +195,8 @@ PlotFeatureMetricsScatter <- function(object, group.by=NULL, metrics.by = NULL, 
 
     if(length(metrics.by)==2){
       plot_out <- plotScatter(object=x, x = metrics.by[1] ,y = metrics.by[2], group.by = group.by, color=color,
-                              ggside=ggside, log.x = log.x, log.y = log.y, raster.cutoff=raster.cutoff, size =size, size.raster= size.raster)
+                              ggside=ggside, log.x = log.x, log.y = log.y, raster.cutoff=raster.cutoff,
+                              size =size, size.raster= size.raster)
     }else{
       plot_out <- plotScatter3D(object=x, x = metrics.by[1] ,y = metrics.by[2], z=metrics.by[3], group.by = group.by, color=color,
                                 log.x = log.x, log.y = log.y, log.z=log.z, ticks=ticks, text="Feature")
@@ -192,5 +212,42 @@ PlotFeatureMetricsScatter <- function(object, group.by=NULL, metrics.by = NULL, 
 }
 
 
+#' Add feature plot labels
+#'
+#' This function takes a ggplot object, sorts its data by a specified metric
+#' column in descending order, and then adds labels for the top 'ntop'
+#' features using `ggrepel::geom_text_repel`. This helps highlight
+#' the most prominent features on the plot.
+#'
+#' @param p A ggplot object. It's expected that the data within the ggplot
+#'   object contains a 'Feature' column.
+#' @param metric_order_col A string, the name of the column in the plot data
+#'   to be used for sorting features (e.g., 'variance'). Features with
+#'   higher values in this column will be prioritized.
+#' @param ntop An integer, the number of top features to label. Defaults to 10.
+#' @return A modified ggplot object with added text labels for the top
+#'   'ntop' features.
+AddFeaturePlotLabel <- function(p, metric_order_col, ntop = 10) {
+  if (!inherits(p, "ggplot")) {
+    stop("Input 'p' must be a ggplot object.")
+  }
+  feature_col_name = "Feature"
+  plot_data <- p$data
+  if (!feature_col_name %in% colnames(plot_data)) {
+    stop(paste0("Column '", feature_col_name, "' not found in the plot data."))
+  }
+  if (!metric_order_col %in% colnames(plot_data)) {
+    stop(paste0("Column '", metric_order_col, "' not found in the plot data for sorting."))
+  }
+  sorted_features <- plot_data %>%
+    dplyr::arrange(dplyr::desc(.data[[metric_order_col]])) %>%
+    head(ntop)
 
-
+  label_data <- sorted_features
+  p_labeled <- p +
+    ggrepel::geom_text_repel(
+      data = label_data,
+      aes(label = .data[[feature_col_name]]),color = "red"
+    )
+  return(p_labeled)
+}

@@ -9,7 +9,8 @@ FindCommonPCTOutlier(
   sample.by = "orig.ident",
   celltype.by = "ScType",
   return.type = c("table"),
-  tissue = NULL
+  tissue = NULL,
+  verbose = TRUE
 )
 }
 \arguments{
@@ -22,6 +23,9 @@ FindCommonPCTOutlier(
 \item{return.type}{A character vector specifying the type of output to return. Options are "table" and/or "interactive_table". Default is "table".}
 
 \item{tissue}{A character string specifying the tissue type to filter by. If NULL, the function will stop and prompt the user to specify a tissue.}
+
+\item{verbose}{A logical value. If \code{TRUE} (default), the message will be printed.
+If \code{FALSE} , the message will be suppressed (not printed).}
 }
 \value{
 Depending on the \code{return.type} parameter, the function returns:

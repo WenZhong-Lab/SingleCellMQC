@@ -7,7 +7,7 @@
 CalculateMetricsPerFeature(
   object,
   add.Seurat = T,
-  verbose = F,
+  verbose = TRUE,
   sample.by = "orig.ident"
 )
 }
@@ -16,7 +16,8 @@ CalculateMetricsPerFeature(
 
 \item{add.Seurat}{Logical, if TRUE, adds the computed metrics to the Seurat object. Otherwise, returns a list or data.frame with the metrics.}
 
-\item{verbose}{Logical, if TRUE, prints progress messages.}
+\item{verbose}{A logical value. If \code{TRUE} (default), the message will be printed.
+If \code{FALSE} , the message will be suppressed (not printed).}
 
 \item{sample.by}{The column name by which to group samples for metrics computation.}
 }

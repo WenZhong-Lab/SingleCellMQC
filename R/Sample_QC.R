@@ -289,7 +289,7 @@ RunScType <- function(object, split.by= NULL, return.name="ScType",
 
 
 .MetricsOutlier <- function(object,
-                            sample.by="orig.ident",
+                            sample.by="orig.ident",verbose=TRUE,
                             metrics.by = NULL,
                             type= NULL,
                             log= T,
@@ -316,7 +316,7 @@ RunScType <- function(object, split.by= NULL, return.name="ScType",
   metrics_list <- lapply(seq_along(metrics.by), function(x){
     out <- as.character(metrics_out$sample[(metrics_out$metrics_name %in% metrics.by[x]) & metrics_out$isFlagged==TRUE ])
     if( !S4Vectors::isEmpty(out) & sum(is.na(out))==0 ){
-      cat(" ", metrics.by[x], "warning samples:", paste0(out,collapse = "," ),"\n")
+      .log_cat(paste0(" ", metrics.by[x], " warning samples:", paste0(out,collapse = "," ),"\n"), verbose = verbose )
     }
     return(out)
   })
@@ -426,11 +426,12 @@ RunScType <- function(object, split.by= NULL, return.name="ScType",
 #' \item "interactive_table": Return an interactive table of outlier samples.
 #' \item "plot": Return a plot of outlier samples.
 #' }
+#' @param verbose A logical value. If `TRUE` (default), the message will be printed.
+#'              If `FALSE` , the message will be suppressed (not printed).
 #' @return A list containing the outlier samples and an interactive table of outlier samples.
 #' @export
 #' @importFrom ggplot2 .data
 #'
-
 FindSampleMetricsWarning <- function(object,
                                      sample.by="orig.ident",
                                      metrics.by = NULL,
@@ -440,7 +441,8 @@ FindSampleMetricsWarning <- function(object,
                                      nmads = rep(3, length(metrics.by)),
                                      aggregate_type="median",
                                      color=c('#A6CEE3'),
-                                     return.type=c("table")
+                                     return.type=c("table"),
+                                     verbose = TRUE
 ){
   if("Seurat" %in% class(object)){
     QC_misc <- GetSingleCellMQCData(object)
@@ -494,8 +496,11 @@ FindSampleMetricsWarning <- function(object,
   if( !is.null(split.by) ){
     object_list <- split(object, object[[split.by]] )
     out <- lapply(names(object_list), function(x){
-      cat(">>>>>>", x, "\n")
-      out <- .MetricsOutlier(object = object_list[[x]], sample.by=sample.by, metrics.by=metrics.by, type=type, log=log, nmads = nmads, aggregate_type=aggregate_type)
+      .log_cat( paste0(">>>>>> ", x, "\n"), verbose = verbose )
+      out <- .MetricsOutlier(object = object_list[[x]], sample.by=sample.by,
+                             metrics.by=metrics.by, type=type, log=log,
+                             nmads = nmads, aggregate_type=aggregate_type,
+                             verbose = verbose)
       out$result_table <- data.frame(split.by=x, out$result_table)
       return(out)
     })
@@ -548,13 +553,16 @@ FindSampleMetricsWarning <- function(object,
     return(out)
   }else{
     out <- .MetricsOutlier(object = object, sample.by=sample.by, metrics.by=metrics.by, type=type[match(metrics.by, metrics_temp)],
-                           log=log[match(metrics.by, metrics_temp)], nmads = nmads[match(metrics.by, metrics_temp)], aggregate_type=aggregate_type)
+                           log=log[match(metrics.by, metrics_temp)], nmads = nmads[match(metrics.by, metrics_temp)],
+                           aggregate_type=aggregate_type,
+                           verbose = verbose)
 
 
     if(!is.null(metrics_count)){
       out_count <- .MetricsOutlier(object = object_count, sample.by="sample", metrics.by=metrics_count,
                                    type=type[match(metrics_count, metrics_temp)], log=log[match(metrics_count, metrics_temp)],
-                                   nmads = nmads[match(metrics_count, metrics_temp)], aggregate_type=aggregate_type)
+                                   nmads = nmads[match(metrics_count, metrics_temp)], aggregate_type=aggregate_type,
+                                   verbose = verbose)
       out$result_table <- rbind(out$result_table, out_count$result_table )
       out$outlier_list <- c(out$outlier_list, out_count$outlier_list)
     }
@@ -620,6 +628,8 @@ FindSampleMetricsWarning <- function(object,
 #' - `"plot"`: Return a plot of outlier results.
 #' - `"interactive_table"`: Return an interactive table of outlier results.
 #' Default: `"table"`.
+#' @param verbose A logical value. If `TRUE` (default), the message will be printed.
+#'              If `FALSE` , the message will be suppressed (not printed).
 #'
 #' @return A list containing the following components based on the `return.type` parameter:
 #' - If `"table"` is specified: A list with two elements:
@@ -648,7 +658,8 @@ FindInterSamplePCTOutlier <- function(object,
                                       minPts=3,
                                       method="ellipse",
                                       top=Inf,
-                                      return.type=c("table")
+                                      return.type=c("table"),
+                                      verbose = TRUE
 
 ) {
 
@@ -708,14 +719,24 @@ FindInterSamplePCTOutlier <- function(object,
         color.pca <- get_colors(length(unique(metadata[[split.by]])))
       }
     }
-    utils::capture.output(plot_PCA <- pcaCLOutlier(pca_out, confidence_level = confidence_level, return_type = "plot", color = color.pca, custom_group = split.by, custom_label = "label", method = method, minPts = minPts, labelOnlyOutlier=labelOnlyOutlier))
+    utils::capture.output(plot_PCA <- pcaCLOutlier(pca_out, confidence_level = confidence_level,
+                                                   return_type = "plot", color = color.pca,
+                                                   custom_group = split.by, custom_label = "label",
+                                                   method = method, minPts = minPts,
+                                                   labelOnlyOutlier=labelOnlyOutlier,
+                                                   verbose=verbose))
     plot_PCA <- plot_PCA+
       ggplot2::labs(subtitle = "PCA of cell type proportions" , x= percentage[1],
                     y=percentage[2])
     out$plot <- list(pca=plot_PCA, contrib_pc1=contrib_pc1, contrib_pc2=contrib_pc2, contrib_pc1_2 = contrib_pc1_2)
 
   }
-  outlier=pcaCLOutlier(pca_out, confidence_level = confidence_level, return_type = "table", color = color.pca, custom_group = split.by, custom_label = "label",method = method, minPts = minPts)
+  outlier=pcaCLOutlier(pca_out, confidence_level = confidence_level,
+                       return_type = "table",
+                       color = color.pca, custom_group = split.by,
+                       custom_label = "label",
+                       method = method, minPts = minPts,
+                       verbose=verbose)
 
   if("interactive_table" %in% return.type){
     temp <- outlier[, c(1:3, 7:8)]
@@ -748,7 +769,9 @@ FindInterSamplePCTOutlier <- function(object,
   return(out)
 }
 
-pcaCLOutlier <- function(data, confidence_level = 0.95, return_type = "plot", color = get_colors(2), custom_group = NULL, custom_label = "ID", method = "ellipse", minPts = 3, labelOnlyOutlier = TRUE) {
+pcaCLOutlier <- function(data, confidence_level = 0.95, return_type = "plot",
+                         color = get_colors(2), custom_group = NULL, custom_label = "ID",
+                         method = "ellipse", minPts = 3, labelOnlyOutlier = TRUE, verbose=TRUE) {
 
   find_outliers <- function(df, level) {
     if (nrow(df) <= 3) {
@@ -812,7 +835,7 @@ pcaCLOutlier <- function(data, confidence_level = 0.95, return_type = "plot", co
     }
   }
 
-  cat("Outlier samples:", paste0(data_outlier$label[data_outlier$isOutlier], collapse = ", "), "\n")
+  .log_cat(paste0("Outlier samples: ", paste0(data_outlier$label[data_outlier$isOutlier], collapse = ", "), "\n"), verbose = verbose )
 
   if (return_type == "table") {
     return(data_outlier)
@@ -977,7 +1000,8 @@ CellRangerAlerts <- function(object, return.type="table"){
 #' @param celltype.by A character string specifying the metadata column to use for identifying cell types. Default is "ScType".
 #' @param return.type A character vector specifying the type of output to return. Options are "table" and/or "interactive_table". Default is "table".
 #' @param tissue A character string specifying the tissue type to filter by. If NULL, the function will stop and prompt the user to specify a tissue.
-#'
+#' @param verbose A logical value. If `TRUE` (default), the message will be printed.
+#'              If `FALSE` , the message will be suppressed (not printed).
 #' @return Depending on the `return.type` parameter, the function returns:
 #' \itemize{
 #'   \item If "table" is specified, a data frame containing the outlier results.
@@ -998,7 +1022,8 @@ FindCommonPCTOutlier <- function(object,
                                  sample.by = "orig.ident",
                                  celltype.by = "ScType",
                                  return.type=c("table"),
-                                 tissue = NULL
+                                 tissue = NULL,
+                                 verbose = TRUE
 
 ) {
 
@@ -1016,7 +1041,7 @@ FindCommonPCTOutlier <- function(object,
   }
 
   out <- list()
-  out_table <- .perSamplePCTOutlier(metadata, tissue = tissue, celltype.by = celltype.by, sample.by = sample.by)
+  out_table <- .perSamplePCTOutlier(metadata, tissue = tissue, celltype.by = celltype.by, sample.by = sample.by, verbose = verbose)
   if("table" %in% return.type){
     out$table <- out_table
   }
@@ -1073,7 +1098,7 @@ FindCommonPCTOutlier <- function(object,
 }
 
 
-.perSamplePCTOutlier <- function(object, tissue, celltype.by, sample.by, type="min-max"){
+.perSamplePCTOutlier <- function(object, tissue, celltype.by, sample.by, type="min-max", verbose=TRUE){
   metadata <- object[, c(sample.by, celltype.by)]
   pct_table <- data.table::data.table(metadata)[, list(.N), by=.(Sample=get(sample.by), CellType=get(celltype.by))]
   pct_table[, total := sum(N), by = Sample]
@@ -1101,7 +1126,7 @@ FindCommonPCTOutlier <- function(object,
   pct_list <- lapply(seq_along(metrics.by), function(x){
     out <- pct_table$Sample[(pct_table$CellType %in% metrics.by[x]) & pct_table$isOutlier==TRUE ]
     if( !S4Vectors::isEmpty(out) & sum(is.na(out))==0 ){
-      cat(" ", metrics.by[x], "outlier samples:", paste0(out,collapse = "," ),"\n")
+      .log_cat(paste0(" ", metrics.by[x], " outlier samples:", paste0(out,collapse = "," ),"\n"), verbose = verbose)
     }
     return(out)
   })
@@ -1117,13 +1142,152 @@ FindCommonPCTOutlier <- function(object,
     freq_table <- freq_table[freq_table$Freq >=3,]
     freq_table <- freq_table[ order(freq_table$Freq, decreasing =T) , ]
     cat_freq_word3ormore <- paste0( "Note: ", length(freq_table[,1]), " warning samples (celltype% outliers >= 3 ): ", paste0(freq_table[,1], collapse = ", ")," \n")
-    cat(cat_freq_word3ormore)
+    .log_cat(cat_freq_word3ormore, verbose = verbose)
     out$warining = as.character(freq_table[,1])
   }else{
     out$warining = NA
   }
   return(out )
 }
+
+
+
+
+#' @title Summarize Per-sample Quality Control Information
+#' @description This function generates a comprehensive summary QC table for each sample,
+#'   including base QC metrics, predicted sex,
+#'   10X Genomics Cell Ranger alerts, cell filtering results, metrics outlier detection,
+#'   and celltype proportion analysis.
+#'
+#' @param object A single-cell object containing single-cell data.
+#' @param sample.by A character string indicating the metadata column in `object`
+#'   that identifies individual samples (default: "orig.ident").
+#' @param tissue An optional character string specifying the tissue type, used for
+#'   `FindCommonPCTOutlier` (e.g., "blood").
+#' @param celltype.by An optional character string indicating the metadata column
+#'   that stores cell type annotations. Required for cell type-based outlier detection and proportion analysis.
+#' @param db_filter_columns A character vector of column names (e.g., doublet prediction methods)
+#'   in the object's cell-level metadata. These columns are expected to
+#'   contain "Pass" or "Fail" values. Cells will be considered "database filtered" if they
+#'   have a "Fail" value in *at least one* of the specified `db_filter_columns`.
+#' @param lq_filter_columns A character vector of column names (e.g., low quality flags)
+#'   in the object's cell-level metadata. These columns are expected to
+#'   contain "Pass" or "Fail" values. Cells will be considered "low quality filtered" if they
+#'   have a "Fail" value in *at least one* of the specified `lq_filter_columns`.
+#'
+#' @return A data frame, where each row represents a sample (defined by `sample.by`),
+#'   and columns contain various summary metrics and QC flags.
+#'
+#' @importFrom methods is
+#' @importFrom stats median
+#' @export
+#'
+SummarySample <- function(object,
+                          sample.by="orig.ident",
+                          tissue=NULL,
+                          celltype.by=NULL,
+                          db_filter_columns =NULL,
+                          lq_filter_columns =NULL
+
+                          ){
+  # nCell
+  base_metrics <- object@misc[["SingleCellMQC"]][["perQCMetrics"]][["perSample"]][["count"]]
+  index = match( c("sample", "nCell", "nGene_RNA", "nPro_ADT", "nCell_TCR", "nCell_BCR") , colnames(base_metrics))
+  base_metrics <- base_metrics[, index, drop=F]
+  colnames(base_metrics)[1] <- "Sample"
+
+  # predict sex
+  out_Sex <- PlotSampleLabel(object, return.type = "table", sample.by = sample.by)
+  base_metrics$Predict_Sex = out_Sex$Predict[match(base_metrics$Sample, out_Sex$Sample)]
+
+  # nfeature, ncount, percent.mt (median)
+  base_metrics$median_percent.mt <- object@misc[["SingleCellMQC"]][["perQCMetrics"]][["perSample"]][["summary"]]$percent.mt$Median
+  base_metrics$median_nFeature_RNA <- object@misc[["SingleCellMQC"]][["perQCMetrics"]][["perSample"]][["summary"]]$nFeature_RNA$Median
+  base_metrics$median_nCount_RNA <- object@misc[["SingleCellMQC"]][["perQCMetrics"]][["perSample"]][["summary"]]$nCount_RNA$Median
+
+  # 10 Metrics
+  out_10X <- CellRangerAlerts(object)
+  if(!is.null(out_10X)){
+    Alert_sample_list <- split(out_10X$Sample, out_10X$`Alerts type`)
+    if(length( unique(Alert_sample_list$Error) )!=0 ){
+      base_metrics[["Error_10X"]] <- 0
+      for(x in unique(Alert_sample_list$Error)){
+        pos <- match(x, base_metrics$Sample)
+        base_metrics[["Error_10X"]][pos] <- sum(Alert_sample_list$Error %in% x)
+      }
+    }
+
+    if(length( unique(Alert_sample_list$Warning) )!=0 ){
+      base_metrics[["Warning_10X"]] <- 0
+      for(x in unique(Alert_sample_list$Warning)){
+        pos <- match(x, base_metrics$Sample)
+        base_metrics[["Warning_10X"]][pos] <- sum(Alert_sample_list$Warning %in% x)
+      }
+    }
+  }
+
+  # db cell
+  if(!is.null(db_filter_columns)){
+    db_out <- FilterCells(object, return.table=TRUE, verbose = F,split.by =sample.by,
+                          filter_columns =db_filter_columns , filter_logic ="or" )
+    index = intersect(db_out$Sample, base_metrics$Sample)
+    base_metrics$nCell_db_remain[match(index, base_metrics$Sample)] <- db_out[ match(index,db_out$Sample), 3]
+  }
+
+  # lq cell
+  if(!is.null(lq_filter_columns)){
+    lq_out <- FilterCells(object, return.table=TRUE, verbose = F,split.by =sample.by,
+                          filter_columns =lq_filter_columns , filter_logic ="or" )
+    index = intersect(lq_out$Sample, base_metrics$Sample)
+    base_metrics$nCell_lq_remain[match(index, base_metrics$Sample)] <- lq_out[ match(index, lq_out$Sample), 3]
+  }
+
+  # nCell_final
+  if(!is.null(db_filter_columns) | !is.null(lq_filter_columns) ){
+    final_out <- FilterCells(object, return.table=TRUE, verbose = F,split.by =sample.by,
+                             filter_columns =c(db_filter_columns, lq_filter_columns ) , filter_logic ="or" )
+    index = intersect(final_out$Sample, base_metrics$Sample)
+    base_metrics$nCell_final[match(index, base_metrics$Sample)] <- final_out[ match(index, final_out$Sample), 3]
+  }
+
+  # metrics mad
+  metrics_mad <- FindSampleMetricsWarning(object, sample.by = sample.by, verbose = F)
+  metrics_mad_list <- metrics_mad$list
+  for(x in names(metrics_mad_list)  ){
+      base_metrics[[ paste0("Outlier_mad_", x) ]] = FALSE
+      base_metrics[[ paste0("Outlier_mad_", x) ]][match(metrics_mad_list[[x]], base_metrics$Sample)] <- TRUE
+  }
+
+
+  # celltype outlier ref
+  if(!is.null(tissue) & !is.null(celltype.by) ){
+    out_common <- FindCommonPCTOutlier(object, tissue = tissue, sample.by=sample.by, celltype.by = celltype.by, verbose = F)
+    freq_table <- as.data.frame(table( do.call(c, out_common$list) ))
+    base_metrics$Ref_n_celltype_outliers <- freq_table[,2][match(base_metrics$Sample, freq_table[,1])]
+  }
+
+  # celltype pca dbscan
+  if(!is.null(celltype.by) ){
+    ellipse95 = FindInterSamplePCTOutlier(object, sample.by = sample.by,
+                                          verbose=F,
+                                          celltype.by = celltype.by, method = "ellipse" )$outlier
+    dbscan = FindInterSamplePCTOutlier(object, sample.by = sample.by,verbose=F,
+                                       celltype.by = celltype.by, method = "dbscan" )$outlier
+    base_metrics$Outlier_celltypePCA_ellipse95 <- ellipse95$isOutlier[match(base_metrics$Sample, ellipse95$Sample)]
+    base_metrics$Outlier_celltypePCA_dbscan <- dbscan$isOutlier[match(base_metrics$Sample, dbscan$Sample)]
+  }
+
+  ## main celltype pct
+  if(!is.null(celltype.by) ){
+    cellpct <- PlotSampleCellTypePCT(object, return.type = "table", sample.by = sample.by, celltype.by = celltype.by)
+    cellpct <-  cellpct[ match(base_metrics$Sample, cellpct$Sample), , drop=F]
+    base_metrics <- data.frame(base_metrics, cellpct[, -1, drop=F] , check.names = F)
+  }
+
+  return(base_metrics)
+
+}
+
 
 
 

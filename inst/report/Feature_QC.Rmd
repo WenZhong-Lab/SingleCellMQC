@@ -1,21 +1,22 @@
----
-title: "Feature qc"
-output: html_document
----
-# Feature QC 
+
+# Feature-level QC 
 
 **Feature QC is a critical yet often overlooked component in single-cell analysis, essential for accurate interpretation of cell functions and reliable cross-sample comparisons. Inadequate feature QC might result in the retention of low-quality data caused by dropout events, poor cell suspension, or ambient RNA contamination.**
-In this report, we only support [**Feature quality assessment**](#md2-sec1) setction to overview the quality of features (genes/proteins) in the dataset. And the part of **Systematic background noise** can be analyzed by the **`SingleCellMQC`** R package.
+In this report, we only support **Feature Metrics** to overview the quality of features (genes/proteins) in the dataset. And the part of **Systematic background noise** can be analyzed by the **`SingleCellMQC`** R package.
 
-<hr>
+## Feature summary {.tabset }
 
-## Feature quality assessment {.tabset #md2-sec1}
+```{r feature_qc_overview, echo=FALSE, results='asis', warning=FALSE, message=FALSE }
+  generate_primary_card(
+  header_content = "**Key components overview: **",
+    card_title =NULL,
+  body_content = "
+- **Marker PCT:** (If available markers) The detection rates of cell markers across different celltypes.
+- **Metrics plot:** The distribution characteristics of features across cells within each sample.
+  "
+  )
+```
 
-This section contains three aspects:
-
-- [**Marker PCT**:]{style="color:red"} The detection rates of classical cell markers across different cell populations.
-- [**Metrics plot**:]{style="color:red"} The distribution characteristics of features across cells within each sample.
-- [**Variance explained**:]{style="color:red"} The percentage of variance in gene/protein expression that is explained by the sample.
 
 ```{r Feature marker PCT, echo=FALSE, results='asis', message=FALSE, warning=FALSE}
 
@@ -39,18 +40,24 @@ if(length(data$Feature$Section1$markerPCT)!=0){
 if(length(data$Feature$Section1$base)!=0 ){
   cat(paste0("### ", "Metrics plot", " {.tabset .unnumbered .tabset-dropdown}\n"))
   cat('\n\n')
-  cat("This visualization displays the distribution characteristics of features across cells within each sample, focusing on key metrics such as detection rate (pct), mean expression, and variance, while also highlighting the top 10 features for each metric. \n")
-    cat('\n\n')
 
   base = data$Feature$Section1$base
   
+  
+  
   for (i in base) {
-    cat(paste0("#### ", i, " {.tabset .tabset-dropdown .unnumbered}\n"))
+    cat(paste0("#### ", i, " {.tabset .unnumbered}\n"))
     if("RNA"%in%  data$Feature$Section1$assay ){
+      cat(paste0("##### ", "RNA", " {.tabset .unnumbered}\n"))
+      cat("Bar plots (5% bins) showing the distribution of gene detection rates in RNA data. Corresponding the right bar plots highlight the top 10 genes with the highest detection rates. Mean-variance plot for RNA: The x-axis represents the mean of log-normalized counts, and the y-axis represents the variance of log-normalized counts for each gene. Each blue dot denotes a single gene. 
+          \n\n")
       cat("![](", paste0(cell_dir, "/Feature_QC/FeatureMetrics/",  paste0(i,"_RNA.png")), ")")
       cat('\n\n')
     }
     if("ADT"%in%  data$Feature$Section1$assay ){
+      cat(paste0("##### ", "ADT", " {.tabset .unnumbered}\n"))
+      cat("Bar plots (5% bins) showing the distribution of protein detection rates in RNA data. Corresponding the right bar plots highlight the top 10 protein with the highest detection rates. Mean-variance plot for ADT: The x-axis represents the mean of CLR (centered log-ratio) transformed counts, and the y-axis represents the variance of CLR transformed counts for each antibody-derived tag (ADT). Each blue dot denotes a single protein ADT. 
+          \n\n")
       cat("![](", paste0(cell_dir, "/Feature_QC/FeatureMetrics/",  paste0(i,"_ADT.png")), ")")
       cat('\n\n')
     }
@@ -58,32 +65,6 @@ if(length(data$Feature$Section1$base)!=0 ){
   }
 }
 
-if(length(data$Feature$Section1$VE_RNA)!=0 | length(data$Feature$Section1$VE_ADT)!=0  ){
-  cat(paste0("### ", "Variance explained", " {.tabset .unnumbered}\n"))
-  cat("These tables presents the percentage of variance in feature expression that can be attributed to the sample, aiming to identify the potential genes or proteins that are most significantly influenced by the samples. Only the top 20 genes or proteins are shown in the table. For each feature, the proportion of variance explained by batch-associated variables is quantified using the ANOVA-derived R². \n\n")
-
-  cat('\n\n')
-  if(length(data$Feature$Section1$VE_RNA)!=0   ){
-    subchunkify(data$Feature$Section1$VE_RNA, seed = "VE_RNA")
-    cat('\n\n')
-  }
-  if(length(data$Feature$Section1$VE_ADT)!=0   ){
-    subchunkify(data$Feature$Section1$VE_ADT, seed = "VE_ADT")
-    cat('\n\n')
-  }
-  
-  cat('\n\n')
-}  
-
-
-
 ```
-
-<hr>
-
-
-
-<br>
-
 
 

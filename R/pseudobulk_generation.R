@@ -32,6 +32,7 @@
 #'     \item `pseudobulk_metadata`: A data frame of metadata for the pseudobulk
 #'       samples. Rows correspond to pseudobulk samples, and columns include
 #'       `sample.by` and any `other_cols_contain`.
+#'     \item `assay`: Assay to use
 #'     \item `ncells`: A data frame summarizing the number of cells contributing
 #'       to each pseudobulk sample. Includes columns for `sample.by`, `cluster.by`
 #'       (if specified), and "ncells".
@@ -63,7 +64,7 @@ RunPseudobulkData <- function(object, assay = "RNA",slot = "counts",
     ncells[[sample.by]] <- as.character(ncells[[sample.by]])
     ncells[[cluster.by]] <- as.character(ncells[[cluster.by]])
   }
-  return( list(pseudobulk_mat = pse_bulk, pseudobulk_metadata = pse_meta, ncells=ncells) )
+  return( list(pseudobulk_mat = pse_bulk, pseudobulk_metadata = pse_meta, assay=assay, ncells=ncells) )
 }
 
 
@@ -84,7 +85,10 @@ RunPseudobulkData <- function(object, assay = "RNA",slot = "counts",
 .getPseudobulkMatrix <- function(object, metadata, sample.by = NULL, group.by = NULL, method="sum"){
 
   # check IterableMatrix
-  if(!is(object, "IterableMatrix")) {
+  if(is(object, "dgCMatrix") ){
+    object <- as(object, "IterableMatrix")
+  }else if(is(object, "matrix") |  is(object, "data.frame")){
+    object <- as(object, "dgCMatrix")
     object <- as(object, "IterableMatrix")
   }
 
@@ -120,20 +124,35 @@ RunPseudobulkData <- function(object, assay = "RNA",slot = "counts",
   }
 }
 
+
 .getPseudobulkMetadata <- function(object, sample.by, variable.by){
   if(is.null(sample.by)) stop("sample.by cannot be NULL. Please specify a grouping variable.")
+  if (!sample.by %in% colnames(object)) {
+    stop(paste0("Column '", sample.by, "' not found in the object."))
+  }
   object[[sample.by]] <- as.character(object[[sample.by]])
-  variable.by <- setdiff(variable.by, sample.by)
+  if (!is.null(variable.by)) {
+    variable.by <- setdiff(variable.by, sample.by)
+  } else {
+    variable.by <- character(0)
+  }
+  if (length(variable.by) == 0) {
+    result <- data.frame(sample_id = unique(object[[sample.by]]))
+    colnames(result) <- sample.by
+    return(result)
+  }
   out_list <- lapply(variable.by, function(x){
+    if (!x %in% colnames(object)) {
+      warning(paste0("Column '", x, "' specified in variable.by not found in the object. Skipping this column."))
+      return(NULL)
+    }
     if (!is.numeric(object[[x]])) {
       tab <- stats::aggregate(object[[x]], list(object[[sample.by]]),
                               function(vals) paste(unique(vals), collapse = "|"))
       colnames(tab) <- c(sample.by, x)
     } else {
-      # 检查所有组是否都只有一个唯一值
       nuniq <- stats::aggregate(object[[x]], list(object[[sample.by]]), function(vals) length(unique(vals[!is.na(vals)])))
       all_unique <- all(nuniq$x == 1)
-
       if (all_unique) {
         tab <- stats::aggregate(object[[x]], list(object[[sample.by]]), function(vals) unique(vals[!is.na(vals)]))
         colnames(tab) <- c(sample.by, x)
@@ -144,8 +163,43 @@ RunPseudobulkData <- function(object, assay = "RNA",slot = "counts",
     }
     tab
   })
-
+  out_list <- out_list[!sapply(out_list, is.null)]
+  if (length(out_list) == 0) {
+    result <- data.frame(sample_id = unique(object[[sample.by]]))
+    colnames(result) <- sample.by
+    return(result)
+  }
   result <- Reduce(function(x, y) merge(x, y, by = sample.by, all = TRUE, sort = FALSE), out_list)
   rownames(result) <- NULL
   return(result)
 }
+
+# .getPseudobulkMetadata <- function(object, sample.by, variable.by){
+#   if(is.null(sample.by)) stop("sample.by cannot be NULL. Please specify a grouping variable.")
+#   object[[sample.by]] <- as.character(object[[sample.by]])
+#   variable.by <- setdiff(variable.by, sample.by)
+#   out_list <- lapply(variable.by, function(x){
+#     if (!is.numeric(object[[x]])) {
+#       tab <- stats::aggregate(object[[x]], list(object[[sample.by]]),
+#                               function(vals) paste(unique(vals), collapse = "|"))
+#       colnames(tab) <- c(sample.by, x)
+#     } else {
+#       # 检查所有组是否都只有一个唯一值
+#       nuniq <- stats::aggregate(object[[x]], list(object[[sample.by]]), function(vals) length(unique(vals[!is.na(vals)])))
+#       all_unique <- all(nuniq$x == 1)
+#
+#       if (all_unique) {
+#         tab <- stats::aggregate(object[[x]], list(object[[sample.by]]), function(vals) unique(vals[!is.na(vals)]))
+#         colnames(tab) <- c(sample.by, x)
+#       } else {
+#         tab <- stats::aggregate(object[[x]], list(object[[sample.by]]), mean, na.rm = TRUE)
+#         colnames(tab) <- c(sample.by, paste0("mean_", x))
+#       }
+#     }
+#     tab
+#   })
+#
+#   result <- Reduce(function(x, y) merge(x, y, by = sample.by, all = TRUE, sort = FALSE), out_list)
+#   rownames(result) <- NULL
+#   return(result)
+# }

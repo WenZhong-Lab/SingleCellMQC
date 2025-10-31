@@ -6,17 +6,17 @@ Authors@R: c(
     person(given = "Daihan",   family = "Ji",    email = "ji_daihan@gzlab.ac.cn", role = c("aut", "cre", "ctb")),
     person(given = "Shuting",  family = "Lu",    email = "lu_shuting@gzlab.ac.cn", role = c("ctb")),
     person(given = "Jiaying",  family = "Zeng",  email = "zeng_jiaying@gzlab.ac.cn", role = c("ctb")),
-    person(given = "Wen",      family = "Zhong", email = "zhong_wen@gzlab.ac.cn",   role = "ctb"),
-    person(given = "Mei",      family = "Han",   email = "HAN_MEI@gzlab.ac.cn",     role = "ctb")
+    person(given = "Mei",      family = "Han",   email = "HAN_MEI@gzlab.ac.cn",     role = "ctb"),
+    person(given = "Wen",      family = "Zhong", email = "zhong_wen@gzlab.ac.cn",   role = "ctb")
 	)
 Maintainer: Daihan Ji <ji_daihan@gzlab.ac.cn>
 Description: A comprehensive quality control tool for single-cell multi-omics sequencing data. 'SingleCellMQC' aims to offer a flexible, standard and user-friendly workflow for single-cell QC before downstream analysis.
-License: GPL-3
+License: GPL-3 | file LICENSE
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.3.2
+RoxygenNote: 7.2.3
 Depends: 
-    R (>= 4.0.0),
+    R (>= 4.3.0),
     methods
 Imports:
     cutoff,
@@ -24,7 +24,6 @@ Imports:
     dbscan,
     dplyr,
     factoextra,
-    ggforce,
     ggrepel,
     ggplot2,
     ggside,
@@ -65,7 +64,6 @@ Imports:
     bluster,
     clusterSim,
     fpc,
-    GTEs,
     RColorBrewer,
     dreamlet,
     gtools,
@@ -75,7 +73,6 @@ Imports:
 Suggests:
     COSG,
     decontX,
-    DESeq2,
     ddqcR,
     DoubletFinder,
     DropletUtils,

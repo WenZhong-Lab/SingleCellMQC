@@ -1,12 +1,12 @@
 # v0.7.0 (25)
 
 -   Fixed bugs in `Read10XH5Data()`.
--   Fixed  逻辑错误 in `RunLQ_MAD()`.
--   Optimized cell method functions.
+-   Fixed `RunLQ_MAD()`.
+-   Optimized sample, cell, feature and batch method functions.
 -   Optimized `RunReport()` and improved HTML report content.
 -   Add `RunBenchmarkDoublet` and `PlotBenchmarkDoublet` for benchmarking of doublet detection methods.
 -   Optimized `FindCommonPCTOutlier` function.
--   Delete `RunCorrection_DecontPro`, `RunCorrection`, `RunLQReClustering`, `FindAllMarkerCOSG`, `PlotMarkerEnrichKegg`, `PlotFeatureCosineCiteSeq`, `PlotVEPerFeature`, `RunVarExplainedPerFeature` functions.
+-   Delete some functions.
 
 # v0.6.1
 

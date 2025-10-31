@@ -1,5 +1,5 @@
 ---
-title: "SingleCellMQC"
+title: "SingleCellMQC QC Report"
 date: '`r format(Sys.Date(), "%B %d, %Y")`'
 output: 
   html_document:
@@ -319,54 +319,6 @@ generate_light_card <- function(
 ```
 
 
-```{r, results='asis'}
-
-generate_primary_card(
-  header_content = "Primary Header",
-  card_title = "Primary Title",
-  body_content = "This is a primary card with a footer.",
-  footer_content = "Primary Footer Text here.",
-  card_class = "mb-3"
-)
-
-generate_bs_card(
-  header_content = "Header", # 卡片头部内容
-  card_title = "Primary card title", # 卡片主体内部的标题
-  body_content = "Some quick example text to build on the card title and make up the bulk of the card's content.", # 卡片主体内容
-  border_color = "black", # 设置外框颜色为深色
-  card_class = "mb-4"    # 添加底部外边距
-)
-# Card 2: Info 样式 (蓝色背景，白色文字，Header 也是蓝色背景)
-generate_bs_card(
-  header_content = "Header",
-  card_title = "Info card title",
-  body_content = "Some quick example text to build on the card title and make up the bulk of the card's content.",
-  header_bg = "info",    # Header 背景色为 info (蓝色)
-  body_bg = "info",      # Body 背景色为 info (蓝色)
-  text_color = "white",  # 文字颜色为白色
-  card_class = "mb-4"
-)
-# Card 3: Light 样式 (浅灰色背景，深色文字，Header 也是浅灰色背景)
-generate_bs_card(
-  header_content = "Header",
-  card_title = "Light card title",
-  body_content = "Some quick example text to build on the card title and make up the bulk of the card's content.",
-  header_bg = "light",   # Header 背景色为 light (浅灰色)
-  body_bg = "light",     # Body 背景色为 light (浅灰色)
-  text_color = "black",   # 文字颜色为深色
-  card_class = "mb-4"
-)
-
-
-generate_primary_card(
-  header_content = "Primary Header",
-    card_title =NULL,
-  body_content = "This is a card with a black border, typical for a primary style."
-)
-
-```
-
-
 
 ```{r Sample QC, echo=FALSE, results='asis'}
 if (!is.null(data$Sample)) {
@@ -374,29 +326,32 @@ if (!is.null(data$Sample)) {
   cat("\n\n")
 }
 ```
-<!-- #  -->
-<!-- # ```{r Cell QC, echo=FALSE, results='asis'} -->
-<!-- # if (!is.null(data$Cell)) { -->
-<!-- #   cat(knitr::knit_child("Cell_QC.Rmd", quiet = TRUE)) -->
-<!-- #     cat("\n\n") -->
-<!-- #  -->
-<!-- # } -->
-<!-- # ``` -->
-<!-- #  -->
-<!-- # ```{r Feature QC, echo=FALSE, results='asis'} -->
-<!-- # if (!is.null(data$Feature)) { -->
-<!-- #   cat(knitr::knit_child("Feature_QC.Rmd", quiet = TRUE)) -->
-<!-- #     cat("\n\n") -->
-<!-- #  -->
-<!-- # } -->
-<!-- # ``` -->
-<!-- #  -->
-<!-- # ```{r Batch QC, echo=FALSE, results='asis'} -->
-<!-- # if (!is.null(data$Batch)) { -->
-<!-- #   cat(knitr::knit_child("Batch_QC.Rmd", quiet = TRUE)) -->
-<!-- #     cat("\n\n") -->
-<!-- #  -->
-<!-- # } -->
-<!-- # ``` -->
+
+
+```{r Cell QC, echo=FALSE, results='asis'}
+ if (!is.null(data$Cell)) {
+   cat(knitr::knit_child("Cell_QC.Rmd", quiet = TRUE))
+     cat("\n\n")
+ }
+```
+
+
+
+```{r Feature QC, echo=FALSE, results='asis'}
+ if (!is.null(data$Feature)) {
+   cat(knitr::knit_child("Feature_QC.Rmd", quiet = TRUE))
+     cat("\n\n")
+
+}
+```
+
+
+```{r Batch QC, echo=FALSE, results='asis'}
+ if (!is.null(data$Batch)) {
+   cat(knitr::knit_child("Batch_QC.Rmd", quiet = TRUE))
+    cat("\n\n")
+
+ }
+```
 
 

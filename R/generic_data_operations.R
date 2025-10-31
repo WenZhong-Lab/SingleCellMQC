@@ -408,24 +408,4 @@ getMetaData.default <- function(object, ...) {
 
 
 
-#' @title RunVarExplained Per-Feature Variance Explained by Variables
-#'
-#' @description
-#' This function calculates the percentage of variance explained by one or more variables of interest for each feature. It supports both RNA and ADT assays and can handle sparse matrices efficiently. The function is designed to work with Seurat objects and can also accept raw matrices or metadata directly.
-#'
-#' @param object A Seurat object, a sparse matrix (`dgCMatrix`), `IterableMatrix`, or a dense matrix (`matrix`). If a Seurat object is provided, the function will extract the specified assay data (RNA or ADT) and normalize it if necessary.
-#' @param assay Character string specifying the assay to use. Options are `"RNA"` (default) or `"ADT"`. If `"RNA"`, the function will normalize the data using `Seurat::NormalizeData`. If `"ADT"`, the function will normalize the data using CLR normalization.
-#' @param variables A character vector specifying the variables of interest from the metadata. These variables will be used to explain the variance for each feature.
-#' @param metadata A data frame or matrix containing the metadata. If `object` is a Seurat object, this parameter is optional, and the metadata will be extracted from `object@meta.data`. If `object` is a matrix-like, this parameter is required.
-#' @param ... Additional arguments passed to the underlying variance calculation function.
-#'
-#' @return
-#' A matrix containing the percentage of variance explained for each feature by the specified variables. The rows correspond to features, and the columns correspond to the variables of interest.
-#'
-#' @details
-#' The function first checks the type of input object (`Seurat`, `dgCMatrix`, `IterableMatrix` or `matrix`) and processes it accordingly. For Seurat objects, it extracts the specified assay data and normalizes it if necessary. For sparse or dense matrices, it converts the data into an `IterableMatrix` format for efficient computation.
-#'
-#' @export
-RunVarExplained <- function(object, ...) {
-  UseMethod("RunVarExplained")
-}
+

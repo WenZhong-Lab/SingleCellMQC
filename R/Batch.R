@@ -1,51 +1,82 @@
 
-#' Run GTEs Analysis
+#' Quantify Feature-level Technical Effects (GTE) for Single-cell Data
 #'
 #' @description
-#' This function calculates GTEs scores from GTEs package
+#' This function calculates feature-level Technical Effects (GTE) scores for
+#' individual genes (or other features) in single-cell expression data,
+#' measuring the influence of user-defined technical factors (batch variables).
+#' It is an adapted and extended implementation of the methodology originally
+#' presented in the `GTEs::Run.GroupTechEffects` function, designed to offer
+#' broader compatibility with various single-cell data formats, such as
+#' `BPCells` matrices, `Seurat` object.
+#' The core GTE principle is based on the work by Zhou et al. (2025).
 #'
-#' @param object A single-cell object (e.g., Seurat object) from which
-#'   expression data and metadata will be extracted.
-#' @param assay A character string specifying the assay to use (e.g., "RNA").
-#'   Defaults to "RNA".
+#' @param object A single-cell object.
+#' @param assay A character string specifying the assay to use (e.g., "RNA")
+#'   if `object` is a single-cell object. Defaults to "RNA".
 #' @param slot A character string specifying the slot to use for expression
-#'   data (e.g., "data"). Defaults to "data".
+#'   data (e.g., "data", "counts") if `object` is a single-cell object.
+#'   Defaults to "data".
 #' @param group.by (Optional) A character string specifying the metadata column
-#'   representing biological groups (e.g., cell type, condition) to be
-#'   controlled for. Defaults to `NULL`.
+#'   representing biological groups (e.g., "cell_type", "condition") to be
+#'   controlled for in the GTE calculation. This helps isolate batch effects
+#'   from true biological variation.
 #' @param batch.by A character string specifying the metadata column representing
-#'   the batch variable whose influence is to be quantified (e.g., "batch_id").
-#' @param block.size An integer specifying the number of genes to process in
-#'   each block. This helps manage memory for large datasets. Defaults to 500.
+#'   the technical factor (e.g., "batch_id", "sequencing_run") whose influence
+#'   is to be quantified.
 #'
-#' @return A data frame with two columns: 'Feature' (gene names) and column
-#'   named after `batch.by` (representing the GTE score for that feature).
-#'   Higher scores indicate a stronger association with the batch effect.
+#' @return A `data.frame`
+#'   \itemize{
+#'     \item \code{Feature}: Gene or protein names.
+#'     \item \code{GTE_Overall}: The overall GTE score for each gene, quantifying
+#'       the total influence of the `batch.by` variable.
+#'     \item Additional columns: For each subgroup defined by `group.by`, if
+#'       provided, a column (e.g., "CellTypeA", "CellTypeB") will represent
+#'       the GTE score specific to that subgroup.
+#'   }
 #'
-#' @details
-#' This function utilizes the `GTEs::Run.GroupTechEffects` function to compute GTE
-#' scores. It iterates through genes in `block.size` chunks to avoid memory
-#' overflow, especially with large expression matrices.
-#' The `batch.by` variable is the technical factor of interest.
+#' @seealso \code{\link[GTEs]{Run.GroupTechEffects}}
+#' @references
+#' Zhou Y, Sheng Q, Wang G, Xu L, Jin S. Quantifying batch effects
+#' for individual genes in single-cell data. Nat Comput Sci. 2025 Aug;5(8):612-660.
+#' doi: 10.1038/s43588-025-00824-7. Epub 2025 Jun 27. PMID: 40579473.
 #'
-#' @importFrom GTEs Run.GroupTechEffects
 #' @export
-RunBatchGTEs <- function(object, assay = "RNA", slot = "data", group.by=NULL, batch.by, block.size = 500) {
+RunBatchGTE <- function(object, assay = "RNA", slot = "data", group.by, batch.by) {
   mat <- getMatrix(object,assay=assay,  slot=slot)
   mat_meta <- getMetaData(object)
-  colnames(mat) <- NULL
-  row_index_list <- split(1:nrow(mat), ceiling(seq_along(1:nrow(mat)) / block.size))
-  out_list <- lapply(row_index_list, function(idx) {
-    mat1 <- as(mat[idx, , drop=FALSE], "dgCMatrix")
-    out <- suppressMessages(GTEs::Run.GroupTechEffects(mat1, mat_meta, g_factor = group.by, b_factor = batch.by))
-    return(out)
+
+  #name
+  g_name = unique(mat_meta[[group.by]])
+  b_name = unique(mat_meta[[batch.by]])
+
+  #cellcount
+  cellcount <- as.data.frame(table(mat_meta[[group.by]], mat_meta[[batch.by]]))
+  colnames(cellcount) <- c(group.by, batch.by, "count" )
+
+  # var
+  gb <- .getPseudobulkMatrix(mat, metadata = mat_meta, sample.by=batch.by, group.by = group.by, method = "variance")
+  g <- .getPseudobulkMatrix(mat, metadata = mat_meta, sample.by=group.by, method = "variance")
+
+  # GroupTechEffects
+  GroupTechEffects <- lapply(g_name, function(x){
+    cellcount_temp = cellcount[ cellcount[, group.by] %in% x, , drop=F]
+    g_count = sum(cellcount_temp[,"count" ])
+    ssg = g[, match(x, colnames(g))] * (g_count-1)
+    index = match( colnames(gb[[x]]) , cellcount_temp[, batch.by] )
+    ssgb = t(gb[[x]]) * (cellcount_temp[index, "count"]-1)
+    ssgb = colSums(ssgb)
+    return((ssg - ssgb)/g_count)
   })
-  names(out_list) <- NULL
-  out <- do.call(c, lapply(out_list, function(x) x$OverallTechEffects))
-  out <- data.frame(Feature=names(out), GTE=out)
-  colnames(out)[2] <- batch.by
+  names(GroupTechEffects) <- g_name
+  GroupTechEffects <- do.call(cbind, GroupTechEffects)
+  scale_factor = length(which(colSums(GroupTechEffects) > 0))
+  GroupTechEffects = GroupTechEffects / scale_factor
+  GTE_Overall <- rowSums(GroupTechEffects)
+  out <- data.frame(Feature=rownames(GroupTechEffects), GTE_Overall=GTE_Overall,GroupTechEffects, check.names = F)
   return(out)
 }
+
 
 
 #' Visualize Reduced Dimensional Data
@@ -83,6 +114,7 @@ RunBatchGTEs <- function(object, assay = "RNA", slot = "data", group.by=NULL, ba
 #'   this threshold will be plotted as individual points. Defaults to 100000.
 #' @param size A numeric value specifying the size of the plotted points.
 #'   Defaults to 0.3.
+#' @param pca.label A character string specifying the metadata column used for label.
 #'
 #' @return A `ggplot` object, or a named list of `ggplot` objects if `object$pseudobulk_mat`
 #'   is a list (e.g., pseudobulk PCA plots per cluster).
@@ -100,25 +132,35 @@ PlotReducedDim <- function(object,
                            color = NULL,
                            guide.nrow=10,
                            raster.cutoff=100000,
+                           pca.label=NULL,
                            size=0.3){
   if( !("Seurat" %in% is(object)) & process.pseudobulk=="pca" ){
     mat <- object$pseudobulk_mat
     meta_data <- object$pseudobulk_metadata
+    assay=object$assay
     if(is.list(mat)){
       group_name <- names(mat)
       plot_list <- lapply(group_name, function(x){
         message(paste0(format(Sys.time(), "%H:%M:%S"), "-------- runPseudobulkPCA: ", x))
         out <- runPseudobulkPCA(mat[[x]], metadata = meta_data)
         p <- plotReducedDim(object=out, group.by = group.by, reduction = "pca" , split.by = split.by, ncol = ncol, ggside = ggside,
-                             color = color, guide.nrow = guide.nrow, raster.cutoff = raster.cutoff, size = size)
+                             color = color, guide.nrow = guide.nrow, raster.cutoff = raster.cutoff, size = size,
+                            label =pca.label)
         return(p)
       })
       names(plot_list) <- group_name
       return(plot_list)
     }else{
-      out <- runPseudobulkPCA(mat, metadata = meta_data)
-      p <- plotReducedDim(object=out, group.by = group.by, reduction = "pca" , split.by = split.by, ncol = ncol, ggside = ggside,
-                           color = color, guide.nrow = guide.nrow, raster.cutoff = raster.cutoff, size = size)
+      out <- runPseudobulkPCA(mat, metadata = meta_data, assay=assay)
+      p <- plotReducedDim(object=out, group.by = group.by, reduction = "pca" ,
+                          split.by = split.by,
+                          ncol = ncol,
+                          ggside = ggside,
+                           color = color,
+                          guide.nrow = guide.nrow,
+                          raster.cutoff = raster.cutoff,
+                          size = size,
+                          label =pca.label)
       return(p)
     }
 
@@ -139,10 +181,11 @@ plotReducedDim <- function(object,
                             color = NULL,
                             guide.nrow=10,
                             raster.cutoff=100000,
+                           label=NULL,
                             size=0.3
 ){
   cluster_data <- SeuratObject::Embeddings(object = object, reduction= reduction)
-  index <- union(group.by, split.by)
+  index <- union( union(group.by, split.by), label)
   cluster_data <- data.frame(cluster_data, object@meta.data[, index, drop=F])
   if( is.null(color)){
     color <- get_colors( length(unique(cluster_data[[group.by]])))
@@ -154,7 +197,8 @@ plotReducedDim <- function(object,
   cluster_data[[group.by]] <- factor(cluster_data[[group.by]], levels = sort(unique(cluster_data[[group.by]])) )
 
   p <- plotScatter(cluster_data, x= colnames(cluster_data)[1] , y= colnames(cluster_data)[2], group.by = group.by, color = color,size=size,
-                   log.x = F,log.y = F,ggside = ggside,split.by = split.by, ncol = ncol,guide.nrow=guide.nrow, raster.cutoff=raster.cutoff)
+                   log.x = F,log.y = F,ggside = ggside,split.by = split.by, ncol = ncol,guide.nrow=guide.nrow,
+                   raster.cutoff=raster.cutoff, label=label)
 
   p[["facet"]][["params"]][["ncol"]] <- ncol
   p[["facet"]][["params"]][["nrow"]] <- ceiling(sample_num / ncol)
@@ -163,9 +207,15 @@ plotReducedDim <- function(object,
 }
 
 
-runPseudobulkPCA <- function(object, metadata){
+runPseudobulkPCA <- function(object, metadata, assay){
   suppressWarnings(seu <- Seurat::CreateSeuratObject(counts = object, meta.data = metadata))
-  seu <- Seurat::NormalizeData(object = seu, verbose =F)
+  if(assay=="RNA"){
+    seu <- Seurat::NormalizeData(object = seu, verbose =F)
+  }else if(assay=="ADT"){
+    seu <- Seurat::NormalizeData(object = seu, verbose =F, normalization.method = 'CLR', margin = 2)
+  } else {
+    stop("Unsupported assay type provided. Only 'RNA' and 'ADT' are supported.")
+  }
   seu <- Seurat::FindVariableFeatures(object = seu, verbose =F)
   seu <- Seurat::ScaleData(object = seu, verbose =F)
   npcs = min(20, nrow(metadata)-1)
@@ -188,27 +238,31 @@ runPseudobulkPCA <- function(object, metadata){
 #' @param object A data frame, typically the output from `RunBatchGTEs`. It
 #'   should contain at least two columns: 'Feature' (gene names) and a column
 #'   representing the GTE scores (usually named after the `batch.by` variable
-#'   used in `RunBatchGTEs`).
+#'   used in `RunBatchGTE`).
 #' @param color (Optional) A character string specifying the color for the bars.
 #'   If `NULL`, a default color is used.
 #' @param ntop An integer specifying the number of top features (genes) to display
 #'   in the plot. If `NULL` or less than 1, all features will be plotted.
 #'   Defaults to 10.
+#' @param column_name A character string specifying the name of the column in
+#'   `object` that contains the GTE scores (or desired metric) to be plotted.
+#'   This column must be numeric. Default is "GTE_Overall".
 #'
 #' @return A `ggplot` object representing the bar plot of GTE scores.
 #'
 #' @details
 #' The function sorts the features by their GTE scores in descending order and
 #' selects the top `ntop` features. It then creates a horizontal bar plot where
-#' each bar's length corresponds to the GTE score of a gene.
+#' each bar's length corresponds to the GTE score of a feature.
 #'
 #' @importFrom data.table data.table melt
 #' @importFrom ggplot2 ggplot geom_col aes labs theme element_text element_blank coord_flip
 #' @export
-PlotGTEBar <- function(object, color = NULL, ntop = 10){
+PlotGTEBar <- function(object, column_name = "GTE_Overall", color = NULL, ntop = 10){
   if(is.null(color)){
     color = get_colors(2)[2]
   }
+  object <- object[,c("Feature", column_name) ]
   object <- data.table::data.table(object)
   rsquared_long <- data.table::melt(object, id.vars = "Feature")
   rsquared_long <- rsquared_long[order(rsquared_long$value, decreasing = TRUE)]
@@ -226,11 +280,11 @@ PlotGTEBar <- function(object, color = NULL, ntop = 10){
     ggplot2::geom_col(ggplot2::aes(x = Feature, y = .data[["value"]]), alpha = 0.7, fill = color) +
     ggplot2::coord_flip() +
     ggplot2::theme_classic(base_size = 13) +
-    ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1),
+    ggplot2::theme(
                    axis.text = ggplot2::element_text(color = "black"),
                    axis.title.y = ggplot2::element_blank()
     ) +
-    ggplot2::labs(y = "GTE score")
+    ggplot2::labs(y = "GTE score", subtitle = column_name)
 
   return(p)
 }

@@ -14,7 +14,8 @@ FindSampleMetricsWarning(
   nmads = rep(3, length(metrics.by)),
   aggregate_type = "median",
   color = c("#A6CEE3"),
-  return.type = c("table")
+  return.type = c("table"),
+  verbose = TRUE
 )
 }
 \arguments{
@@ -46,6 +47,9 @@ FindSampleMetricsWarning(
 \item "interactive_table": Return an interactive table of outlier samples.
 \item "plot": Return a plot of outlier samples.
 }}
+
+\item{verbose}{A logical value. If \code{TRUE} (default), the message will be printed.
+If \code{FALSE} , the message will be suppressed (not printed).}
 }
 \value{
 A list containing the outlier samples and an interactive table of outlier samples.

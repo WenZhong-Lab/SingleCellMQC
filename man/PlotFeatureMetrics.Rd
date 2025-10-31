@@ -7,13 +7,12 @@
 PlotFeatureMetrics(
   object,
   assay = "RNA",
-  type = "pct",
+  metric = "pct",
   sample = NULL,
-  log.x = T,
+  log.x = F,
   color = "#0072B2",
   ntop = 10,
-  ylab = type,
-  return.type = "plot"
+  ylab = metric
 )
 }
 \arguments{
@@ -21,8 +20,7 @@ PlotFeatureMetrics(
 
 \item{assay}{A character string specifying the assay to analyze. The default is \code{"RNA"}.}
 
-\item{type}{A character string specifying the type of feature metric to visualize.
-Valid options include:"pct", "mean", "nCell", "variance", "variance.standardized". Default is "pct".}
+\item{metric}{A character string specifying the feature metric to visualize. Default is "pct".}
 
 \item{sample}{Optional. Character string specifying a sample name to subset the data. If \code{NULL}, the entire dataset is used.}
 
@@ -32,17 +30,10 @@ Valid options include:"pct", "mean", "nCell", "variance", "variance.standardized
 
 \item{ntop}{Numeric. Specifies the number of top features to highlight in the bar plot. Default is \code{10}.}
 
-\item{ylab}{Character string specifying the y-axis label for the top bar plot. Default is the same as the \code{type} parameter.}
-
-\item{return.type}{Character string or vector indicating the type of output to return. Options are \code{"plot"}, \code{"interactive_table"}, or both. Default is \code{"plot"}.}
+\item{ylab}{Character string specifying the y-axis label for the top bar plot. Default is the same as the \code{metric} parameter.}
 }
 \value{
-The function returns either a \code{ggplot} object, an interactive table, or both, depending on the \code{return.type} specified.
-\itemize{
-\item If \code{"plot"} is specified, a \code{ggplot} object showing the distribution of feature metrics is returned.
-\item If \code{"interactive_table"} is specified, an interactive table showing the feature metrics is returned.
-\item If both are specified, a list containing both the plot and the interactive table is returned.
-}
+The function returns a \code{ggplot} object.
 }
 \description{
 This function generates plots for visualizing the distribution of specific feature metrics.

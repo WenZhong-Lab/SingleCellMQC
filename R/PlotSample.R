@@ -42,8 +42,8 @@ PlotSampleCellTypePCT <- function(object, sample.by="orig.ident", celltype.by="S
 
   ##
 
-  if( length(setdiff(return.type, c("plot", "interactive_table")))!=0 ){
-    stop("Invalid `return.type`, only: `plot` or/and `interactive_table` ")
+  if( length(setdiff(return.type, c("table", "plot", "interactive_table")))!=0 ){
+    stop("Invalid `return.type`, only: 'table', `plot` or/and `interactive_table` ")
   }
 
   out <- list()
@@ -56,6 +56,13 @@ PlotSampleCellTypePCT <- function(object, sample.by="orig.ident", celltype.by="S
     plot_data$Sample <- factor(plot_data$Sample, levels = levels)
   }
 
+
+  if("table" %in% return.type ){
+    freq_table <- plot_data
+    freq_table <- data.table::dcast(freq_table, Sample ~ CellType, value.var="freq")
+    freq_table <- as.data.frame(freq_table)
+    out$table <- freq_table
+  }
 
 
   if("interactive_table" %in% return.type){

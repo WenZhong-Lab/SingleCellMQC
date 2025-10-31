@@ -18,9 +18,6 @@ if (!requireNamespace("devtools", quietly = TRUE)) {
 devtools::install_github('WenZhong-Lab/SingleCellMQC') 
 library(SingleCellMQC)
 ```
-## Note
-Version 0.7.0 is scheduled for release in September. This will be an entirely new version, featuring numerous optimizations, bug fixes, and added functions. The logical error present in the RunLQ_MAD function of Version 0.6 will also be fixed in 0.7.0. We highly recommend using our future new version, as Version 0.6 will subsequently be deprecated.
-
 
 ### Integrated QC Tools in SingleCellMQC
 

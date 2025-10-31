@@ -16,7 +16,8 @@ FindInterSamplePCTOutlier(
   minPts = 3,
   method = "ellipse",
   top = Inf,
-  return.type = c("table")
+  return.type = c("table"),
+  verbose = TRUE
 )
 }
 \arguments{
@@ -54,6 +55,9 @@ Default: \code{"ellipse"}.
 \item \code{"interactive_table"}: Return an interactive table of outlier results.
 Default: \code{"table"}.
 }}
+
+\item{verbose}{A logical value. If \code{TRUE} (default), the message will be printed.
+If \code{FALSE} , the message will be suppressed (not printed).}
 }
 \value{
 A list containing the following components based on the \code{return.type} parameter:

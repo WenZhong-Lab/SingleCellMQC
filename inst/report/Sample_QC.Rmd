@@ -1,4 +1,4 @@
-# Sample QC 
+# Sample-level QC 
 
 **The main tasks of sample-level QC include: (i) Sample quality assessment: detecting technical artifacts that may be caused by library construction, insufficient sequencing depth, amplification biases, or contaminations; (ii) Outlier sample detection: identifying samples with unexpected cell type compositions; and (iii) Sample identity verification: identifying incorrect sample labeling caused by errors in sample handling.**
 
@@ -13,7 +13,12 @@ if(length(data$Sample$Section1$Metrics )!=0){
   # cat( paste0(data$Sample$Section1$Metrics$note, collapse = "  \n") )
   note_grey(paste0(data$Sample$Section1$Metrics$note, collapse = "  \n"))
   cat('\n\n')
-  }
+    generate_primary_card(
+  header_content = "**Key QC tasks summary information: **",
+    card_title =NULL,
+  body_content = data$Sample$summary)
+  cat('\n\n')
+}
 
 ```
 
@@ -25,7 +30,10 @@ if(length(data$Sample$Section1$Metrics )!=0){
     card_title =NULL,
   body_content = "
 - **10X Genomics Metrics (if available):** From Cell Ranger output. 
-- **Basic QC Metrics:** From SingleCellMQC, including RNA, ADT and V(D)J metrics.
+- **RNA & ADT Metrics:** From SingleCellMQC, including RNA, ADT metrics and QC results.
+- **V(D)J Metrics:** From SingleCellMQC, including VDJ metrics and QC results.
+- **Celltype% outlier sample detection:** To identify deviations in cell type compositions.
+- **Predicted sex information:** To avoid potential recording mistakes and data transmission errors.
   "
   )
  

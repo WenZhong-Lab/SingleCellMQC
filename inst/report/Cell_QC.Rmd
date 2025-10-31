@@ -2,29 +2,25 @@
 title: "cellqc"
 output: html_document
 ---
-# Cell QC 
+# Cell-level QC 
+## Cell summary {.tabset }
 
-**In this report, cell QC contains low-quality cells and doublets detection. including two sections: ** 
+```{r cell_qc_overview, echo=FALSE, results='asis', warning=FALSE, message=FALSE }
+  generate_primary_card(
+  header_content = "**Key components overview: **",
+    card_title =NULL,
+  body_content = "
+- **QC scatter plot:** Key cell metrics distribution for each sample. 
+- **Low quality cell information:** Summary of the results of different low-quality cell detection methods.
+- **Doublet information:** Summary of the results of different doublet detection methods.
+  "
+  )
+```
 
-- [**Low quality cell information - **](#md2-se1) Summary of the results of different low-quality cell detection methods.
-- [**Doublet information - **](#md2-se3) Summary of the results of different doublet detection methods.
 
 
-```{r Filtered pct, echo=FALSE, results='asis', message=FALSE, warning=FALSE}
 
-if(!is.null(data$Cell$Section1$scatter) | !is.null(data$Cell$Section1$lq_Filtration) | !is.null(data$Cell$Section1$lq_upset) ){
-    cat("
-## Low quality cell information {.tabset #md2-se1}
-
-Low quality cells, especially dead or damaged cells, typically exhibit high mitochondrial RNA content, low UMI counts, and a reduced number of detected genes. Cells with unusually abundant isotype counts in ADT sequencing are also considered poor quality, often due to non-specific antibody binding or contamination. The detection of low-quality cells plays an important part in sequencing data quality control. This section will help you quickly overview the basics information of different low-quality detection methods. This section contains three aspects:
-
-- [**QC scatter plot**:]{style=\"color:red\"} Distribution of Cell QC metrics.
-- [**QC Filtering Results**:]{style=\"color:red\"} Low quality cell detection results.
-- [**Upset**:]{style=\"color:red\"} Upset plot to display the intersection patterns among different methods.
-")
- cat('\n\n') 
-}
-
+```{r cell scatter plot, echo=FALSE, results='asis', message=FALSE, warning=FALSE}
 
 if(!is.null(data$Cell$Section1$scatter)){
   cat('### QC scatter plot {.tabset .unnumbered .tabset-dropdown} \n')
@@ -37,11 +33,27 @@ if(!is.null(data$Cell$Section1$scatter)){
   }
 }
 
+```
+
+
+```{r Filtered pct, echo=FALSE, results='asis', message=FALSE, warning=FALSE}
+
+if(!is.null(data$Cell$Section1$scatter) | !is.null(data$Cell$Section1$lq_Filtration) | !is.null(data$Cell$Section1$lq_upset) ){
+    
+    
+    cat("
+### Low quality cell information {.tabset .unnumbered}
+
+Low quality cells, especially dead or damaged cells, typically exhibit high mitochondrial RNA content, low UMI counts, and a reduced number of detected genes. Cells with unusually abundant isotype counts in ADT sequencing are also considered poor quality, often due to non-specific antibody binding or contamination. The detection of low-quality cells plays an important part in sequencing data quality control. This section will help you quickly overview the basics information of different low-quality detection methods.
+
+")
+ cat('\n\n') 
+}
 
 
 if(!is.null(data$Cell$Section1$lq_Filtration)){
-  
-  cat('### QC Filtering Results {.tabset .unnumbered} \n')
+  cat('#### Summary tables {.tabset .unnumbered} \n')
+
   subchunkify(data$Cell$Section1$lq_pre_post, seed="low_pre_post")
 
   subchunkify(data$Cell$Section1$lq_Filtration$pct,seed="low_pct")
@@ -53,15 +65,12 @@ if(!is.null(data$Cell$Section1$lq_Filtration)){
 }  
   
 if(!is.null(data$Cell$Section1$lq_upset)){
-  cat('### Upset {.tabset .unnumbered} \n')
-  subchunkify(data$Cell$Section1$lq_upset,6.5, 8,seed="low_upset")
+  cat('#### Method upset plot {.tabset .unnumbered} \n')
+  subchunkify(data$Cell$Section1$lq_upset,6.5, 8,seed="low_upset1")
   cat('\n\n')
   cat("This upset plot shows the overlap between different methods. Only 20 numbers of intersections are shown. \n")
   cat('\n\n')
 }  
-
-
-
 
 ```
 
@@ -70,19 +79,17 @@ if(!is.null(data$Cell$Section1$lq_upset)){
 ```{r Doublet, echo=FALSE, results='asis', message=FALSE, warning=FALSE}
 if(!is.null(data$Cell$Section2$db_Filtration) | !is.null(data$Cell$Section2$db_upset)){
     cat("
-## Doublet information {.tabset #md2-se3}
+### Doublet information {.tabset .unnumbered}
 
 Another key issue in cell QC is the detection of doublets, which can affect the annotation accuracy of cell types. This section will help you quickly check the basic information of different doublet detection methods. This section contains two aspects:
 
-- [**QC Filtering Results**:]{style=\"color:red\"} Doublet detection results.
-- [**Upset**:]{style=\"color:red\"} Upset plot to display the intersection patterns among different methods.
 ")
   cat('\n\n')
 }
 
 if(!is.null(data$Cell$Section2$db_Filtration)){
   
-  cat('### QC Filtering Results {.tabset .unnumbered} \n')
+  cat('#### Summary tables {.tabset .unnumbered} \n')
   subchunkify(data$Cell$Section2$db_pre_post, seed="db_pre_post")
 
   subchunkify(data$Cell$Section2$db_Filtration$pct,seed="db_pct")
@@ -94,7 +101,7 @@ if(!is.null(data$Cell$Section2$db_Filtration)){
 }  
   
 if(!is.null(data$Cell$Section2$db_upset)){
-  cat('### Upset {.tabset .unnumbered} \n')
+  cat('#### Method upset plot {.tabset .unnumbered} \n')
   subchunkify(data$Cell$Section2$db_upset,6.5, 8,seed="db_upset")
   cat('\n\n')
   cat("This upset plot shows the overlap between different methods. Only 20 numbers of intersections are shown. \n")

@@ -24,10 +24,7 @@ StatsCellFilter <- function(object,
                             return.type = c("table", "interactive_table")) {
   type.detection <- match.arg(type.detection)
   return.type <- match.arg(return.type)
-
-  if (is(object, "Seurat")) {
-    object <- object@meta.data
-  }
+  object <- getMetaData(object)
 
   pattern <- switch(type.detection,
                     "lq" = "^lq_(?!.*score$)",

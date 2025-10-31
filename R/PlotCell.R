@@ -370,65 +370,150 @@ PlotCellMethodVln <- function(object, type.detection="lq", split.by=NULL, metric
 }
 
 
-plotScatter <- function(object, x, y, group.by=NULL, color=NULL, ggside=T,
-                        log.x=T, log.y=T, split.by =NULL, ncol=2,guide.nrow=10,
-                        raster.cutoff=100000, size =0.3, size.raster= 1){
-
-  if(is.null(color)){
-    if(!is.null(group.by)){
-      color <- get_colors( length(unique(object[[group.by]])) )
-      }else{
-      color <- get_colors(2)[2]
-      }
-  }
-
-  if (length(object[[x]]) > raster.cutoff) {
-    geom_func <- scattermore::geom_scattermore(pointsize = size.raster, alpha = 1)
-  } else {
-    if( !is.null(group.by) ){
-      geom_func <- ggplot2::geom_point(size = size, alpha = 1)
-    }else{
-      geom_func <- ggplot2::geom_point(size = size, alpha = 1, color=color[1])
+plotScatter <- function(object, x, y, group.by = NULL, color = NULL, ggside = TRUE,
+                        log.x = TRUE, log.y = TRUE, split.by = NULL, ncol = 2, guide.nrow = 10,
+                        raster.cutoff = 100000, size = 0.3, size.raster = 1,
+                        label = NULL, size.label = 3) {
+  # --- Color handling ---
+  if (is.null(color)) {
+    if (!is.null(group.by)) {
+      color <- get_colors(length(unique(object[[group.by]])))
+    } else {
+      color <- get_colors(2)[2] # Default color if no grouping
     }
   }
-
-  if( !is.null(group.by) ){
-    p1 <- ggplot2::ggplot(data = object,
-                 mapping = ggplot2::aes(x = .data[[x]], y = .data[[y]], color =.data[[group.by]]))
-
-  }else{
-    p1 <- ggplot2::ggplot(data = object,
-                 mapping = ggplot2::aes(x = .data[[x]], y = .data[[y]] ))
+  # --- geom_func (point layer) handling ---
+  # Use scattermore for large datasets for performance
+  if (length(object[[x]]) > raster.cutoff) {
+    if (!requireNamespace("scattermore", quietly = TRUE)) {
+      warning("Package 'scattermore' not found. Please install it for rasterized plotting of large datasets. Falling back to ggplot2::geom_point.")
+      geom_func <- ggplot2::geom_point(size = size, alpha = 1)
+    } else {
+      geom_func <- scattermore::geom_scattermore(pointsize = size.raster, alpha = 1)
+    }
+  } else {
+    if (!is.null(group.by)) {
+      geom_func <- ggplot2::geom_point(size = size, alpha = 1)
+    } else {
+      geom_func <- ggplot2::geom_point(size = size, alpha = 1, color = color[1])
+    }
   }
-
+  # --- Create base ggplot object ---
+  if (!is.null(group.by)) {
+    p1 <- ggplot2::ggplot(data = object,
+                          mapping = ggplot2::aes(x = .data[[x]], y = .data[[y]], color = .data[[group.by]]))
+  } else {
+    p1 <- ggplot2::ggplot(data = object,
+                          mapping = ggplot2::aes(x = .data[[x]], y = .data[[y]]))
+  }
+  # --- Add point layer ---
+  p1 <- p1 + geom_func
+  # --- Conditionally add label layer ---
+  if (!is.null(label)) {
+    # Ensure the label column exists in the data
+    if (!label %in% colnames(object)) {
+      warning(paste0("Label column '", label, "' not found in the data object. Skipping text labels."))
+    } else {
+      # Map the label column to the 'label' aesthetic
+      p1 <- p1 +
+        ggplot2::aes(label = .data[[label]]) +
+        ggrepel::geom_text_repel(size = size.label, show.legend = FALSE,
+                                 max.overlaps = Inf) # show.legend=F to prevent labels appearing in legend
+    }
+  }
+  # --- Other ggplot layers and theme ---
   p1 <- p1 +
-    geom_func +
-    # scientific_theme(base_size = 15)+
-    ggplot2::guides(color=ggplot2::guide_legend(nrow = guide.nrow, override.aes = list(size=4)))+
-    ggplot2::theme_classic(base_size = 15)+
+    # scientific_theme(base_size = 15)+ # Uncomment if you have this theme defined
+    ggplot2::guides(color = ggplot2::guide_legend(nrow = guide.nrow, override.aes = list(size = 4))) +
+    ggplot2::theme_classic(base_size = 15) +
     ggplot2::scale_colour_manual(values = color)
-
-  if(log.x){
+  if (log.x) {
     p1 <- p1 + ggplot2::scale_x_log10()
   }
-  if(log.y){
+  if (log.y) {
     p1 <- p1 + ggplot2::scale_y_log10()
   }
-  if(ggside){
-    p1 <- p1 +
-      ggside::geom_xsidedensity(show.legend	=F, linewidth=0.6)+
-      ggside::scale_xsidey_continuous(expand = c(0, 0),labels = c(NULL,NULL,NULL,NULL))+
-      ggside::geom_ysidedensity(show.legend	=F, linewidth=0.6)+
-      ggside::scale_ysidex_continuous(expand = c(0, 0),labels = c(NULL,NULL,NULL,NULL))+
-      # ggside::theme_ggside_void()
-      ggplot2::theme(ggside.panel.scale=0.25,ggside.axis.line=ggplot2::element_blank(),
-            ggside.axis.ticks=ggplot2::element_blank() )
+  # --- ggside extension ---
+  if (ggside) {
+    if (!requireNamespace("ggside", quietly = TRUE)) {
+      warning("Package 'ggside' not found. Skipping side density plots.")
+    } else {
+      p1 <- p1 +
+        ggside::geom_xsidedensity(show.legend = FALSE, linewidth = 0.6) +
+        ggside::scale_xsidey_continuous(expand = c(0, 0), labels = c(NULL, NULL, NULL, NULL)) + # Adjust side axis labels
+        ggside::geom_ysidedensity(show.legend = FALSE, linewidth = 0.6) +
+        ggside::scale_ysidex_continuous(expand = c(0, 0), labels = c(NULL, NULL, NULL, NULL)) + # Adjust side axis labels
+        # ggside::theme_ggside_void() # Use this for a completely blank side theme
+        ggplot2::theme(ggside.panel.scale = 0.25, ggside.axis.line = ggplot2::element_blank(),
+                       ggside.axis.ticks = ggplot2::element_blank())
+    }
   }
-  if(!is.null(split.by)){
+  # --- Faceting (facet_wrap) ---
+  if (!is.null(split.by)) {
     p1 <- p1 + ggplot2::facet_wrap(~ get(split.by), ncol = ncol)
   }
   return(p1)
 }
+
+# plotScatter <- function(object, x, y, group.by=NULL, color=NULL, ggside=T,
+#                         log.x=T, log.y=T, split.by =NULL, ncol=2,guide.nrow=10,
+#                         raster.cutoff=100000, size =0.3, size.raster= 1){
+#
+#   if(is.null(color)){
+#     if(!is.null(group.by)){
+#       color <- get_colors( length(unique(object[[group.by]])) )
+#       }else{
+#       color <- get_colors(2)[2]
+#       }
+#   }
+#
+#   if (length(object[[x]]) > raster.cutoff) {
+#     geom_func <- scattermore::geom_scattermore(pointsize = size.raster, alpha = 1)
+#   } else {
+#     if( !is.null(group.by) ){
+#       geom_func <- ggplot2::geom_point(size = size, alpha = 1)
+#     }else{
+#       geom_func <- ggplot2::geom_point(size = size, alpha = 1, color=color[1])
+#     }
+#   }
+#
+#   if( !is.null(group.by) ){
+#     p1 <- ggplot2::ggplot(data = object,
+#                  mapping = ggplot2::aes(x = .data[[x]], y = .data[[y]], color =.data[[group.by]]))
+#
+#   }else{
+#     p1 <- ggplot2::ggplot(data = object,
+#                  mapping = ggplot2::aes(x = .data[[x]], y = .data[[y]] ))
+#   }
+#
+#   p1 <- p1 +
+#     geom_func +
+#     # scientific_theme(base_size = 15)+
+#     ggplot2::guides(color=ggplot2::guide_legend(nrow = guide.nrow, override.aes = list(size=4)))+
+#     ggplot2::theme_classic(base_size = 15)+
+#     ggplot2::scale_colour_manual(values = color)
+#
+#   if(log.x){
+#     p1 <- p1 + ggplot2::scale_x_log10()
+#   }
+#   if(log.y){
+#     p1 <- p1 + ggplot2::scale_y_log10()
+#   }
+#   if(ggside){
+#     p1 <- p1 +
+#       ggside::geom_xsidedensity(show.legend	=F, linewidth=0.6)+
+#       ggside::scale_xsidey_continuous(expand = c(0, 0),labels = c(NULL,NULL,NULL,NULL))+
+#       ggside::geom_ysidedensity(show.legend	=F, linewidth=0.6)+
+#       ggside::scale_ysidex_continuous(expand = c(0, 0),labels = c(NULL,NULL,NULL,NULL))+
+#       # ggside::theme_ggside_void()
+#       ggplot2::theme(ggside.panel.scale=0.25,ggside.axis.line=ggplot2::element_blank(),
+#             ggside.axis.ticks=ggplot2::element_blank() )
+#   }
+#   if(!is.null(split.by)){
+#     p1 <- p1 + ggplot2::facet_wrap(~ get(split.by), ncol = ncol)
+#   }
+#   return(p1)
+# }
 
 plotScatter2 <- function(object, x, y, group.by=NULL, color=NULL, ggside=T,
                         log.x=T, log.y=T, split.by =NULL, ncol=2,guide.nrow=10,

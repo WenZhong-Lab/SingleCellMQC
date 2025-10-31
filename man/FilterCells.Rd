@@ -9,7 +9,8 @@ FilterCells(
   filter_columns = NULL,
   filter_logic = "or",
   split.by = "orig.ident",
-  return.table = FALSE
+  return.table = FALSE,
+  verbose = TRUE
 )
 }
 \arguments{
@@ -29,6 +30,9 @@ Default is "orig.ident".}
 \item{return.table}{Logical. If TRUE, returns a data.frame summarizing the number of cells
 before and after filtering, including cases with and without split.by.
 If FALSE, returns the filtered Seurat object. Default is FALSE.}
+
+\item{verbose}{A logical value. If \code{TRUE} (default), the message will be printed.
+If \code{FALSE} , the message will be suppressed (not printed).}
 }
 \value{
 If \code{return.table} is TRUE, returns a data.frame summarizing the number of cells

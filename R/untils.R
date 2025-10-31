@@ -606,4 +606,35 @@ get_colors <- function(n) {
 }
 
 
+checkAssay <- function(object, assay="RNA"){
+  index = assay %in% names(object@assays)
+  return(index)
+}
+
+
+.log_msg <- function(msg_text, verbose = FALSE) {
+  if (verbose) {
+    message(msg_text)
+  }
+  invisible(NULL)
+}
+.log_cat <- function(text, verbose = FALSE) {
+  if (verbose) {
+    cat(text)
+  }
+  invisible(NULL)
+}
+
+.clrBP <- function(expADT){
+  if(is(expADT, "dgCMatrix") ){
+    expADT <- as(expADT, "IterableMatrix")
+  }else if(is(expADT, "matrix") |  is(expADT, "data.frame")){
+    expADT <- as(expADT, "dgCMatrix")
+    expADT <- as(expADT, "IterableMatrix")
+  }
+  log_sums <- BPCells::colSums(log1p(expADT ), na.rm = TRUE)
+  scale_factors <- exp(log_sums / nrow(expADT))
+  exp <- log1p(  BPCells::multiply_cols(expADT ,1/ scale_factors) )
+  return(exp)
+}
 

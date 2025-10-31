@@ -162,12 +162,17 @@ RunVarPartPseudobulk <- function(object, variables=NULL, formula=NULL){
     }
 
     message(paste0(format(Sys.time(), "%H:%M:%S"), "-------- Processing expression data: ", group_name))
-    print(formula)
     process_data <- dreamlet:::processOneAssay(exp, formula = formula, data = metadat, n.cells = ncells_vec)
     message(paste0(format(Sys.time(), "%H:%M:%S"), "-------- Variance partition: ", group_name))
     varPart_metadata <- metadat[match(colnames(process_data), rownames(metadat)), , drop=FALSE]
     formula <- dreamlet::removeConstantTerms(formula, varPart_metadata)
     formula <- dreamlet::dropRedundantTerms(formula, varPart_metadata)
+    print(formula)
+    if (as.character(formula)[2] == "1" & length(as.character(formula))==2  ) {
+      message(paste0(format(Sys.time(), "%H:%M:%S"), ": Warning: Final formula for group simplified to '~1'. Skipping variance partitioning for this group."))
+      return(NULL) # 如果是 ~1，则返回 NULL
+    }
+
     varPart <- variancePartition::fitExtractVarPartModel(process_data, formula, varPart_metadata)
     varPart <- data.frame(Group = group_name, Feature=rownames(varPart), data.frame(varPart))
     return(varPart)
@@ -246,6 +251,7 @@ RunVarPartPseudobulk <- function(object, variables=NULL, formula=NULL){
 RunVarPartPseudobulkPCA <- function(object, variables=NULL, nPCs=2, formula=NULL){
   mat <- object$pseudobulk_mat
   meta_data <- object$pseudobulk_metadata
+  assay = object$assay
 
   if(!is.null(formula)){
     # if formula is not null
@@ -261,47 +267,92 @@ RunVarPartPseudobulkPCA <- function(object, variables=NULL, nPCs=2, formula=NULL
     group_name <- names(mat)
     plot_list <- lapply(group_name, function(x){
       message(paste0(format(Sys.time(), "%H:%M:%S"), "-------- runPseudobulkPCA: ", x))
-      seu <- runPseudobulkPCA(mat[[x]], metadata = meta_data)
+      seu <- runPseudobulkPCA(mat[[x]], metadata = meta_data, assay = assay)
       ## subset pca embeddings & metadata
       pca_res <- Seurat::Embeddings(seu, "pca")
       nPCs <- min(ncol(pca_res),nPCs)
       pca_res_meta <- meta_data[match(rownames(pca_res), rownames(meta_data)), , drop=F]
       formula <- dreamlet::removeConstantTerms(formula, pca_res_meta)
+      formula <- dreamlet::dropRedundantTerms(formula, pca_res_meta)
+
       formula <- stats::update(formula, as.formula("feature ~ ."))
       #formula <- dreamlet::dropRedundantTerms(formula, varPart_metadata)
       ## pca varpart
       # lmer
       out <- lapply(1:nPCs, function(y){
         res_temp <- data.frame(feature=pca_res[, y], pca_res_meta)
-        fm <- lmerTest::lmer(formula, data = res_temp)
-        varPart <- variancePartition::calcVarPart(fm)
+        fm <- tryCatch({
+          lmerTest::lmer(formula, data = res_temp)
+        }, error = function(e) {
+          warning(paste0(format(Sys.time(), "%H:%M:%S"), "-------- Warning: lmer model fitting failed for PC ", colnames(pca_res)[y], " in group '", x, "'. Error: ", e$message))
+          return(NULL)
+        })
+        if (is.null(fm)) {
+          return(NULL)
+        }
+        varPart <- tryCatch({
+          variancePartition::calcVarPart(fm)
+        }, error = function(e) {
+          warning(paste0(format(Sys.time(), "%H:%M:%S"), "-------- Warning: variancePartition::calcVarPart failed for PC ", colnames(pca_res)[y], " in group '", x, "'. Error: ", e$message))
+          return(NULL)
+        })
+        return(varPart)
       })
-      out <- do.call(rbind, out)
-      out <- data.frame(Group=x, Feature=colnames(pca_res)[1:nPCs], out)
-      return(out)
+      out_filtered <- out[!sapply(out, is.null)]
+      if (length(out_filtered) == 0) {
+        warning(paste0(format(Sys.time(), "%H:%M:%S"), "-------- Warning: All PCA components failed to fit or calculate variance partition for group '", x, "'. Returning NULL."))
+        return(NULL)
+      }
+      out_combined <- do.call(rbind, out_filtered)
+      successful_pcs_indices <- which(!sapply(out, is.null))
+      out_final <- data.frame(Group=x, Feature=colnames(pca_res)[successful_pcs_indices], out_combined)
+      return(out_final)
     })
     names(plot_list) <- NULL
     plot_list <- do.call(gtools::smartbind, plot_list)
     return(plot_list)
   }else{
     message(paste0(format(Sys.time(), "%H:%M:%S"), "-------- runPseudobulkPCA "))
-    seu <- runPseudobulkPCA(mat, metadata = meta_data)
+    seu <- runPseudobulkPCA(mat, metadata = meta_data, assay = assay)
     ## subset pca embeddings & metadata
     pca_res <- Seurat::Embeddings(seu, "pca")
     nPCs <- min(ncol(pca_res),nPCs)
     pca_res_meta <- meta_data[match(rownames(pca_res), rownames(meta_data)), , drop=F]
     formula <- dreamlet::removeConstantTerms(formula, pca_res_meta)
+    formula <- dreamlet::dropRedundantTerms(formula, pca_res_meta)
     formula <- stats::update(formula, as.formula("feature ~ ."))
+
     ## pca varpart
     # lmer
     out <- lapply(1:nPCs, function(y){
       res_temp <- data.frame(feature=pca_res[, y], pca_res_meta)
-      fm <- lmerTest::lmer(formula, data = res_temp)
-      varPart <- variancePartition::calcVarPart(fm)
+      fm <- tryCatch({
+        lmerTest::lmer(formula, data = res_temp)
+      }, error = function(e) {
+        warning(paste0(format(Sys.time(), "%H:%M:%S"), "-------- Warning: lmer model fitting failed for PC ", colnames(pca_res)[y], " in group 'No cluster'. Error: ", e$message))
+        return(NULL)
+      })
+      if (is.null(fm)) {
+        return(NULL)
+      }
+      varPart <- tryCatch({
+        variancePartition::calcVarPart(fm)
+      }, error = function(e) {
+        warning(paste0(format(Sys.time(), "%H:%M:%S"), "-------- Warning: variancePartition::calcVarPart failed for PC ", colnames(pca_res)[y], " in group 'No cluster'. Error: ", e$message))
+        return(NULL)
+      })
+      return(varPart)
     })
-    out <- do.call(rbind, out)
-    out <- data.frame(Group="No cluster", Feature=colnames(pca_res)[1:nPCs], out)
-    return(out)
+
+    out_filtered <- out[!sapply(out, is.null)]
+    if (length(out_filtered) == 0) {
+      warning(paste0(format(Sys.time(), "%H:%M:%S"), "-------- Warning: All PCA components failed to fit or calculate variance partition for group 'No cluster'. Returning NULL."))
+      return(NULL)
+    }
+    out_combined <- do.call(rbind, out_filtered)
+    successful_pcs_indices <- which(!sapply(out, is.null))
+    out_final <- data.frame(Group="No cluster", Feature=colnames(pca_res)[successful_pcs_indices], out_combined)
+    return(out_final)
   }
 }
 
@@ -489,173 +540,6 @@ plotVarPartStackBar <- function(object,
 
   return(plt)
 }
-
-
-
-# ##############################################################################
-# #
-# #  VariancePartition (Cell single variable)
-# #
-# ##############################################################################
-
-
-.lmR2 <- function(x, y) {
-  if (ncol(x) != length(y)) {
-    stop("The number of columns in x must match the length of y.")
-  }
-
-  mean_x <- BPCells::rowMeans(x)
-  mean_y <- mean(y)
-
-  # beta1
-  ma_value <- BPCells::multiply_cols(BPCells::add_rows(x, - mean_x),  y - mean_y)
-  numerator <- BPCells::rowSums( ma_value  )
-  denominator <- BPCells::rowSums((x-mean_x)^2)
-  beta1 <- numerator / denominator
-
-  # beta0
-  beta0 <- mean_y - beta1 * mean_x
-
-  # pred value
-  y_pred <- beta0 + x*beta1
-
-  # R^2
-  ss_total <- sum((y - mean_y)^2)
-  ss_residual <- BPCells::rowSums( (BPCells::add_cols(y_pred, -y)) ^2  )
-  R2 <- 1 - ss_residual / ss_total
-  names(R2) <- rownames(x)
-  return(R2)
-}
-
-.aovR2 <- function (x, y){
-  if (ncol(x) != length(y)) {
-    stop("The number of columns in x must match the length of y.")
-  }
-
-  #SST
-  SST <- BPCells::rowVars(x)*( dim(x)[2]-1 )
-  ##SSE
-  group_indices <- split(colnames(x), y)
-  result_list <- lapply(names(group_indices), function(group_name) {
-    cols <- group_indices[[group_name]]
-    if (length(cols) == 1) {
-      return(0)
-    }
-    group_vars <- BPCells::rowVars(x[, cols, drop = FALSE]) * (length(cols) -1)
-    return(group_vars)
-  })
-  SSE <- Matrix::rowSums( do.call(cbind, result_list) )
-  R2 <- 1 - SSE/SST
-  names(R2) <- rownames(x)
-  return(R2)
-}
-
-#' @rdname RunVarExplained
-#' @export
-RunVarExplained.Seurat <- function(object, assay="RNA", variables=NULL, ...){
-
-  if(is.null(variables)){
-    stop(" `variables` is missing")
-  }
-
-  if(assay=="RNA"){
-    SeuratObject::DefaultAssay(object) <-"RNA"
-    object <- Seurat::NormalizeData(object,assay="RNA", verbose =F)
-    exp <- Seurat::GetAssayData(object, assay = "RNA", slot = "data")
-  }else if(assay=="ADT"){
-    SeuratObject::DefaultAssay(object) <- 'ADT'
-    if ( "BPCells" %in% attr(class(Seurat::GetAssayData(object, assay = "ADT", slot = "counts")), "package") ) {
-      expADT <- Seurat::GetAssayData(object, assay = "ADT", slot = "counts")
-      log_sums <- BPCells::colSums(log1p(expADT ), na.rm = TRUE)
-      scale_factors <- exp(log_sums / nrow(expADT))
-      exp <- log1p(  BPCells::multiply_cols(expADT ,1/ scale_factors) )
-    }else{
-      Seurat::DefaultAssay(object) <- "ADT"
-      Seurat::VariableFeatures(object) <- rownames(object[["ADT"]])
-      object <- Seurat::NormalizeData(object, normalization.method = 'CLR', margin = 2, verbose =F)
-      exp <- Seurat::GetAssayData(object, assay = "ADT", slot = "data")
-    }
-  }else{
-    stop("Invalid `assay`, only `RNA` or `ADT`.")
-  }
-
-  if(is(exp, "dgCMatrix") ){
-    exp <- as(exp, "IterableMatrix")
-  }else if(is(exp, "matrix") ){
-    exp <- as(exp, "dgCMatrix")
-    exp <- as(exp, "IterableMatrix")
-  }
-
-  rsquared_mat <- .getVarExplained(object=exp, metadata=object@meta.data, variables = variables)
-  return(rsquared_mat)
-}
-
-#' @rdname RunVarExplained
-#' @export
-RunVarExplained.IterableMatrix <- function(object, metadata, variables=NULL, ...) {
-  out <- .getVarExplained(object=object, metadata=metadata, variables=variables, ...)
-  return(out)
-}
-
-#' @rdname RunVarExplained
-#' @export
-RunVarExplained.default <- function(object, metadata, variables=NULL, ...) {
-  if(is(object, "dgCMatrix") ){
-    object <- as(object, "IterableMatrix")
-  }else if(is(object, "matrix") |  is(object, "data.frame")){
-    object <- as(object, "dgCMatrix")
-    object <- as(object, "IterableMatrix")
-  }
-  out <- .getVarExplained(object=object, metadata=metadata, variables=variables, ...)
-  return(out)
-}
-
-
-.getVarExplained <- function(object, metadata, variables = NULL) {
-  if (is.null(variables)) {
-    variables <- colnames(metadata)
-  }
-  R2 <- lapply(variables, function(x) {
-    if (is.character(metadata[[x]]) | is.factor(metadata[[x]])) {
-      metadata[[x]] <- as.character(metadata[[x]])
-      if (length(unique(metadata[[x]])) <= 1) {
-        warning(sprintf("Variable '%s' has fewer than 2 unique levels. Skipping.", x))
-        return(NULL)
-      }
-      if (length(unique(metadata[[x]])) == nrow(metadata)) {
-        warning(sprintf(
-          "Variable '%s' has a unique value for every observation (R2=100%% is trivial and uninformative). Skipping.",
-          x
-        ))
-        return( NULL )
-      }
-
-      out <- .aovR2(object, metadata[[x]])
-
-    } else if (is.numeric(metadata[[x]])) {
-      if (nrow(metadata) <= 2) {
-        warning(sprintf(
-          " Variable '%s' has <= 2 value for lm. Skipping.",
-          x
-        ))
-        return( NULL )
-      }
-
-      out <- .lmR2(object, metadata[[x]])
-
-    } else {
-      stop("Metadata must be numeric or character.")
-    }
-
-    return(out)
-  })
-  names(R2) <- variables
-  R2 <- base::Filter(Negate(is.null), R2)
-  R2 <- do.call(cbind, R2)
-  rownames(R2) <- rownames(object)
-  return(R2 * 100)
-}
-
 
 
 

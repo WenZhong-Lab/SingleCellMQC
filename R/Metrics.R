@@ -521,7 +521,8 @@ CalculateMetricsPerSample.summary <- function(object,
 #'
 #' @param object A Seurat object.
 #' @param add.Seurat Logical, if TRUE, adds the computed metrics to the Seurat object. Otherwise, returns a list or data.frame with the metrics.
-#' @param verbose Logical, if TRUE, prints progress messages.
+#' @param verbose A logical value. If `TRUE` (default), the message will be printed.
+#'              If `FALSE` , the message will be suppressed (not printed).
 #' @param sample.by The column name by which to group samples for metrics computation.
 #'
 #'
@@ -531,22 +532,25 @@ CalculateMetricsPerSample.summary <- function(object,
 #' \dontrun{
 #' data <- CalculateMetricsPerFeature(data, add.Seurat= T)
 #' }
-CalculateMetricsPerFeature <- function(object, add.Seurat= T, verbose=F, sample.by= "orig.ident"){
+CalculateMetricsPerFeature <- function(object, add.Seurat= T, verbose=TRUE, sample.by= "orig.ident"){
   if (!("Seurat" %in% class(object))) {
     stop("Error: Seurat object must be as input!!")
   }
 
   index <- names(object@assays)
   out <- lapply(index, function(x){
-    message(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
-                  "------CalculateMetricsPerFeature assay:", x))
+
+    .log_msg(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+                  "------CalculateMetricsPerFeature assay:", x), verbose = verbose)
+
     exp <- Seurat::GetAssayData(object, slot = "counts", assay = x)
     row_indices <- split(1:ncol(exp), object@meta.data[[sample.by]])
     split_matrices <- lapply(row_indices, function(idx) exp[, idx, drop = FALSE])
-    split_matrices <- c(list(All=exp), split_matrices)
     out_list <- lapply( names(split_matrices), function(y){
-      message(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
-                    "------CalculateMetricsPerFeature ", y))
+
+      .log_msg(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+                    "------CalculateMetricsPerFeature ", y), verbose = verbose)
+
       return(.calPerFeature(split_matrices[[y]],x))
     })
     names(out_list) <- names(split_matrices)
@@ -569,8 +573,29 @@ CalculateMetricsPerFeature <- function(object, add.Seurat= T, verbose=F, sample.
   colnames(vst_exp) <- gsub("^vst\\.", "",  colnames(vst_exp) )
   # exp@x <- log(exp@x+1)
   nCell <- Matrix::rowSums(exp>0)
-  # exp_mean <- Matrix::rowMeans(exp)
-  # exp_var <- rowVars(exp)
-  exp_bind <- data.frame(Feature=rownames(exp), nCell=nCell, pct=nCell/dim(exp)[2], vst_exp)
+
+  if(assay=="RNA"){
+    ## mean log1p-expression
+    if(is(exp, "dgCMatrix") ){
+      exp <- as(exp, "IterableMatrix")
+    }
+    exp <- BPCells::multiply_cols(exp, 1/Matrix::colSums(exp))
+    exp <- log1p(exp * 10000) # Log normalization
+    stats <- BPCells::matrix_stats(exp, row_stats="variance")
+    exp_bind <- data.frame(Feature=rownames(exp), nCell=nCell, pct=nCell/dim(exp)[2], vst_exp,
+                           mean_lognorm = stats$row_stats["mean", ],
+                           variance_lognorm = stats$row_stats["variance", ],
+                           cv_lognorm = sqrt(stats$row_stats["variance", ]) /stats$row_stats["mean", ] )
+  }else if(assay=="ADT"){
+    ## mean CLR
+    exp <- .clrBP(exp)
+    stats <- BPCells::matrix_stats(exp, row_stats="variance")
+    exp_bind <- data.frame(Feature=rownames(exp), nCell=nCell, pct=nCell/dim(exp)[2], vst_exp,
+                           mean_clr = stats$row_stats["mean", ],
+                           variance_clr = stats$row_stats["variance", ],
+                           cv_clr = sqrt(stats$row_stats["variance", ]) /stats$row_stats["mean", ] )
+  } else {
+    stop("Unsupported assay type provided. Only 'RNA' and 'ADT' are supported.")
+  }
   return(exp_bind)
 }

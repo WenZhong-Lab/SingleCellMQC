@@ -19,12 +19,19 @@
 #' @param return.table Logical. If TRUE, returns a data.frame summarizing the number of cells
 #'                     before and after filtering, including cases with and without split.by.
 #'                     If FALSE, returns the filtered Seurat object. Default is FALSE.
+#' @param verbose A logical value. If `TRUE` (default), the message will be printed.
+#'              If `FALSE` , the message will be suppressed (not printed).
 #'
 #' @return If `return.table` is TRUE, returns a data.frame summarizing the number of cells
 #'         before and after filtering. If `return.table` is FALSE, returns the filtered Seurat object.
 #'
 #' @export
-FilterCells <- function(object, filter_columns = NULL, filter_logic = "or", split.by = "orig.ident",return.table = FALSE ){
+FilterCells <- function(object,
+                        filter_columns = NULL,
+                        filter_logic = "or",
+                        split.by = "orig.ident",
+                        return.table = FALSE,
+                        verbose=TRUE){
   if(!("Seurat" %in% class(object)) ){
     stop("Error: Seurat object must be as input!!")
   }
@@ -60,8 +67,8 @@ FilterCells <- function(object, filter_columns = NULL, filter_logic = "or", spli
     stringsAsFactors = FALSE
   )
   # Print filtering stats for the entire object
-  cat("Total cells before filtering:", ncol(object), "\n")
-  cat("Total cells after filtering:", sum(out), "\n")
+  .log_cat(paste0("Total cells before filtering:", ncol(object), "\n"), verbose = verbose )
+  .log_cat(paste0("Total cells after filtering:", sum(out), "\n"), verbose = verbose )
 
   summary_table <- rbind(summary_table, data.frame(
     Sample = "Total",
@@ -74,9 +81,9 @@ FilterCells <- function(object, filter_columns = NULL, filter_logic = "or", spli
     split_groups <- unique(object@meta.data[[split.by]])
     for(group in split_groups){
       group_cells <- object@meta.data[[split.by]] == group
-      cat(">>>> Sample:", group, "\n")
-      cat("  Cells before filtering:", sum(group_cells), "\n")
-      cat("  Cells after filtering:", sum(group_cells & out), "\n")
+      .log_cat(paste0(">>>> Sample:", group, "\n"), verbose = verbose )
+      .log_cat(paste0("  Cells before filtering:", sum(group_cells), "\n"), verbose = verbose )
+      .log_cat(paste0("  Cells after filtering:", sum(group_cells & out), "\n"), verbose = verbose )
       summary_table <- rbind(summary_table, data.frame(
         Sample = group,
         Before_Filtering = sum(group_cells),
