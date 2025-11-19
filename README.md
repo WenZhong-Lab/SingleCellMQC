@@ -54,7 +54,7 @@ library(SingleCellMQC)
 | Sample identity verification | `PlotSampleLabel` |
 | Doublet detection | `RunDbt_hybrid`, `RunDbt_bcds`, `RunDbt_cxds`, `RunDbt_scDblFinder`, `RunDbt_DoubletFinder`, `RunDbt_VDJ`, `RunDbt_ADT`, `PlotCellMethodFiltration`, `PlotCellMethodUpset`, `PlotCellMethodVln`, `PlotCellMetricsScatter`, `FilterCells`, `CalculateMetricsPerCell` |
 | Benchmarking of RNA-based doublet detection methods | `RunBenchmarkDoublet`, `PlotBenchmarkDoublet` |
-| Low quality cell detection | `RunLQ_MAD`, `RunLQ_miQC`, `RunLQ_ddqc`, `RunLQ_fixed`, `GetMetricsRange`, `FilterCells`, `PlotCellMethodFiltration`, `PlotCellMethodUpset`, `PlotCellMethodVln`, `PlotCellMetricsScatter`, `CalculateMetricsPerCell` |
+| Low quality cell detection | `RunLQ_MAD`, `RunLQ_miQC`, `RunLQ_ddqc`, `RunLQ_fixed`, `RunLQ_VDJ`, `GetMetricsRange`, `FilterCells`, `PlotCellMethodFiltration`, `PlotCellMethodUpset`, `PlotCellMethodVln`, `PlotCellMetricsScatter`, `CalculateMetricsPerCell` |
 | Background noise correction | `FindContaminationFeature`, `RunCorrection_scCDC`, `RunCorrection_DecontX` |
 | Feature metrics visualization | `CalculateMetricsPerFeature`, `PlotFeatureMetrics`, `PlotFeatureMetricsScatter` |
 | Batch: Sample-level evaluation | `RunPseudobulkData`, `RunVarPartPseudobulk`, `RunVarPartPseudobulkPCA`, `PlotReducedDim`, `PlotVarPartVln`, `PlotVarPartStackBar` |
