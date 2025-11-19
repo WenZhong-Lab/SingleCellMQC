@@ -281,11 +281,6 @@ report.sample <- function(object, VDJ_data=NULL,
 
 
         outlist$VDJ$CDR3$TCR <- PlotSampleVDJ(VDJ_data$TCR, color = NULL, type = "CDR3", scRepertoire_data =scRepertoire_data , return.type = "plot")
-        pdf(paste0(plot_out, "/SingleCellMQC/plot/Sample_QC/VDJ/CDR3/", "TCR_CDR3", ".pdf"),
-            width = 10,
-            height = 8)
-        print( outlist$VDJ$CDR3$TCR )
-        dev.off()
 
         ggplot2::ggsave(paste0(plot_out, "/SingleCellMQC/plot/Sample_QC/VDJ/CDR3/", "TCR_CDR3", ".png"),
                         plot= outlist$VDJ$CDR3$TCR ,
@@ -318,11 +313,6 @@ report.sample <- function(object, VDJ_data=NULL,
         }
         outlist$VDJ$CDR3$BCR <- PlotSampleVDJ(VDJ_data$BCR, color = NULL, type = "CDR3", scRepertoire_data =scRepertoire_data , return.type = "plot")
 
-        pdf(paste0(plot_out, "/SingleCellMQC/plot/Sample_QC/VDJ/CDR3/", "BCR_CDR3", ".pdf"),
-            width = 10,
-            height = 8)
-        print( outlist$VDJ$CDR3$BCR )
-        dev.off()
 
         ggplot2::ggsave(paste0(plot_out, "/SingleCellMQC/plot/Sample_QC/VDJ/CDR3/", "BCR_CDR3", ".png"),
                         plot= outlist$VDJ$CDR3$BCR ,

@@ -52,16 +52,3 @@ Depending on the input parameters, this function returns either a ggplot2::ggplo
 Generates a plot or interactive data table for V(D)J metrics, subtype, CDR3 length, clonal quantification, clonal overlap, and gene usage.
 This function is part of a suite of tools designed for exploring immunological data within single-cell datasets, focusing on V(D)J recombination data.
 }
-\examples{
-\dontrun{
-# Assuming 'seurat_obj' is a Seurat object with V(D)J information:
-## Return a plot
-PlotSampleVDJ(seurat_obj, type = "pct")
-## Return an interactive data table
-PlotSampleVDJ(seurat_obj, type = "subtype", return.interactive_table = TRUE)
-
-# 'VDJ_list': A list object containing 'filtered_contig_annotations' data,
-# assumed to have been processed using the \code{\link{Read10XData}} function.
-PlotSampleVDJ(seurat_obj, type = "clonalOverlap")
-}
-}

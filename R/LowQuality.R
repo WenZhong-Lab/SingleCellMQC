@@ -74,6 +74,39 @@ RunLQ <- function(object, methods=c("ddqc", "miQC", "MAD"), add.Seurat = T,split
 }
 
 
+
+#' VDJ Low quality cells detection in single cell TCR and/or BCR data.
+#'
+#' Performs Low quality cells based on VDJ single chain.
+#' @param object A single-cell object.
+#' @param add.Seurat  Logical; if TRUE, adds the detection results as metadata to the Seurat object and stored in \code{SingleCelMQC} slot in \code{misc}. Otherwise, returns a data.frame of the detection results.
+#' @param ... Additional arguments
+#' @return If `add.Seurat` is TRUE, returns the modified Seurat object. Otherwise, returns a list or data.frame.
+#' @details
+#' The classification as 'Pass' or 'Fail'. 'Fail' represents Low quality cells (single chain).
+#'
+#' @export
+#'
+RunLQ_VDJ <- function(object, add.Seurat=T,...){
+  metadata <- getMetaData(object)
+  if(!("receptor_subtype" %in% colnames(metadata)) ){
+    stop("Error: Please run `CalculateMetrics` function first !!")
+  }
+
+  lq_VDJ_singleChain <- data.frame(lq_VDJ_singleChain=metadata$receptor_subtype)
+  rownames(lq_VDJ_singleChain) <- rownames(metadata)
+  index = grep("^single", unique(metadata$receptor_subtype), value = T )
+  lq_VDJ_singleChain$lq_VDJ_singleChain <- ifelse(metadata$receptor_subtype %in% index, "Fail",
+                          ifelse(!is.na(metadata$receptor_subtype),"Pass",NA))
+  if(add.Seurat){
+    object  <- AddSingleCellMQCData(object, listname = "LowQuality",metadata = lq_VDJ_singleChain)
+    return(object)
+  }
+  return(lq_VDJ_singleChain)
+}
+
+
+
 #' Low quality cells detection based on fixed cutoff
 #'
 #' Identifies low-quality cells based on the fixed cutoff on a Seurat object.

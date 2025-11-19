@@ -1,3 +1,9 @@
+
+# v0.7.1 (25)
+
+- Add 'RunLQ_VDJ()' function.
+- Updated the type names in the `chain_pair` column of the calculated VDJ metrics.
+
 # v0.7.0 (25)
 
 -   Fixed bugs in `Read10XH5Data()`.

@@ -99,6 +99,36 @@ note_grey <- function(text) {
 </div>', text))
 }
 
+metrics_help_details <- function(
+  title,
+  items,
+  open  = FALSE,
+  icon  = "\u2139\uFE0F",    # ℹ️，可换成 "?" 等
+  label = icon               # summary 里显示什么
+) {
+  stopifnot(is.character(title), length(title) == 1)
+  items <- htmltools::htmlEscape(items)  # 防止特殊字符破坏 HTML
+
+  body_md <- paste0("- ", items, collapse = "\n")
+  details_open <- if (isTRUE(open)) " open" else ""
+  title_esc <- htmltools::htmlEscape(title)
+  summary_label <- htmltools::htmlEscape(label)
+
+  block <- paste0(
+    "<details class=\"metrics-help\"", details_open, ">\n",
+    "<summary aria-label=\"", title_esc, "\">", summary_label, "</summary>\n\n",
+    "**", title_esc, "**\n\n",
+    body_md, "\n",
+    "</details>\n"
+  )
+
+  if (isTRUE(getOption("knitr.in.progress"))) {
+    knitr::asis_output(block)
+  } else {
+    cat(block)
+    invisible(block)
+  }
+}
 
 
 data <- params$data

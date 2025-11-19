@@ -129,6 +129,17 @@ if (!is.null(data$Sample$Section1$Metrics$count$statistics) &&
 stat_data <- data$Sample$Section1$Metrics$summary
 if (!is.null(stat_data) && length(stat_data) > 0) {
   cat(paste0("#### Descriptive statistics of cell QC metrics per sample", " {.tabset .unnumbered}\n"))
+  
+# subchunkify(metrics_help_details(
+#   title = "Abbreviations",
+#   items = c(
+#     "Estimated number of cells",
+#     "Median UMI per cell"
+#   )
+# ), seed=paste0("tag_"))
+  
+cat("\n\n")
+
   i=1000
   for (g in names(stat_data)) {
     if (!is.null(stat_data[[g]]$base) && length(stat_data[[g]]$base) > 0) {

@@ -9,6 +9,31 @@ Before installation, we recommend installing these dependencies first:
 -   [Seurat](https://github.com/satijalab/seurat) (single-cell analysis toolkit)
 -   [BPCells](https://github.com/bnprks/BPCells) (memory-efficient single-cell data processing)
 
+```  
+cran_pkgs <- c(
+  "cutoff", "data.table", "dbscan", "dplyr", "factoextra", "ggrepel", "ggplot2",
+  "ggside", "htmltools", "htmlwidgets", "irr", "patchwork", "plotly", "reactable",
+  "reactablefmtr", "scales", "scattermore", "shadowtext", "sparkline", "stringr",
+  "sp", "UpSetR", "MASS", "e1071", "R.utils", "rlang", "rmarkdown", "uwot",
+  "future.apply", "progressr", "future", "aricode", "clusterSim", "fpc",
+  "RColorBrewer", "gtools", "lmerTest", "Matrix", "Seurat", "SeuratObject"
+)
+cran_missing <- cran_pkgs[!cran_pkgs %in% rownames(installed.packages())]
+if (length(cran_missing) > 0) {
+  install.packages(cran_missing)
+}
+
+bioc_pkgs <- c(
+   "MatrixGenerics", "scater", "scDblFinder",
+  "SingleCellExperiment", "S4Vectors", "bluster", "dreamlet", "variancePartition"
+)
+bioc_missing <- bioc_pkgs[!bioc_pkgs %in% rownames(installed.packages())]
+if (length(bioc_missing) > 0) {
+  BiocManager::install(bioc_missing)
+}
+
+```
+
 You can install the development version of `SingleCellMQC` :
 
 ```         

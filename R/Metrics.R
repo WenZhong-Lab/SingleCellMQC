@@ -233,8 +233,8 @@ CalculateMetricsPerCell.VDJ <- function(object){
       count > 2 ~ "multichain",
       count == 2 & unique_count==1 ~ "multichain",
       # grepl("Multi", unique_values) ~ "multichain",
-      unique_count == 1 & count ==1  ~ "single pair",
-      unique_count == 2  ~ "double pair",
+      unique_count == 1 & count ==1  ~ "single chain",
+      unique_count == 2  ~ "pair",
       TRUE ~ "ambiguous"
     )]
     out$chain_pair[out$receptor_subtype=="ambiguous_B" | out$receptor_subtype=="ambiguous_T"] <- "ambiguous"
