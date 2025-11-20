@@ -942,8 +942,13 @@ CellRangerAlerts <- function(object, return.type="table"){
     }
 
   })
+
   Alerts_table <- do.call(rbind, Alerts_table)
+  if(is.null(Alerts_table)){
+    return(NULL)
+  }
   Alerts_table <- as.data.frame(Alerts_table)
+
   Alerts_table <- Alerts_table[, -grep("value", colnames(Alerts_table))]
   Alerts_table <- Alerts_table[, c("Sample", "variable", "Metrics", "Value", "Error cutoff", "Warning cutoff")]
   colnames(Alerts_table)[1:2] <- c("Sample", "Alerts type")
@@ -1206,6 +1211,13 @@ SummarySample <- function(object,
   base_metrics$median_nCount_RNA <- object@misc[["SingleCellMQC"]][["perQCMetrics"]][["perSample"]][["summary"]]$nCount_RNA$Median
 
   # 10 Metrics
+  if( !is.null(object@misc[["SingleCellMQC"]][["perQCMetrics"]][["perSample"]]$Metrics_10x )){
+    metrics_10x <- object@misc[["SingleCellMQC"]][["perQCMetrics"]][["perSample"]]$Metrics_10x
+    base_metrics$mean_RNA_reads_percell = metrics_10x[["RNA: Median reads per cell"]][match(base_metrics$Sample, metrics_10x[,1])]
+
+
+  }
+
   out_10X <- CellRangerAlerts(object)
   if(!is.null(out_10X)){
     Alert_sample_list <- split(out_10X$Sample, out_10X$`Alerts type`)
