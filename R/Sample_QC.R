@@ -1198,6 +1198,7 @@ SummarySample <- function(object,
   # nCell
   base_metrics <- object@misc[["SingleCellMQC"]][["perQCMetrics"]][["perSample"]][["count"]]
   index = match( c("sample", "nCell", "nGene_RNA", "nPro_ADT", "nCell_TCR", "nCell_BCR") , colnames(base_metrics))
+  index=na.omit(index)
   base_metrics <- base_metrics[, index, drop=F]
   colnames(base_metrics)[1] <- "Sample"
 
@@ -1213,9 +1214,10 @@ SummarySample <- function(object,
   # 10 Metrics
   if( !is.null(object@misc[["SingleCellMQC"]][["perQCMetrics"]][["perSample"]]$Metrics_10x )){
     metrics_10x <- object@misc[["SingleCellMQC"]][["perQCMetrics"]][["perSample"]]$Metrics_10x
-    base_metrics$mean_RNA_reads_percell = metrics_10x[["RNA: Median reads per cell"]][match(base_metrics$Sample, metrics_10x[,1])]
-
-
+    index = grep("^RNA: Mean Reads|^RNA: Mean reads|^RNA: mean reads", colnames(metrics_10x), value = T)
+    if(length(index)!=0){
+      base_metrics$mean_RNA_reads_percell = metrics_10x[[index]][match(base_metrics$Sample, metrics_10x[,1])]
+    }
   }
 
   out_10X <- CellRangerAlerts(object)
