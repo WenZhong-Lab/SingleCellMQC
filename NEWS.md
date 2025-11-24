@@ -3,6 +3,7 @@
 
 - Add 'RunLQ_VDJ()' function.
 - Updated the type names in the `chain_pair` column of the calculated VDJ metrics.
+- fix 'Read10XMetrics' function.
 
 # v0.7.0 (25)
 

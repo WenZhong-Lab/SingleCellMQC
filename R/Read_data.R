@@ -325,7 +325,7 @@ Read10XMetrics <- function(file_path, sample_name=NULL){
     }
   })
 
-  out <- do.call(rbind, seq_list)
+  out <- data.table::rbindlist(seq_list, fill = TRUE)
   out <- as.data.frame(out)
   return(out)
 }
