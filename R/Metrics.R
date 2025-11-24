@@ -358,38 +358,25 @@ CalculateMetricsPerSample.count <- function(object, #seurat object
 
   metadata <- object@meta.data
   split_name <- split( as.character(rownames(metadata)), as.character(metadata[[sample.by]]) )
+
   if( "RNA" %in% names(object@assays)){
     SeuratObject::DefaultAssay(object) <- "RNA"
-    counts <- Seurat::GetAssayData(object, assay = "RNA", slot = "counts")
-    out_rna <- lapply(split_name, function(x){
-      count <- data.frame(nCell=length(x), gene_num = sum( Matrix::rowSums(counts[,x], na.rm = T)>0 , na.rm = T ) )
-      colnames(count)[2] <- c("nGene_RNA")
-      return(count)
-    })
-    out_rna <- do.call(rbind,out_rna)
-    out_rna <- data.frame(sample = names(split_name), out_rna)
-    rm(counts)
+    data <- RunPseudobulkData(object, assay = "RNA", slot = "counts", sample.by = sample.by)
+    gene_num <- Matrix::colSums(data$pseudobulk_mat>0)
+    out_rna <- data.frame(data$ncells, nGene_RNA= gene_num)
+    colnames(out_rna) <- c("sample", "nCell", "nGene_RNA")
   }
 
   if( "ADT" %in% names(object@assays)){
     SeuratObject::DefaultAssay(object) <- "ADT"
-    counts <- Seurat::GetAssayData(object, assay = "ADT", slot = "counts")
-    out_adt <- lapply(split_name, function(x){
-      if( length(intersect(x, colnames(counts)))==0  ){
-        count <- data.frame(nPro_ADT=0)
-      }else{
-        count <- data.frame(nPro_ADT = sum( Matrix::rowSums(counts[,x], na.rm = T)>0, na.rm = T ))
-      }
-      return(count)
-    })
-    out_adt <- do.call(rbind,out_adt)
-    out_adt <- data.frame(sample = names(split_name), out_adt)
+    data <- RunPseudobulkData(object, assay = "ADT", slot = "counts", sample.by = sample.by)
+    pro_num <- Matrix::colSums(data$pseudobulk_mat>0)
+    out_adt <- data.frame(sample= names(pro_num), nPro_ADT= pro_num)
     out <- merge(out_rna, out_adt, by = "sample", all = TRUE)
-    rm(counts)
   }else{
     out <- out_rna
   }
-  #
+
   if( "nChain_TCR" %in% colnames(metadata) ){
     ##
     TCR_data <- as.data.table(metadata)

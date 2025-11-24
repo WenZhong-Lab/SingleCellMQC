@@ -16,20 +16,18 @@ toSeuratObject <- function(object, ...){
     }else{
       rna <- Seurat::CreateSeuratObject(object$`Gene Expression`, min.cells = 0, ...)
     }
+    name_col <- colnames(rna)
+    prefix <- sub("_.*$", "", name_col)
+    unique_prefix = unique(prefix)
+    if (length(unique_prefix)!=0) {
+      if( length(unique_prefix) < length(prefix) ){
+        rna$orig.ident = prefix
+      }
+    }
   }else{
     rna <- object
   }
   rm(object)
-
-
-  name_col <- colnames(rna)
-  prefix <- sub("_.*$", "", name_col)
-  unique_prefix = unique(prefix)
-  if (length(unique_prefix)!=0) {
-    if( length(unique_prefix) < length(prefix) ){
-      rna$orig.ident = prefix
-    }
-  }
 
   return(rna)
 }

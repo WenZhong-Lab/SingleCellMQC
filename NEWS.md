@@ -5,6 +5,7 @@
 - Updated the type names in the `chain_pair` column of the calculated VDJ metrics.
 - fix 'Read10XMetrics' function.
 - update Read functions.
+- update 'CalculateMetricsPerSample.count' function.
 
 # v0.7.0 (25)
 
