@@ -16,6 +16,9 @@ ReadVDJ <- function(dir10x, sample=seq_along(dir10x)){
       sample = names(dir10x)
     }
   }
+  names(dir10x) <- .standardizeNames(sample)
+  sample=names(dir10x)
+
   contig_list <- mapply(function(x, y){
     out <- data.table::fread(y, data.table =F)
     out$id <- paste0(x,"_",out$barcode)
@@ -24,6 +27,8 @@ ReadVDJ <- function(dir10x, sample=seq_along(dir10x)){
   contig_list <- structure(contig_list, class = c(class(contig_list), "VDJ"))
   return(contig_list)
 }
+
+
 
 #' Load multi-omics data from 10x
 #'
@@ -66,6 +71,7 @@ Read10XData <- function(dir_GEX=NULL, dir_TCR=NULL, dir_BCR=NULL, sample=NULL,
       }
     }
     names(dir_GEX) <- .standardizeNames(names(dir_GEX))
+    sample =names(dir_GEX)
 
     # Parallelize the processing of each matrix
     message("Reading GEX data...")
@@ -195,6 +201,7 @@ Read10XH5Data <- function(dir_GEX = NULL, dir_TCR = NULL, dir_BCR = NULL, sample
     }
 
     names(dir_GEX) <- .standardizeNames(names(dir_GEX))
+    sample = names(dir_GEX)
 
     # Parallelize the processing of each matrix
     message("Reading GEX data...")
@@ -312,7 +319,8 @@ Read10XMetrics <- function(file_path, sample_name=NULL){
       sample_name <- names(file_path)
     }
   }
-  names(file_path) <- sample_name
+  names(file_path) <- .standardizeNames(sample_name)
+  sample_name = names(file_path)
 
   seq_list <- lapply( sample_name, function(x){
     seq <- data.table::fread( file_path[x])
