@@ -1,6 +1,8 @@
 ## SingleCellMQC
 
-**SingleCellMQC**: A comprehensive quality control workflow for single-cell multi-omics in human health and disease monitoring. The SingleCellMQC pipeline is developed in R and accepts input files from scRNA-seq, surface protein seqencing, scTCR-seq, and scBCR-seq to perform QC analysis. The pipeline utilizes the **Seurat** and **BPCells** objects to store and analyze large data. The pipeline consists of four major QC modules:
+![](https://github.com/DaihanJi/SingleCellMQC-qmd/blob/main/Figure1.png)
+
+**SingleCellMQC**: A comprehensive quality control workflow for single-cell single omics or multi-omics. The SingleCellMQC workflow consists of four major QC modules: sample-level QC, cell-level QC, feature-level QC, and batch-level QC. All functions within the SingleCellMQC package are built upon the Seurat and BPCells frameworks and are compatiable with commonly used single-cell analysis pipelines. Each QC module can be executed independently, allowing users to perform QC tasks for specific aims. Moreover, interactive HTML reports summarizing QC results can be generated via the ‘RunReport’ function. In addition, the workflow is optimized for large-scale datasets, and all QC tasks can be executed on a standard laptop without requiring high-performance computing.
 
 ## R Installation
 
@@ -44,6 +46,10 @@ devtools::install_github('WenZhong-Lab/SingleCellMQC')
 library(SingleCellMQC)
 ```
 
+## Detail Documentation
+
+The comprehensive documentation: <https://daihanji.github.io/SingleCellMQC-qmd/>
+
 ## 📝 Key functions
 
 | **Main Task** | **Main SingleCellMQC Functions Used** |
@@ -56,7 +62,7 @@ library(SingleCellMQC)
 | Benchmarking of RNA-based doublet detection methods | `RunBenchmarkDoublet`, `PlotBenchmarkDoublet` |
 | Low quality cell detection | `RunLQ_MAD`, `RunLQ_miQC`, `RunLQ_ddqc`, `RunLQ_fixed`, `RunLQ_VDJ`, `GetMetricsRange`, `FilterCells`, `PlotCellMethodFiltration`, `PlotCellMethodUpset`, `PlotCellMethodVln`, `PlotCellMetricsScatter`, `CalculateMetricsPerCell` |
 | Background noise correction | `FindContaminationFeature`, `RunCorrection_scCDC`, `RunCorrection_DecontX` |
-| Feature metrics visualization | `CalculateMetricsPerFeature`, `PlotFeatureMetrics`, `PlotFeatureMetricsScatter` |
+| Feature metrics visualization | `CalculateMetricsPerFeature`, `PlotFeatureMetrics`, `PlotFeatureMetricsScatter` , `PlotFeatureMeanVariance` |
 | Batch: Sample-level evaluation | `RunPseudobulkData`, `RunVarPartPseudobulk`, `RunVarPartPseudobulkPCA`, `PlotReducedDim`, `PlotVarPartVln`, `PlotVarPartStackBar` |
 | Batch: Cell-level evaluation | `RunPipeline`, `PlotReducedDim` |
 | Batch: Feature-level evaluation | `RunBatchGTE`, `PlotGTEBar` |
@@ -68,3 +74,8 @@ library(SingleCellMQC)
 [scater](https://bioconductor.org/packages/release/bioc/html/scater.html), [Seurat](https://satijalab.org/seurat/), [miQC](https://github.com/greenelab/miQC), [ddqc](https://github.com/ayshwaryas/ddqc), [decontX](https://github.com/campbio/decontX), [scCDC](https://github.com/ZJU-UoE-CCW-LAB/scCDC), [scDblFinder](https://github.com/plger/scDblFinder), [scds](https://github.com/kostkalab/scds), [DoubletFinder](https://github.com/chris-mcginnis-ucsf/DoubletFinder), [DropletUtils](https://github.com/MarioniLab/DropletUtils), [scRepertoire](https://github.com/BorchLab/scRepertoire), [GTEs](https://github.com/yzhou1999/GTEs/).
 
 **Other Key Packages For QC**: [BPCells](https://github.com/bnprks/BPCells), [COSG](https://github.com/genecell/COSGR), [ScType](https://github.com/IanevskiAleksandr/sc-type#readme), [variancePartition](https://github.com/GabrielHoffman/variancePartition), [dreamlet](https://github.com/GabrielHoffman/dreamlet), [reactable](https://glin.github.io/reactable/index.html)
+
+## Examples: Data and QC HTML Reports
+
+Access URL: https://doi.org/10.5281/zenodo.15120930
+

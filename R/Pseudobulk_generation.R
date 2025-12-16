@@ -43,7 +43,6 @@
 #' (if provided). The pseudobulk metadata is constructed by aggregating unique or
 #' mean values of specified metadata columns for each pseudobulk sample.
 #'
-#' @importFrom BPCells pseudobulk_matrix
 #' @importFrom stats aggregate
 #' @export
 RunPseudobulkData <- function(object, assay = "RNA",slot = "counts",

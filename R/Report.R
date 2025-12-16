@@ -24,7 +24,7 @@
 #'                         Defaults to `"rna_cluster"`.
 #' @param ADT_cluster_name The name of the column in metadata that stores ADT-based cluster assignments.
 #'                         Used for visualizing ADT clustering and batch effects in multi-modal data.
-#'                         Defaults to `"adt_cluster"`.
+#'                         Defaults to NULL.
 #' @param RNA.batch.by A character vector specifying one or more column names in metadata
 #'                     that represent categorical variables used for RNA batch identification or for
 #'                     grouping cells in PCA/UMAP plots related to RNA data.
@@ -32,7 +32,7 @@
 #' @param ADT.batch.by A character vector specifying one or more column names in metadata
 #'                     that represent categorical variables used for ADT batch identification or for
 #'                     grouping cells in PCA/UMAP plots related to ADT data.
-#'                     Defaults to `"orig.ident"`.
+#'                     Defaults to NULL.
 #' @param celltype.by The name of the column in metadata that contains cell type annotations.
 #'                    This is used for cell type-specific QC metrics and visualizations.
 #'                    Defaults to `"ScType"`.
@@ -75,9 +75,9 @@ RunReport <- function(object=NULL, VDJ_data=NULL, sample.by="orig.ident", output
                       do.feature=TRUE,
                       do.batch=TRUE,
                       RNA_cluster_name="rna_cluster",
-                      ADT_cluster_name="adt_cluster",
+                      ADT_cluster_name=NULL,
                       RNA.batch.by= "orig.ident",
-                      ADT.batch.by="orig.ident",
+                      ADT.batch.by=NULL,
                       RNA.covariate.formula = NULL,
                       ADT.covariate.formula = NULL,
                       RNA.covariate.other=NULL,

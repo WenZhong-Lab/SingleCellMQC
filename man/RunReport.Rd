@@ -14,9 +14,9 @@ RunReport(
   do.feature = TRUE,
   do.batch = TRUE,
   RNA_cluster_name = "rna_cluster",
-  ADT_cluster_name = "adt_cluster",
+  ADT_cluster_name = NULL,
   RNA.batch.by = "orig.ident",
-  ADT.batch.by = "orig.ident",
+  ADT.batch.by = NULL,
   RNA.covariate.formula = NULL,
   ADT.covariate.formula = NULL,
   RNA.covariate.other = NULL,
@@ -63,7 +63,7 @@ Defaults to \code{"rna_cluster"}.}
 
 \item{ADT_cluster_name}{The name of the column in metadata that stores ADT-based cluster assignments.
 Used for visualizing ADT clustering and batch effects in multi-modal data.
-Defaults to \code{"adt_cluster"}.}
+Defaults to NULL.}
 
 \item{RNA.batch.by}{A character vector specifying one or more column names in metadata
 that represent categorical variables used for RNA batch identification or for
@@ -73,7 +73,7 @@ Defaults to \code{"orig.ident"}.}
 \item{ADT.batch.by}{A character vector specifying one or more column names in metadata
 that represent categorical variables used for ADT batch identification or for
 grouping cells in PCA/UMAP plots related to ADT data.
-Defaults to \code{"orig.ident"}.}
+Defaults to NULL.}
 
 \item{RNA.covariate.formula}{An optional formula (e.g., \code{~ (1|batch1) + (1|batch2)}) specifying covariates for
 RNA data used in batch effects analysis.

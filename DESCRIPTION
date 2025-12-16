@@ -42,11 +42,8 @@ Imports:
     scater,
     scDblFinder,
     Seurat,
-    SeuratObject,
     shadowtext,
-    SingleCellExperiment,
     sparkline,
-    S4Vectors,
     stringr,
     sp,
     UpSetR,
@@ -71,6 +68,9 @@ Imports:
     variancePartition,
     BPCells (>= 0.3.0)
 Suggests:
+    SingleCellExperiment,
+    SeuratObject,
+    S4Vectors,
     COSG,
     decontX,
     ddqcR,

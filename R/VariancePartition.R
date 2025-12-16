@@ -43,8 +43,6 @@
 #'
 #'
 #' @importFrom stats as.formula update
-#' @importFrom lmerTest lmer
-#' @importFrom variancePartition calcVarPart
 #' @importFrom gtools smartbind
 #' @export
 #'
@@ -141,8 +139,6 @@ calMetadataVarPart <- function(object,
 #' \code{\link[dreamlet]{processOneAssay}}, \code{\link[variancePartition]{fitExtractVarPartModel}}
 #'
 #' @importFrom stats as.formula
-#' @importFrom dreamlet removeConstantTerms dropRedundantTerms
-#' @importFrom variancePartition fitExtractVarPartModel
 #' @importFrom gtools smartbind
 #' @export
 RunVarPartPseudobulk <- function(object, variables=NULL, formula=NULL){
@@ -162,11 +158,11 @@ RunVarPartPseudobulk <- function(object, variables=NULL, formula=NULL){
     }
 
     message(paste0(format(Sys.time(), "%H:%M:%S"), "-------- Processing expression data: ", group_name))
-    process_data <- dreamlet:::processOneAssay(exp, formula = formula, data = metadat, n.cells = ncells_vec)
+    suppressWarnings(process_data <- dreamlet:::processOneAssay(exp, formula = formula, data = metadat, n.cells = ncells_vec))
     message(paste0(format(Sys.time(), "%H:%M:%S"), "-------- Variance partition: ", group_name))
     varPart_metadata <- metadat[match(colnames(process_data), rownames(metadat)), , drop=FALSE]
-    formula <- dreamlet::removeConstantTerms(formula, varPart_metadata)
-    formula <- dreamlet::dropRedundantTerms(formula, varPart_metadata)
+    suppressWarnings(formula <- dreamlet::removeConstantTerms(formula, varPart_metadata))
+    suppressWarnings(formula <- dreamlet::dropRedundantTerms(formula, varPart_metadata))
     print(formula)
     if (as.character(formula)[2] == "1" & length(as.character(formula))==2  ) {
       message(paste0(format(Sys.time(), "%H:%M:%S"), ": Warning: Final formula for group simplified to '~1'. Skipping variance partitioning for this group."))
@@ -242,10 +238,6 @@ RunVarPartPseudobulk <- function(object, variables=NULL, formula=NULL){
 #'
 #'
 #' @importFrom stats as.formula update
-#' @importFrom lmerTest lmer
-#' @importFrom variancePartition calcVarPart
-#' @importFrom dreamlet removeConstantTerms
-#' @importFrom Seurat Embeddings
 #' @importFrom gtools smartbind
 #' @export
 RunVarPartPseudobulkPCA <- function(object, variables=NULL, nPCs=2, formula=NULL){
@@ -272,8 +264,10 @@ RunVarPartPseudobulkPCA <- function(object, variables=NULL, nPCs=2, formula=NULL
       pca_res <- Seurat::Embeddings(seu, "pca")
       nPCs <- min(ncol(pca_res),nPCs)
       pca_res_meta <- meta_data[match(rownames(pca_res), rownames(meta_data)), , drop=F]
+      suppressWarnings({
       formula <- dreamlet::removeConstantTerms(formula, pca_res_meta)
       formula <- dreamlet::dropRedundantTerms(formula, pca_res_meta)
+      })
 
       formula <- stats::update(formula, as.formula("feature ~ ."))
       #formula <- dreamlet::dropRedundantTerms(formula, varPart_metadata)
@@ -318,8 +312,8 @@ RunVarPartPseudobulkPCA <- function(object, variables=NULL, nPCs=2, formula=NULL
     pca_res <- Seurat::Embeddings(seu, "pca")
     nPCs <- min(ncol(pca_res),nPCs)
     pca_res_meta <- meta_data[match(rownames(pca_res), rownames(meta_data)), , drop=F]
-    formula <- dreamlet::removeConstantTerms(formula, pca_res_meta)
-    formula <- dreamlet::dropRedundantTerms(formula, pca_res_meta)
+    suppressWarnings(formula <- dreamlet::removeConstantTerms(formula, pca_res_meta))
+    suppressWarnings(formula <- dreamlet::dropRedundantTerms(formula, pca_res_meta))
     formula <- stats::update(formula, as.formula("feature ~ ."))
 
     ## pca varpart

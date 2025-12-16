@@ -124,7 +124,7 @@ PlotSampleCellTypePCT <- function(object, sample.by="orig.ident", celltype.by="S
 #' @param color.text The color of the text annotations on the bar plot. Default is "black".
 #' @param return.type The type of output to return. Supported values include "plot" and "interactive_table". Default is "plot".
 #' @param csv.name The name of the CSV file to download. Default is "count".
-#' @param elementId The ID of the element to use for the interactive table. Default is "count-table".
+#' @param elementId The ID of the element to use for the interactive table.
 #' @param table.subtitle The subtitle to add to the interactive table. Default is "Metrics".
 #' @param maxWidth The maximum width of the interactive table. Default is 85.
 #'
@@ -161,7 +161,7 @@ PlotSampleMetrics <- function(object,
                               color.text = "black",
                               return.type = "plot", ##"plot", "interactive_table"
                               csv.name='count',
-                              elementId="count-table",
+                              elementId=csv.name,
                               table.subtitle="Metrics", maxWidth=85){
 
   if(!("Seurat" %in% class(object)) ){

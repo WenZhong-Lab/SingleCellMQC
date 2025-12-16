@@ -10,7 +10,9 @@ SummarySample(
   tissue = NULL,
   celltype.by = NULL,
   db_filter_columns = NULL,
-  lq_filter_columns = NULL
+  lq_filter_columns = NULL,
+  return.type = "table",
+  csv.name = "SampleSummary"
 )
 }
 \arguments{
@@ -34,6 +36,10 @@ have a "Fail" value in \emph{at least one} of the specified \code{db_filter_colu
 in the object's cell-level metadata. These columns are expected to
 contain "Pass" or "Fail" values. Cells will be considered "low quality filtered" if they
 have a "Fail" value in \emph{at least one} of the specified \code{lq_filter_columns}.}
+
+\item{return.type}{The type of output to return. Supported values include "table" and "interactive_table". Default is "table".}
+
+\item{csv.name}{The name of the CSV file to download. Default is "SampleSummary".}
 }
 \value{
 A data frame, where each row represents a sample (defined by \code{sample.by}),

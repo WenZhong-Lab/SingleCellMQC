@@ -1,11 +1,12 @@
 
 # v0.7.1 (25)
 
-- Add 'RunLQ_VDJ()' function.
+- Add `RunLQ_VDJ()` function.
 - Updated the type names in the `chain_pair` column of the calculated VDJ metrics.
-- fix 'Read10XMetrics' function.
+- fix `Read10XMetrics` function.
 - update Read functions.
-- update 'CalculateMetricsPerSample.count' function.
+- update `CalculateMetricsPerSample.count` function.
+- Add `PlotFeatureMeanVariance` function for Mean-Variance plot.
 
 # v0.7.0 (25)
 

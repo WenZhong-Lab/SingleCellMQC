@@ -16,7 +16,7 @@ PlotSampleMetrics(
   color.text = "black",
   return.type = "plot",
   csv.name = "count",
-  elementId = "count-table",
+  elementId = csv.name,
   table.subtitle = "Metrics",
   maxWidth = 85
 )
@@ -42,7 +42,7 @@ PlotSampleMetrics(
 
 \item{csv.name}{The name of the CSV file to download. Default is "count".}
 
-\item{elementId}{The ID of the element to use for the interactive table. Default is "count-table".}
+\item{elementId}{The ID of the element to use for the interactive table.}
 
 \item{table.subtitle}{The subtitle to add to the interactive table. Default is "Metrics".}
 

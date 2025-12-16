@@ -252,7 +252,6 @@ PlotNoiseGeneClusterMetricsVar <- function(metrics ){
 #'
 #' @importFrom data.table data.table melt
 #' @importFrom ggplot2 ggplot aes geom_bar theme_classic coord_flip labs theme element_text
-#' @importFrom Seurat AddMetaData DotPlot
 #' @importFrom stringr str_extract
 #' @export
 PlotNoiseGeneClusterMetricsGini <- function(object, metrics, cluster_res,  ntop=10, color.bar="#1F78B4"){

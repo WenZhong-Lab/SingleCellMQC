@@ -120,7 +120,6 @@ RunBatchGTE <- function(object, assay = "RNA", slot = "data", group.by, batch.by
 #'   is a list (e.g., pseudobulk PCA plots per cluster).
 #'
 #'
-#' @importFrom SeuratObject Embeddings
 #' @export
 PlotReducedDim <- function(object,
                            group.by = "seurat_clusters",

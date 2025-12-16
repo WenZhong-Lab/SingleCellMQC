@@ -227,6 +227,7 @@ PlotFeatureMetricsScatter <- function(object, group.by=NULL, metrics.by = NULL, 
 #' @param ntop An integer, the number of top features to label. Defaults to 10.
 #' @return A modified ggplot object with added text labels for the top
 #'   'ntop' features.
+#' @export
 AddFeaturePlotLabel <- function(p, metric_order_col, ntop = 10) {
   if (!inherits(p, "ggplot")) {
     stop("Input 'p' must be a ggplot object.")
@@ -251,3 +252,61 @@ AddFeaturePlotLabel <- function(p, metric_order_col, ntop = 10) {
     )
   return(p_labeled)
 }
+
+
+
+#' Plot mean-variance plot by sample
+#'
+#' For each sample within an assay, this function extracts feature-level
+#' mean and variance statistics and plots the mean-variance relationship
+#' using a GAM smoother. Optionally, the ggplot object can be converted
+#' to an interactive plotly plot.
+#'
+#' @param object A list object gets from `CalculateMetricsPerFeature` function.
+#' @param assay Character string specifying which assay to use. Defaults to \code{"RNA"}.
+#' @param mean_col Column name that stores the per-feature means. Defaults to \code{"mean_lognorm"}.
+#' @param var_col Column name that stores the per-feature variances. Defaults to \code{"variance_lognorm"}.
+#' @param return.type Character string specifying the type of object to return.
+#'   Can be \code{"plot"} (default) to return a ggplot object, or \code{"plotly"}
+#'   to return \code{plotly::ggplotly()}.
+#'
+#' @return A ggplot object if \code{return.type = "plot"}, or a plotly object
+#'   if \code{return.type = "plotly"}.
+#' @export
+PlotFeatureMeanVariance <- function(object,
+                                    assay = "RNA",
+                                    mean_col = "mean_lognorm",
+                                    var_col = "variance_lognorm",
+                                    return.type = c("plot", "plotly")) {
+  return.type <- match.arg(return.type)
+
+  if (!assay %in% names(object)) {
+    stop(sprintf("Assay '%s' not found in the provided object.", assay))
+  }
+  if (!all(c(mean_col, var_col) %in% colnames(object[[assay]][[1]]))) {
+    stop(sprintf("Columns '%s' and/or '%s' not found in assay '%s'.",
+                 mean_col, var_col, assay))
+  }
+
+  mean_var <- lapply(names(object[[assay]]), function(sample_name) {
+    df <- object[[assay]][[sample_name]][, c("Feature", mean_col, var_col)]
+    df <- data.frame(df, Sample = sample_name)
+    colnames(df)[colnames(df) == mean_col] <- "mean"
+    colnames(df)[colnames(df) == var_col] <- "variance"
+    df
+  })
+  mean_var <- do.call(rbind, mean_var)
+
+  p <- ggplot2::ggplot(mean_var,
+                       ggplot2::aes(x = mean, y = variance, color = Sample)) +
+    ggplot2::geom_smooth(method = "gam", se = FALSE, size = 1) +
+    ggplot2::theme_classic(base_size = 14) +
+    ggplot2::scale_color_manual(values = get_colors(length(unique(mean_var$Sample))))
+
+  if (return.type == "plot") {
+    return(p)
+  } else {
+    return(plotly::ggplotly(p))
+  }
+}
+

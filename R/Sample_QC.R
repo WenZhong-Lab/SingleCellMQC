@@ -43,8 +43,6 @@
 #' @references
 #' Ianevski, Aleksandr et al. “Fully-automated and ultra-fast cell-type identification using specific marker combinations from single-cell transcriptomic data.” Nature communications vol. 13,1 1246. 10 Mar. 2022, doi:10.1038/s41467-022-28803-w
 #' @seealso \code{\link{ShowDatabaseTissue}} for displaying the available tissue types in the ScType database.
-#' @importFrom dplyr group_by
-#' @importFrom dplyr top_n
 #' @importFrom methods as
 #' @importFrom stats median na.omit
 
@@ -146,7 +144,7 @@ RunScType <- function(object, split.by= NULL, return.name="ScType",
     es.max.cl = sort(rowSums(es.max[ ,rownames( object@meta.data[object@meta.data[[group.by]] %in% cl, ] )]) , decreasing = !0)
     utils::head(data.frame(cluster = cl, type = names(es.max.cl), scores = es.max.cl, ncells = sum(object@meta.data[[group.by]]==cl, na.rm=T)), 10)
   }))
-  sctype_scores = cL_resutls %>% dplyr::group_by(cluster) %>% top_n(n = 1, wt = scores)
+  sctype_scores = cL_resutls %>% dplyr::group_by(cluster) %>% dplyr::top_n(n = 1, wt = scores)
   sctype_scores$type[as.numeric(as.character(sctype_scores$scores)) < sctype_scores$ncells/cutoff] = "Unknown"
   out <- sctype_scores$type[match(object@meta.data[[group.by_final]], sctype_scores$cluster)]
   out <- data.frame(ScType=out)
@@ -1179,6 +1177,8 @@ FindCommonPCTOutlier <- function(object,
 #'   in the object's cell-level metadata. These columns are expected to
 #'   contain "Pass" or "Fail" values. Cells will be considered "low quality filtered" if they
 #'   have a "Fail" value in *at least one* of the specified `lq_filter_columns`.
+#' @param return.type The type of output to return. Supported values include "table" and "interactive_table". Default is "table".
+#' @param csv.name The name of the CSV file to download. Default is "SampleSummary".
 #'
 #' @return A data frame, where each row represents a sample (defined by `sample.by`),
 #'   and columns contain various summary metrics and QC flags.
@@ -1192,8 +1192,9 @@ SummarySample <- function(object,
                           tissue=NULL,
                           celltype.by=NULL,
                           db_filter_columns =NULL,
-                          lq_filter_columns =NULL
-
+                          lq_filter_columns =NULL,
+                          return.type="table",
+                          csv.name="SampleSummary"
                           ){
   # nCell
   base_metrics <- object@misc[["SingleCellMQC"]][["perQCMetrics"]][["perSample"]][["count"]]
@@ -1298,7 +1299,14 @@ SummarySample <- function(object,
     base_metrics <- data.frame(base_metrics, cellpct[, -1, drop=F] , check.names = F)
   }
 
-  return(base_metrics)
+  if("interactive_table" %in% return.type){
+    base_metrics <-  .re_table(base_metrics, csv.name = csv.name, elementId = csv.name, maxWidth = NULL  )
+    return(base_metrics)
+  }
+
+  if("table" %in% return.type){
+    return(base_metrics)
+  }
 
 }
 
