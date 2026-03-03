@@ -8,6 +8,8 @@ RunDbt_DoubletFinder(
   object,
   split.by = "orig.ident",
   add.Seurat = TRUE,
+  slot = "counts",
+  layer = NULL,
   db.rate = NULL,
   split.db.rate.1000 = 0.008,
   PCs = 10,
@@ -22,6 +24,11 @@ RunDbt_DoubletFinder(
 
 \item{add.Seurat}{Logical. If TRUE, the function will add the doublet information back to the input Seurat object
 as new metadata fields. If FALSE, the function will return a data frame containing the doublet detection results. Default is TRUE.}
+
+\item{slot}{A character string specifying the slot to use for expression data (e.g., "counts", "data").}
+
+\item{layer}{Name of layer to get or set. A character string specifying the layer to use for expression
+data (e.g., "counts", "data"). (for Seurat >= V5)}
 
 \item{db.rate}{Numeric. The doublet rate score used to estimate the number of expected doublets.
 Default is calculated as 0.08 * ncol(object)/10000. If NULL, this default formula will be used.}

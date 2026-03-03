@@ -10,6 +10,8 @@ RunDbt_scDblFinder(
   db.rate = NULL,
   split.db.rate.1000 = 0.008,
   split.by = "orig.ident",
+  slot = "counts",
+  layer = NULL,
   seed = 1,
   add.Seurat = T,
   BPtmpdir = "./temp/SingleCellMQC_BPCellsStepBPToPCAScale/",
@@ -26,6 +28,11 @@ RunDbt_scDblFinder(
 \item{split.db.rate.1000}{The expected doublet rate per 1000 cells. Default is 0.008.}
 
 \item{split.by}{A character string specifying the column in the Seurat object's metadata to use for stratifying the dataset before applying doublet detection (e.g., "orig.ident"). Default is "orig.ident".}
+
+\item{slot}{A character string specifying the slot to use for expression data (e.g., "counts", "data").}
+
+\item{layer}{Name of layer to get or set. A character string specifying the layer to use for expression
+data (e.g., "counts", "data"). (for Seurat >= V5)}
 
 \item{seed}{Random seed for reproducibility. Default is 1.}
 

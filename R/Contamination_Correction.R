@@ -26,13 +26,14 @@ FindContaminationFeature <- function(object, assay= "RNA", group.by="seurat_clus
   object_list <- splitObject(object, split.by = split.by)
 
   GCGname_list <- lapply(object_list, function(x){
-    x <- SeuratObject::CreateSeuratObject(counts = x[[assay]] , assay = assay, meta.data = x@meta.data)
+    metadata <- getMetaData(x)
+    x <- SeuratObject::CreateSeuratObject(counts = getMatrix(x, assay = assay), assay = assay, meta.data = metadata)
 
     if(class(x[[assay]]) %in% "Assay5"){
       x[[assay]] <- as(x[[assay]], "Assay")
     }
 
-    SeuratObject::Idents(x) <- paste0("g_",x@meta.data[[group.by]])
+    SeuratObject::Idents(x) <- paste0("g_", metadata[[group.by]])
 
     GCGs <- scCDC::ContaminationDetection(x, restriction_factor=restriction_factor, ...)
     return(rownames(GCGs))
@@ -89,12 +90,13 @@ RunCorrection_scCDC <- function(object, assay= "RNA", slot = "counts", layer=NUL
         count_data <- as(count_data, "dgCMatrix")
 
       }
+      metadata <- getMetaData(object_list[[x]])
       seuObject <- Seurat::CreateSeuratObject(
         counts = count_data,
         assay = assay,
-        meta.data = getMetaData(object_list[[x]])
+        meta.data = metadata
       )
-      SeuratObject::Idents(seuObject) <- seuObject@meta.data[[group.by]]
+      SeuratObject::Idents(seuObject) <- getMetaData(seuObject)[[group.by]]
       cont_genes <- if (!is(features, "list")) features else features[[x]]
       seuObject <- scCDC::ContaminationCorrection(seuObject, cont_genes = cont_genes, ...)
       count <- getMatrix(seuObject, assay = "Corrected", slot = "counts", layer= layer)
@@ -213,8 +215,9 @@ RunCorrection_DecontX <- function(object, split.by = "orig.ident", slot="counts"
   }
 
   counts <- getMatrix(object, assay = "RNA", slot = slot, layer=layer)
+  metadata <- getMetaData(object)
   sce <- SingleCellExperiment::SingleCellExperiment(list(counts = counts))
-  sce <- decontX::decontX(sce, batch=object@meta.data[[split.by]], ...)
+  sce <- decontX::decontX(sce, batch=metadata[[split.by]], ...)
   object[["DecontX_RNA"]] <- Seurat::CreateAssayObject(counts = decontX::decontXcounts(sce))
   return(object)
 }

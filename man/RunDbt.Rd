@@ -9,6 +9,8 @@ RunDbt(
   methods = c("hybrid", "bcds", "cxds", "scDblFinder"),
   add.Seurat = T,
   split.by = "orig.ident",
+  slot = "counts",
+  layer = NULL,
   db.rate = NULL,
   split.db.rate.1000 = 0.008,
   feature.RNA1 = NULL,
@@ -26,6 +28,11 @@ RunDbt(
 \item{add.Seurat}{Logical; if TRUE, adds the doublet detection results as metadata to the Seurat object and stored in \code{SingleCelMQC} slot in \code{misc}. Otherwise, returns a data.frame of the doublet detection results.}
 
 \item{split.by}{A character string specifying the column in the Seurat object's metadata to use for stratifying the dataset before applying doublet detection (e.g., "orig.ident").}
+
+\item{slot}{A character string specifying the slot to use for expression data (e.g., "counts", "data").}
+
+\item{layer}{Name of layer to get or set. A character string specifying the layer to use for expression
+data (e.g., "counts", "data"). (for Seurat >= V5)}
 
 \item{db.rate}{The expected doublet rate, if known; otherwise, it will be estimated 0.08*nCell/10000. Not applicable to VDJ and ADT methods.}
 

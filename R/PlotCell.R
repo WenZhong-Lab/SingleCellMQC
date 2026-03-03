@@ -64,8 +64,8 @@ PlotCellMetrics <-
            linetable=NULL,
            ...
   ){
-    if("Seurat" %in% class(object)){
-      object <- object@meta.data
+    if(inherits(object, "Seurat")){
+      object <- getMetaData(object)
     }else{
       object <- object
     }
@@ -99,7 +99,7 @@ PlotCellMetrics <-
         }
         return(p1)
 
-      },h=stat_list, data=plot_list, i = 1:length(type) ,SIMPLIFY = F)
+      },h=stat_list, data=plot_list, i =1:length(type) ,SIMPLIFY = F)
     }else{
       if(!is.null(linetable)){
         plot_list <- lapply(plot_list, function(pl){
@@ -109,7 +109,7 @@ PlotCellMetrics <-
       }
     }
     if(length(plot_list)==1){
-      plot_list <-  plot_list[[1]]
+      plot_list <- plot_list[[1]]
     }
     return(plot_list)
 
@@ -215,7 +215,7 @@ PlotCellMethodFiltration <- function(object, type.detection ="lq", ##"lq", "db"
   }
 
   if( "Seurat" %in% is(object)){
-    object <- object@meta.data
+    object <- getMetaData(object)
   }
 
   metaname <- colnames(object)
@@ -280,7 +280,7 @@ PlotCellMethodFiltration <- function(object, type.detection ="lq", ##"lq", "db"
 #' @export
 PlotCellMethodUpset <- function(object, type.detection="lq", split.by=NULL, nintersects=20){
   if( "Seurat" %in% is(object)){
-    object <- object@meta.data
+    object <- getMetaData(object)
   }
 
   if( !is.null(split.by) ){
@@ -330,7 +330,7 @@ PlotCellMethodUpset <- function(object, type.detection="lq", split.by=NULL, nint
 #' @export
 PlotCellMethodVln <- function(object, type.detection="lq", split.by=NULL, metrics.by ="nFeature_RNA", color = get_colors(2)[2:1] ){
   if( "Seurat" %in% is(object)){
-    object <- object@meta.data
+    object <- getMetaData(object)
   }
 
   if( !is.null(split.by) ){
@@ -663,7 +663,7 @@ plotScatter3D <- function(object, x, y, z , log.x=T, log.y=T, log.z=T, color=NUL
 PlotCellMetricsScatter <- function(object, group.by=NULL, metrics.by = NULL, split.by=NULL, color=NULL,
                                    ggside=T, log.x = F, log.y = F,log.z=F, raster.cutoff=100000, size =0.3, size.raster= 1, ticks=NULL ){
   if( "Seurat" %in% is(object)){
-    object <- object@meta.data
+    object <- getMetaData(object)
   }
 
   if( !is.null(split.by) ){
@@ -757,7 +757,7 @@ PlotADTCutoff <- function(object, cutoff_table, feature1=NULL, feature2=NULL,
     expbind <- data.frame(expADT1, expADT2)
     colnames(expbind) <- c(feature1, feature2)
   }else{
-    expbind <- data.frame(expADT1, expADT2, group=object@meta.data[[group.by]])
+    expbind <- data.frame(expADT1, expADT2, group=getMetaData(object)[[group.by]])
     colnames(expbind) <- c(feature1, feature2,group.by)
   }
 

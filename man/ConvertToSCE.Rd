@@ -9,7 +9,7 @@
 \usage{
 ConvertToSCE(object, ...)
 
-\method{ConvertToSCE}{Seurat}(object, assay = "RNA", slot = "counts", ...)
+\method{ConvertToSCE}{Seurat}(object, assay = "RNA", slot = "counts", layer = NULL, ...)
 
 \method{ConvertToSCE}{SingleCellExperiment}(object, ...)
 
@@ -24,8 +24,10 @@ object, or a matrix-like object.}
 \item{assay}{The name of the assay to extract from the Seurat object (default: "RNA").
 Only applicable when \code{object} is a Seurat object.}
 
-\item{slot}{The slot to extract from the Seurat object (default: "counts").
-Only applicable when \code{object} is a Seurat object.}
+\item{slot}{A character string specifying the slot to use for expression data (e.g., "counts", "data").}
+
+\item{layer}{Name of layer to get or set. A character string specifying the layer to use for expression
+data (e.g., "counts", "data"). (for Seurat >= V5)}
 }
 \value{
 A SingleCellExperiment object.

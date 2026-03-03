@@ -11,6 +11,7 @@ StatsFeaturePCT(
   split.by = "orig.ident",
   assay = "RNA",
   slot = "counts",
+  layer = NULL,
   return.type = "table"
 )
 }
@@ -26,6 +27,9 @@ StatsFeaturePCT(
 \item{assay}{The assay to use for feature extraction. Default is "RNA".}
 
 \item{slot}{The slot to use for feature extraction. Default is "counts".}
+
+\item{layer}{Name of layer to get or set. A character string specifying the layer to use for expression
+data (e.g., "counts", "data"). (for Seurat >= V5)}
 
 \item{return.type}{Type of output to return. Options are "table" (data frame) or "interactive_table" (interactive HTML table). Default is "table".}
 }

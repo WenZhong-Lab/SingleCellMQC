@@ -7,6 +7,8 @@
 RunDbt_ADT(
   object,
   split.by = "orig.ident",
+  slot = "counts",
+  layer = NULL,
   feature1 = NULL,
   feature2 = NULL,
   method.predict = c("NB", "ROC", "Logit", "LDA"),
@@ -24,6 +26,11 @@ RunDbt_ADT(
 \item{object}{A Seurat object containing assays: ADT or RNA+ADT.}
 
 \item{split.by}{A character string specifying the column in the Seurat object's metadata to use for stratifying the dataset before applying doublet detection (e.g., "orig.ident").}
+
+\item{slot}{A character string specifying the slot to use for expression data (e.g., "counts", "data").}
+
+\item{layer}{Name of layer to get or set. A character string specifying the layer to use for expression
+data (e.g., "counts", "data"). (for Seurat >= V5)}
 
 \item{feature1}{A character vector of the names of the mutually exclusive CITE-seq markers to use for doublet detection.}
 

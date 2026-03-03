@@ -75,6 +75,7 @@ StatsCellFilter <- function(object,
 #' @param split.by A character string specifying the column in the metadata to split cells by. Default is "orig.ident".
 #' @param assay The assay to use for feature extraction. Default is "RNA".
 #' @param slot The slot to use for feature extraction. Default is "counts".
+#' @inheritParams common_params
 #' @param return.type Type of output to return. Options are "table" (data frame) or "interactive_table" (interactive HTML table). Default is "table".
 #'
 #' @return A data frame or an interactive table containing the following columns:
@@ -84,16 +85,16 @@ StatsCellFilter <- function(object,
 #'
 #' @export
 #'
-StatsFeaturePCT <- function(object, feature=NULL, group.by = NULL, split.by = "orig.ident", assay = "RNA", slot="counts", return.type="table") {
+StatsFeaturePCT <- function(object, feature=NULL, group.by = NULL, split.by = "orig.ident", assay = "RNA", slot = "counts", layer = NULL, return.type="table") {
   if(!is(object, "Seurat")) {
     stop("object must be a Seurat object")
   }
   if(is.null(feature)) {
     stop("feature must be specified")
   }
-  metadata <- object@meta.data
+  metadata <- getMetaData(object)
 
-  object <- Seurat::GetAssayData(object, assay=assay, slot=slot)
+  object <- getMatrix(object, assay = assay, slot = slot, layer = layer)
 
   if (!is.null(feature) && length(intersect(feature ,rownames(object)))<length(feature) ) {
     stop("feature not found in object")

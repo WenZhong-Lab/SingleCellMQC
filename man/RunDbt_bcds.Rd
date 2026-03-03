@@ -9,6 +9,8 @@ RunDbt_bcds(
   db.rate = NULL,
   split.db.rate.1000 = 0.008,
   split.by = "orig.ident",
+  slot = "counts",
+  layer = NULL,
   add.Seurat = T,
   BPtmpdir = "./temp/SingleCellMQC_BPCellsStepBPToPCAScale/",
   ...
@@ -22,6 +24,11 @@ RunDbt_bcds(
 \item{split.db.rate.1000}{The expected doublet rate per 1000 cells. Default is 0.008.}
 
 \item{split.by}{Column name by which to group the data before calculating statistics.}
+
+\item{slot}{A character string specifying the slot to use for expression data (e.g., "counts", "data").}
+
+\item{layer}{Name of layer to get or set. A character string specifying the layer to use for expression
+data (e.g., "counts", "data"). (for Seurat >= V5)}
 
 \item{add.Seurat}{Logical; if TRUE, adds the bcds results as metadata to the Seurat object and stored in \code{SingleCelMQC} slot in \code{misc}. Otherwise, returns a data.frame of the bcds results.}
 

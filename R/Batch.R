@@ -183,11 +183,12 @@ plotReducedDim <- function(object,
 ){
   cluster_data <- SeuratObject::Embeddings(object = object, reduction= reduction)
   index <- union( union(group.by, split.by), label)
-  cluster_data <- data.frame(cluster_data, object@meta.data[, index, drop=F])
+  metadata <- getMetaData(object)
+  cluster_data <- data.frame(cluster_data, metadata[, index, drop=F])
   if( is.null(color)){
     color <- get_colors( length(unique(cluster_data[[group.by]])))
   }
-  sample_num <- length(unique(object@meta.data[,split.by]))
+  sample_num <- length(unique(metadata[,split.by]))
   if(is.null(ncol)){
     ncol = ceiling(sqrt(sample_num))
   }
@@ -299,7 +300,7 @@ PlotGTEBar <- function(object, column_name = "GTE_Overall", color = NULL, ntop =
 #' @return A list containing the correlation matrix, Kendall W results, and the qbinom results.
 #' @export
 RunBatchTest <- function(object, sample.by="orig.ident", cluster.by="seurat_clusters", k=3, seed=1, n=100 ){
-  test_data <- data.table(object@meta.data)[, .(count = .N), by = .(sample = get(sample.by), cluster = get(cluster.by))]
+  test_data <- data.table(getMetaData(object))[, .(count = .N), by = .(sample = get(sample.by), cluster = get(cluster.by))]
   test_data <- dcast(test_data, cluster ~ sample, value.var = "count", fill = 0)
   test_data <- as.data.frame(test_data)
   rownames(test_data) <- test_data[,1]

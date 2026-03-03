@@ -1,4 +1,8 @@
 
+# 0.8.0 (26)
+- Adapt slots and layers for better compatibility for new Seurat version.
+- Refactored some functions into a generic architecture to facilitate better integration with non-Seurat objects and future data structures.
+
 # v0.7.1 (25)
 
 - Add `RunLQ_VDJ()` function.

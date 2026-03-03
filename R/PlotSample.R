@@ -33,11 +33,7 @@ PlotSampleCellTypePCT <- function(object, sample.by="orig.ident", celltype.by="S
                                   levels=NULL,color.text.bar="black", color.shadow.bar="white",
                                   return.type = "plot", maxWidth=85){
 
-  if("Seurat" %in% class(object)){
-    metadata <- object@meta.data
-  }else{
-    metadata <- object
-  }
+  metadata <- getMetaData(object)
 
 
   ##
@@ -164,7 +160,7 @@ PlotSampleMetrics <- function(object,
                               elementId=csv.name,
                               table.subtitle="Metrics", maxWidth=85){
 
-  if(!("Seurat" %in% class(object)) ){
+  if(!("Seurat" %in% is(object)) ){
     stop("Error: Seurat object must be as input!!")
   }
 
@@ -528,7 +524,7 @@ PlotSampleVDJ <- function(object, color=NULL,
 
 
     if("interactive_table" %in% return.type){
-      index <- na.omit(unique(object@meta.data[, c("receptor_subtype")]))
+      index <- na.omit(unique(getMetaData(object)[, c("receptor_subtype")]))
       index <- c( paste0(index, "%"), index)
       out$interactive_table <- PlotSampleMetrics(object, return.type = "interactive_table" ,metrics = index, csv.name = "VDJ_subtype", elementId = "vdj_subtype-table",
                                                  table.subtitle="VDJ subtype")
@@ -536,9 +532,9 @@ PlotSampleVDJ <- function(object, color=NULL,
 
     if("plot" %in% return.type){
       if(is.null(color)) {
-        color <- get_colors(length(unique(object@meta.data[,"receptor_subtype"])))
+        color <- get_colors(length(unique(getMetaData(object)[,"receptor_subtype"])))
       }
-      subtype_data <- object@meta.data[, c("orig.ident","receptor_subtype")]
+      subtype_data <- getMetaData(object)[, c("orig.ident","receptor_subtype")]
       chain <- data.table(subtype_data)[, .(count = .N), by=c("orig.ident", "receptor_subtype")][, proportion := count / sum(count), by = orig.ident][!is.na(receptor_subtype)]
       group.by = "orig.ident"
       x = "proportion"
@@ -726,13 +722,13 @@ PlotSampleVDJ <- function(object, color=NULL,
 }
 
 
-CalculateFeaturePCT <- function(object,  split.by="orig.ident", assay="RNA", feature_list= list(Female="XIST", Male=c("DDX3Y", "UTY", "RPS4Y1") ) ){
+CalculateFeaturePCT <- function(object,  split.by="orig.ident", assay="RNA", slot = "counts", layer = NULL, feature_list= list(Female="XIST", Male=c("DDX3Y", "UTY", "RPS4Y1") ) ){
   if( !("Seurat" %in% is(object)) ){
     stop("Error: Input must be Seurat object.")
   }
 
-  exp <- Seurat::GetAssayData(object, slot = "counts", assay = assay)
-  row_indices <- split(1:ncol(exp), object@meta.data[[split.by]])
+  exp <- getMatrix(object, assay = assay, slot = slot, layer = layer)
+  row_indices <- split(1:ncol(exp), getMetaData(object)[[split.by]])
 
   out_list <- lapply( row_indices, function(y){
 
@@ -762,15 +758,18 @@ CalculateFeaturePCT <- function(object,  split.by="orig.ident", assay="RNA", fea
 #' @param feature_list A list of features to calculate the percentage of. The list should be named, with each element containing a vector of feature names.
 #' @param color A vector of colors to use for the bar fill, corresponding to the unique values in `color.by`.
 #' @param return.type A character vector indicating the type of output to return. Supported values include "plot" and "interactive_table".
+#' @inheritParams common_params
 #'
 #' @return A ggplot2::ggplot object representing the bar plot.
 #' @export
 #'
 PlotSampleLabel <- function(object,  sample.by="orig.ident", assay="RNA", feature_list= list(Female="XIST", Male=c("DDX3Y", "UTY", "RPS4Y1") ),
                             color=c("#A6CEE3", "#B2DF8A"),
+                            slot = "counts",
+                            layer = NULL,
                             return.type="plot"){
   if( ("Seurat" %in% is(object)) ){
-    object <- CalculateFeaturePCT(object, split.by=sample.by, assay=assay, feature_list=feature_list)
+    object <- CalculateFeaturePCT(object, split.by=sample.by, assay=assay, slot = slot, layer = layer, feature_list=feature_list)
   }
 
   ##

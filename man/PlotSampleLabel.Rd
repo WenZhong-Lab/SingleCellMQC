@@ -10,6 +10,8 @@ PlotSampleLabel(
   assay = "RNA",
   feature_list = list(Female = "XIST", Male = c("DDX3Y", "UTY", "RPS4Y1")),
   color = c("#A6CEE3", "#B2DF8A"),
+  slot = "counts",
+  layer = NULL,
   return.type = "plot"
 )
 }
@@ -23,6 +25,11 @@ PlotSampleLabel(
 \item{feature_list}{A list of features to calculate the percentage of. The list should be named, with each element containing a vector of feature names.}
 
 \item{color}{A vector of colors to use for the bar fill, corresponding to the unique values in \code{color.by}.}
+
+\item{slot}{A character string specifying the slot to use for expression data (e.g., "counts", "data").}
+
+\item{layer}{Name of layer to get or set. A character string specifying the layer to use for expression
+data (e.g., "counts", "data"). (for Seurat >= V5)}
 
 \item{return.type}{A character vector indicating the type of output to return. Supported values include "plot" and "interactive_table".}
 }

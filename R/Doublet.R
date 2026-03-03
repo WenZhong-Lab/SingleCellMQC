@@ -5,6 +5,7 @@
 #' @param object A Seurat object.
 #' @param methods A character vector specifying which doublet detection methods to apply. Supported methods include: "hybrid", "bcds", "cxds", "scDblFinder", "DoubletFinder", "VDJ", and "ADT".
 #' @param add.Seurat  Logical; if TRUE, adds the doublet detection results as metadata to the Seurat object and stored in \code{SingleCelMQC} slot in \code{misc}. Otherwise, returns a data.frame of the doublet detection results.
+#' @inheritParams common_params
 #' @param split.by A character string specifying the column in the Seurat object's metadata to use for stratifying the dataset before applying doublet detection (e.g., "orig.ident").
 #' @param db.rate The expected doublet rate, if known; otherwise, it will be estimated 0.08*nCell/10000. Not applicable to VDJ and ADT methods.
 #' @param feature.RNA1 Character vector specifying RNA features for ADT doublet detection method.
@@ -18,7 +19,7 @@
 #' @seealso \code{\link{RunDbt_hybrid}}; \code{\link{RunDbt_bcds}}; \code{\link{RunDbt_cxds}}; \code{\link{RunDbt_scDblFinder}}; \code{\link{RunDbt_DoubletFinder}}; \code{\link{RunDbt_VDJ}}; \code{\link{RunDbt_ADT}};
 #' @export
 RunDbt <- function( object, methods=c("hybrid", "bcds", "cxds", "scDblFinder"),
-                    add.Seurat=T, split.by ="orig.ident", db.rate=NULL, split.db.rate.1000=0.008, feature.RNA1 = NULL, feature.RNA2 = NULL,
+                    add.Seurat=T, split.by ="orig.ident", slot = "counts", layer = NULL, db.rate=NULL, split.db.rate.1000=0.008, feature.RNA1 = NULL, feature.RNA2 = NULL,
                     feature.ADT1 =NULL, feature.ADT2 =NULL, ...){
   if (!is.character(methods)) {
     stop("methods should be a character vector.")
@@ -30,7 +31,7 @@ RunDbt <- function( object, methods=c("hybrid", "bcds", "cxds", "scDblFinder"),
   }
 
 
-  object_list <- splitObject(object = object, split.by = split.by)
+  object_list <- splitObject(object = object, split.by = split.by, slot = slot, layer = layer)
   results <- lapply(methods, function(method){
     func_name <- paste0("RunDbt_", method)
     func <- match.fun(func_name)
@@ -43,6 +44,8 @@ RunDbt <- function( object, methods=c("hybrid", "bcds", "cxds", "scDblFinder"),
         split.by = split.by,
         db.rate = db.rate,
         add.Seurat = F,
+        slot = slot,
+        layer = layer,
         ...
       )
     }
@@ -76,6 +79,7 @@ RunDbt <- function( object, methods=c("hybrid", "bcds", "cxds", "scDblFinder"),
 #'
 #' @param object A single-cell object (e.g., Seurat object).
 #' @param db.rate The expected doublet rate, if known; otherwise, it will be estimated 0.08*nCell/10000.
+#' @inheritParams common_params
 #' @param split.by Column name by which to group the data before calculating statistics.
 #' @param add.Seurat Logical; if TRUE, adds the hybrid results as metadata to the Seurat object and stored in \code{SingleCelMQC} slot in \code{misc}. Otherwise, returns a data.frame of the hybrid results.
 #' @param ... Additional arguments to be passed to \code{\link[scds]{cxds_bcds_hybrid}} function from the `scds` package.
@@ -88,12 +92,12 @@ RunDbt <- function( object, methods=c("hybrid", "bcds", "cxds", "scDblFinder"),
 #' @references
 #' Bais, Abha S, and Dennis Kostka. “scds: computational annotation of doublets in single-cell RNA sequencing data.” Bioinformatics (Oxford, England) vol. 36,4 (2020): 1150-1158. doi:10.1093/bioinformatics/btz698
 RunDbt_hybrid <- function(object, db.rate=NULL, split.db.rate.1000=0.008,
-                          split.by="orig.ident",add.Seurat=T, BPtmpdir= "./temp/SingleCellMQC_BPCellsStepBPToPCAScale/", ...){
+                          split.by="orig.ident", slot = "counts", layer = NULL, add.Seurat=T, BPtmpdir= "./temp/SingleCellMQC_BPCellsStepBPToPCAScale/", ...){
   if(!requireNamespace("scds", quietly = TRUE)){
     stop("Error: Please install the scds package first.")
   }
 
-  split_object <- splitObject(object, split.by = split.by, assay="RNA", tmpdir= BPtmpdir)
+  split_object <- splitObject(object, split.by = split.by, assay="RNA", slot = slot, layer = layer, tmpdir= BPtmpdir)
 
   # split_object <- Seurat::SplitObject(object = object, split.by = split.by)
   message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "-------- Doublet dection (hybrid)"))
@@ -106,7 +110,7 @@ RunDbt_hybrid <- function(object, db.rate=NULL, split.db.rate.1000=0.008,
   p <- progressr::progressor(along = 1:length(split_object))
   db_hybrid <- smart_lapply(split_object, function(object_temp){
 
-    x <- ConvertToSCE(object_temp, assay = "RNA")
+    x <- ConvertToSCE(object_temp, assay = "RNA", slot = slot, layer = layer)
     if( is(x@assays@data@listData[["counts"]], "IterableMatrix" ) ){
       x@assays@data@listData[["counts"]] <- as(object = x@assays@data@listData[["counts"]], Class = "dgCMatrix")
     }
@@ -153,6 +157,7 @@ RunDbt_hybrid <- function(object, db.rate=NULL, split.db.rate.1000=0.008,
 #'
 #' @param object A single-cell object (e.g., Seurat object).
 #' @param db.rate The expected doublet rate, if known; otherwise, it will be estimated 0.08*nCell/10000.
+#' @inheritParams common_params
 #' @param split.by Column name by which to group the data before calculating statistics.
 #' @param add.Seurat Logical; if TRUE, adds the bcds results as metadata to the Seurat object and stored in \code{SingleCelMQC} slot in \code{misc}. Otherwise, returns a data.frame of the bcds results.
 #' @param ... Additional arguments to be passed to \code{\link[scds]{bcds}} function from the `scds` package.
@@ -166,13 +171,13 @@ RunDbt_hybrid <- function(object, db.rate=NULL, split.db.rate.1000=0.008,
 #' @references
 #' Bais, Abha S, and Dennis Kostka. “scds: computational annotation of doublets in single-cell RNA sequencing data.” Bioinformatics (Oxford, England) vol. 36,4 (2020): 1150-1158. doi:10.1093/bioinformatics/btz698
 
-RunDbt_bcds <- function(object, db.rate=NULL, split.db.rate.1000=0.008, split.by="orig.ident", add.Seurat=T,
+RunDbt_bcds <- function(object, db.rate=NULL, split.db.rate.1000=0.008, split.by="orig.ident", slot = "counts", layer = NULL, add.Seurat=T,
                         BPtmpdir= "./temp/SingleCellMQC_BPCellsStepBPToPCAScale/", ...){
   if(!requireNamespace("scds", quietly = TRUE)){
     stop("Error: Please install the scds package first.")
   }
 
-  split_object <- splitObject(object, split.by = split.by, assay="RNA", tmpdir= BPtmpdir)
+  split_object <- splitObject(object, split.by = split.by, assay="RNA", slot = slot, layer = layer, tmpdir= BPtmpdir)
   message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "-------- Doublet dection (bcds)"))
 
   known_params <- names(formals(scds::bcds))
@@ -185,7 +190,7 @@ RunDbt_bcds <- function(object, db.rate=NULL, split.db.rate.1000=0.008, split.by
   p <- progressr::progressor(along = 1:length(split_object))
   db_bcds <- smart_lapply(split_object, function(object_temp){
 
-    x <- ConvertToSCE(object_temp, assay = "RNA")
+    x <- ConvertToSCE(object_temp, assay = "RNA", slot = slot, layer = layer)
     if( is(x@assays@data@listData[["counts"]], "IterableMatrix" ) ){
       x@assays@data@listData[["counts"]] <- as(object = x@assays@data@listData[["counts"]], Class = "dgCMatrix")
     }
@@ -230,6 +235,7 @@ RunDbt_bcds <- function(object, db.rate=NULL, split.db.rate.1000=0.008, split.by
 #'
 #' @param object A single-cell object (e.g., Seurat object).
 #' @param db.rate The expected doublet rate, if known; otherwise, it will be estimated 0.08*nCell/10000.
+#' @inheritParams common_params
 #' @param split.by Column name by which to group the data before calculating statistics.
 #' @param add.Seurat Logical; if TRUE, adds the cxds results as metadata to the Seurat object and stored in \code{SingleCelMQC} slot in \code{misc}. Otherwise, returns a data.frame of the cxds results.
 #' @param ... Additional arguments to be passed to \code{\link[scds]{cxds}} function from the `scds` package.
@@ -242,12 +248,12 @@ RunDbt_bcds <- function(object, db.rate=NULL, split.db.rate.1000=0.008, split.by
 #' @references
 #' Bais, Abha S, and Dennis Kostka. “scds: computational annotation of doublets in single-cell RNA sequencing data.” Bioinformatics (Oxford, England) vol. 36,4 (2020): 1150-1158. doi:10.1093/bioinformatics/btz698
 
-RunDbt_cxds <- function(object, db.rate=NULL,  split.db.rate.1000=0.008, split.by="orig.ident",add.Seurat=T, BPtmpdir= "./temp/SingleCellMQC_BPCellsStepBPToPCAScale/", ...){
+RunDbt_cxds <- function(object, db.rate=NULL,  split.db.rate.1000=0.008, split.by="orig.ident", slot = "counts", layer = NULL, add.Seurat=T, BPtmpdir= "./temp/SingleCellMQC_BPCellsStepBPToPCAScale/", ...){
   if(!requireNamespace("scds", quietly = TRUE)){
     stop("Error: Please install the scds package first.")
   }
 
-  split_object <- splitObject(object, split.by = split.by, assay="RNA", tmpdir= BPtmpdir)
+  split_object <- splitObject(object, split.by = split.by, assay="RNA", slot = slot, layer = layer, tmpdir= BPtmpdir)
   message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "-------- Doublet dection (cxds)"))
   known_params <- names(formals(scds::cxds))
   filtered_args <- list(...)
@@ -257,7 +263,7 @@ RunDbt_cxds <- function(object, db.rate=NULL,  split.db.rate.1000=0.008, split.b
 
   p <- progressr::progressor(along = 1:length(split_object))
   db_cxds <- smart_lapply(split_object, function(object_temp){
-    x <- ConvertToSCE(object_temp, assay = "RNA")
+    x <- ConvertToSCE(object_temp, assay = "RNA", slot = slot, layer = layer)
     if( is(x@assays@data@listData[["counts"]], "IterableMatrix" ) ){
       x@assays@data@listData[["counts"]] <- as(object = x@assays@data@listData[["counts"]], Class = "dgCMatrix")
     }
@@ -303,6 +309,7 @@ RunDbt_cxds <- function(object, db.rate=NULL,  split.db.rate.1000=0.008, split.b
 #' @param object A single-cell object (e.g., Seurat object).
 #' @param do.topscore Logical; if TRUE, uses a top scoring method to identify doublets based on scDblFinder scores.
 #' @param db.rate Numeric; the expected doublet rate for the top score method. Default is calculated as 0.08 * number of cells / 10000.
+#' @inheritParams common_params
 #' @param split.by A character string specifying the column in the Seurat object's metadata to use for stratifying the dataset before applying doublet detection (e.g., "orig.ident"). Default is "orig.ident".
 #' @param seed Random seed for reproducibility. Default is 1.
 #' @param add.Seurat Logical; if TRUE, adds the doublet detection results as metadata to the Seurat object and stores it in the `SingleCelMQC` slot in `misc`. Otherwise, returns a data.frame of the doublet detection results. Default is FALSE.
@@ -316,12 +323,12 @@ RunDbt_cxds <- function(object, db.rate=NULL,  split.db.rate.1000=0.008, split.b
 #' @references
 #' Germain, Pierre-Luc et al. “Doublet identification in single-cell sequencing data using scDblFinder.” F1000Research vol. 10 979. 28 Sep. 2021, doi:10.12688/f1000research.73600.2
 #'
-RunDbt_scDblFinder <- function(object, do.topscore=T, db.rate=NULL, split.db.rate.1000=0.008, split.by="orig.ident", seed=1,add.Seurat=T,BPtmpdir= "./temp/SingleCellMQC_BPCellsStepBPToPCAScale/", ...){
+RunDbt_scDblFinder <- function(object, do.topscore=T, db.rate=NULL, split.db.rate.1000=0.008, split.by="orig.ident", slot = "counts", layer = NULL, seed=1,add.Seurat=T,BPtmpdir= "./temp/SingleCellMQC_BPCellsStepBPToPCAScale/", ...){
   if(!requireNamespace("scDblFinder", quietly = TRUE)){
     stop("Error: Please install the scDblFinder package first.")
   }
 
-  split_object <- splitObject(object, split.by = split.by, assay="RNA", tmpdir= BPtmpdir)
+  split_object <- splitObject(object, split.by = split.by, assay="RNA", slot = slot, layer = layer, tmpdir= BPtmpdir)
   message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "-------- Doublet dection (scDblFinder)"))
   known_params <- union(setdiff(names(formals(scDblFinder::scDblFinder)), c("sce", "...", "verbose", "dbr") ), names(formals(scDblFinder::getArtificialDoublets)))
   filtered_args <- list(...)
@@ -331,7 +338,7 @@ RunDbt_scDblFinder <- function(object, do.topscore=T, db.rate=NULL, split.db.rat
   p <- progressr::progressor(along = 1:length(split_object))
   db_scDblFinder <- smart_lapply(split_object, function(object_temp){
 
-    x <- ConvertToSCE(object_temp, assay = "RNA")
+    x <- ConvertToSCE(object_temp, assay = "RNA", slot = slot, layer = layer)
     if( is(x@assays@data@listData[["counts"]], "IterableMatrix" ) ){
       x@assays@data@listData[["counts"]] <- as(object = x@assays@data@listData[["counts"]], Class = "dgCMatrix")
     }
@@ -408,7 +415,7 @@ RunDbt_scDblFinder <- function(object, do.topscore=T, db.rate=NULL, split.db.rat
 #'
 RunDbt_VDJ <- function(object,add.Seurat=T,...){
   if("Seurat" %in% class(object)){
-    metadata <- object@meta.data
+    metadata <- getMetaData(object)
   }else{
     metadata <- object
   }
@@ -438,6 +445,7 @@ RunDbt_VDJ <- function(object,add.Seurat=T,...){
 #' @param split.by Character. The name of the metadata column used to split the Seurat object. Default is "orig.ident".
 #' @param add.Seurat Logical. If TRUE, the function will add the doublet information back to the input Seurat object
 #'        as new metadata fields. If FALSE, the function will return a data frame containing the doublet detection results. Default is TRUE.
+#' @inheritParams common_params
 #' @param db.rate Numeric. The doublet rate score used to estimate the number of expected doublets.
 #'        Default is calculated as 0.08 * ncol(object)/10000. If NULL, this default formula will be used.
 #' @param ... Additional arguments.
@@ -448,7 +456,7 @@ RunDbt_VDJ <- function(object,add.Seurat=T,...){
 #'         Otherwise, returns a data frame with doublet scores and classifications for each cell.
 #'
 #' @export
-RunDbt_DoubletFinder <- function(object,split.by="orig.ident",add.Seurat=TRUE, db.rate=NULL,
+RunDbt_DoubletFinder <- function(object,split.by="orig.ident",add.Seurat=TRUE, slot = "counts", layer = NULL, db.rate=NULL,
                                  split.db.rate.1000=0.008, PCs=10,
                                  BPtmpdir= "./temp/SingleCellMQC_BPCellsStepBPToPCAScale/",...){
   if(!requireNamespace("DoubletFinder", quietly = TRUE)){
@@ -459,7 +467,7 @@ RunDbt_DoubletFinder <- function(object,split.by="orig.ident",add.Seurat=TRUE, d
     stop("Please update the `DoubletFinder` package to version >= 2.0.6")
   }
 
-  split_object <- splitObject(object, split.by = split.by, assay="RNA", tmpdir= BPtmpdir)
+  split_object <- splitObject(object, split.by = split.by, assay="RNA", slot = slot, layer = layer, tmpdir= BPtmpdir)
   message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "-------- Doublet dection (DoubletFinder)"))
 
 
@@ -471,9 +479,9 @@ RunDbt_DoubletFinder <- function(object,split.by="orig.ident",add.Seurat=TRUE, d
     ####
     SeuratObject::DefaultAssay(x) <- "RNA"
 
-    if( is(SeuratObject::GetAssayData(x, assay = "RNA", slot = "counts"), "IterableMatrix" ) ){
-      x <- SeuratObject::SetAssayData(x, assay = "RNA", slot = "counts",
-                                      new.data = as(object = SeuratObject::GetAssayData(x, assay = "RNA", slot = "counts"), Class = "dgCMatrix") )
+    if( is(getMatrix(x, assay = "RNA", slot = slot, layer = layer), "IterableMatrix" ) ){
+      x <- setAssayData(x, assay = "RNA", slot = slot, layer = layer,
+                        new_data = as(object = getMatrix(x, assay = "RNA", slot = slot, layer = layer), Class = "dgCMatrix") )
     }
 
     currentSample <- quiet(RunPipeline(x, preprocess = "rna.pca"))
@@ -546,12 +554,13 @@ RunDbt_DoubletFinder <- function(object,split.by="orig.ident",add.Seurat=TRUE, d
 #' @param resolution Numeric; the resolution parameter used for clustering. Default is 1.5.
 #' @param dims Numeric; the dimensions to use for clustering. Default is 1:20.
 #' @param do.correct Logical; if TRUE, performs correction for batch effects before doublet detection. Default is FALSE.
+#' @inheritParams common_params
 #' @param ... Additional arguments.
 #' @param BPtmpdir Temporary directory for BPCells matrix processing. Default is "./temp/SingleCellMQC_BPCellsStepBPToPCAScale/".
 #' @return  If add.Seurat is TRUE, returns the modified Seurat object with doublet detection results added. Otherwise, returns a data frame with the doublet classifications.
 #' @export
 #'
-RunDbt_ADT <- function(object, split.by="orig.ident",feature1 = NULL, feature2 = NULL, method.predict=c("NB","ROC", "Logit", "LDA"),
+RunDbt_ADT <- function(object, split.by="orig.ident", slot = "counts", layer = NULL, feature1 = NULL, feature2 = NULL, method.predict=c("NB","ROC", "Logit", "LDA"),
                        resolution=1.5, dims=1:20, do.correct=F, preprocess="adt.umap",
                        return.cutoff=F, add.Seurat=T, BPtmpdir= "./temp/SingleCellMQC_BPCellsStepBPToPCAScale/",...){
 
@@ -567,7 +576,7 @@ RunDbt_ADT <- function(object, split.by="orig.ident",feature1 = NULL, feature2 =
     stop("Error: Please provide feature1 and feature2!!")
   }
 
-  split_object <- splitObject(object, split.by = split.by, tmpdir= BPtmpdir)
+  split_object <- splitObject(object, split.by = split.by, slot = slot, layer = layer, tmpdir= BPtmpdir)
   message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "-------- Doublet dection (ADT)"))
 
   ## Run parallel processing
@@ -575,15 +584,16 @@ RunDbt_ADT <- function(object, split.by="orig.ident",feature1 = NULL, feature2 =
   out <- smart_lapply(split_object, function(object_temp){
 
     suppressWarnings(suppressMessages(seu <- RunPipeline(object_temp, preprocess = preprocess, resolution = resolution, dims = dims)))
-    if ( "BPCells" %in% attr(class(Seurat::GetAssayData(seu, assay = "ADT", slot = "counts")), "package") ) {
-      expADT <- Seurat::GetAssayData(seu, assay = "ADT", slot = "counts")
+    if ( "BPCells" %in% attr(class(getMatrix(seu, assay = "ADT", slot = slot, layer = layer)), "package") ) {
+      expADT <- getMatrix(seu, assay = "ADT", slot = slot, layer = layer)
       # log_sums <- BPCells::colSums(log1p(expADT ), na.rm = TRUE)
       # scale_factors <- exp(log_sums / nrow(expADT))
       # expADT <- log1p(  BPCells::multiply_cols(expADT ,1/ scale_factors) )
-      seu <- SeuratObject::SetAssayData(object = seu,
-                                        assay = "ADT",
-                                        slot = "counts",
-                                        new.data = as(expADT, "dgCMatrix") )
+      seu <- setAssayData(object = seu,
+                          assay = "ADT",
+                          slot = slot,
+                          layer = layer,
+                          new_data = as(expADT, "dgCMatrix") )
       Seurat::DefaultAssay(seu) <- "ADT"
       seu <- Seurat::NormalizeData(seu, normalization.method = 'CLR', margin = 2, verbose = F)
 
@@ -633,7 +643,7 @@ RunDbt_ADT <- function(object, split.by="orig.ident",feature1 = NULL, feature2 =
       return(cutout)
     }
 
-    ADT_data <- Seurat::GetAssayData(seu, assay="ADT", slot = "data")
+    ADT_data <- getMatrix(seu, assay="ADT", slot = "data")
     name_index <- colnames(ADT_data)
     name_list1 <- mapply(function(x, y){
       if(is.infinite(y)){
@@ -688,13 +698,13 @@ getPosNegCutoff <- function(object, method = c("NB","ROC", "Logit", "LDA"), assa
   }
 
   # Set the identity of the object to the specified cluster
-  Seurat::Idents(object) <- object@meta.data[[cluster.by]]
+  Seurat::Idents(object) <- getMetaData(object)[[cluster.by]]
 
   # Get the positive and negative data
   out_data <- getPosNeg(object, assay = assay.pos, feature = feature, slot = slot.pos)
 
   # Get the expression data for the prediction assay
-  expdata <- Seurat::GetAssayData(object, assay = assay.predict, slot = slot.predict)
+  expdata <- getMatrix(object, assay = assay.predict, slot = slot.predict)
 
   # Match the feature to the expression data
   out_data$feature <- expdata[match(feature, rownames(expdata)), ]
@@ -748,7 +758,7 @@ getPosNegCutoff <- function(object, method = c("NB","ROC", "Logit", "LDA"), assa
 }
 
 getPosNeg<- function(object, feature =NULL, assay="ADT",slot="data"){
-  genexcell <- Seurat::GetAssayData(object = object, assay=assay,  slot = slot)
+  genexcell <- getMatrix(object = object, assay=assay,  slot = slot)
   index <- match(feature, rownames(genexcell))
   genexcell <- genexcell[c(index,index[1]),,drop=F]
   rownames(genexcell) <- c(feature, "tempfeature")
@@ -798,7 +808,7 @@ getPosNeg<- function(object, feature =NULL, assay="ADT",slot="data"){
   }else{
     i = i-1
   }
-  index_name <- colnames(object)[object@meta.data$seurat_clusters %in% name[1:i]]
+  index_name <- colnames(object)[getMetaData(object)$seurat_clusters %in% name[1:i]]
   out_data <- data.frame(feature= genexcell[1,], cellname=colnames(object))
   out_data$class <- ifelse(out_data$cellname %in% index_name, "Pos", "Neg")
   return(out_data)

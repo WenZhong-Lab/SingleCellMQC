@@ -21,7 +21,7 @@ benchmark <- function(object, filter_columns, resolution=1, type="db"){
   object <- Seurat::FindClusters(object = object, resolution =resolution, cluster.name = paste0("cluster_", resolution), verbose = F )
 
   out <- lapply(paste0("cluster_", resolution), function(cluster_name){
-    cluste_label =object@meta.data[[cluster_name]]
+    cluste_label = getMetaData(object)[[cluster_name]]
     pca_value = SeuratObject::Embeddings(object, reduction = "pca")
     value <- clusterBench(pca_value, cluste_label, filter_columns=filter_columns )
     if(type=="db"){

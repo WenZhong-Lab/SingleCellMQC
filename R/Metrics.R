@@ -103,7 +103,8 @@ CalculateMetricsPerCell.Multi <- function(object){
     if(length(index)!=0){
       result <- Seurat::AddMetaData(result, metadata = out)
     }
-    metrics_out <- result@meta.data[, match(metrics_name, colnames(result@meta.data)), drop=F]
+    metadata <- getMetaData(result)
+    metrics_out <- metadata[, match(metrics_name, colnames(metadata)), drop=F]
     suppressWarnings(Seurat::Misc(result, slot = "SingleCellMQC")$perQCMetrics$perCell  <- metrics_out)
     return(result)
   }
@@ -132,18 +133,19 @@ CalculateMetricsPerCell.GEX <- function(object, add.Seurat=TRUE){
   }, x = metric_name, y = genelist[1:4], SIMPLIFY = F)
   metric_data <- do.call(cbind, metric_list)
 
+  metadata = getMetaData(GEX@meta.data)
   #RNA
-  metric_data$per_feature_count_RNA <- GEX@meta.data$nCount_RNA / GEX@meta.data$nFeature_RNA
+  metric_data$per_feature_count_RNA <- metadata$nCount_RNA / metadata$nFeature_RNA
 
   if("ADT" %in% names(GEX@assays)){
-    metric_data$per_feature_count_ADT <- GEX@meta.data$nCount_ADT / GEX@meta.data$nFeature_ADT
+    metric_data$per_feature_count_ADT <- metadata$nCount_ADT / metadata$nFeature_ADT
     iso <- Seurat::PercentageFeatureSet(GEX, pattern = "(?i).*isotype.*", assay ="ADT")
     metric_data$percent.isotype <- NA
     metric_data$percent.isotype[match(names(iso), rownames(metric_data))] <- iso
-    metric_data <- data.frame(GEX@meta.data[, c("nCount_ADT", "nFeature_ADT")], metric_data)
+    metric_data <- data.frame(metadata[, c("nCount_ADT", "nFeature_ADT")], metric_data)
   }
 
-  metric_data <- data.frame(GEX@meta.data[,c("orig.ident","nCount_RNA", "nFeature_RNA")], metric_data)
+  metric_data <- data.frame(metadata[,c("orig.ident","nCount_RNA", "nFeature_RNA")], metric_data)
   GEX  <- Seurat::AddMetaData(GEX, metadata = metric_data)
   suppressWarnings(Seurat::Misc(GEX, slot = "SingleCellMQC")$perQCMetrics$perCell  <- metric_data)
   if(!add.Seurat){
@@ -356,7 +358,7 @@ CalculateMetricsPerSample.count <- function(object, #seurat object
     stop("Error: Seurat object must be as input!!")
   }
 
-  metadata <- object@meta.data
+  metadata <- getMetaData(object)
   split_name <- split( as.character(rownames(metadata)), as.character(metadata[[sample.by]]) )
 
   if( "RNA" %in% names(object@assays)){
@@ -468,11 +470,7 @@ CalculateMetricsPerSample.summary <- function(object,
                                                         "per_feature_count_RNA", "per_feature_count_ADT")){
   message(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
                 "------CalculateMetricsPerSample.summary "))
-  if("Seurat" %in% class(object)){
-    metadata <- object@meta.data
-  }else{
-    metadata <- object
-  }
+  metadata <- getMetaData(object)
   metadata <- as.data.table(metadata)
   metadata[[sample.by]] <- as.character( metadata[[sample.by]])
 

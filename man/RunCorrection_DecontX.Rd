@@ -4,13 +4,24 @@
 \alias{RunCorrection_DecontX}
 \title{Perform the contamination correction by DecontX}
 \usage{
-RunCorrection_DecontX(object, split.by = "orig.ident", ...)
+RunCorrection_DecontX(
+  object,
+  split.by = "orig.ident",
+  slot = "counts",
+  layer = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{A Seurat object.}
 
 \item{split.by}{A character string specifying the metadata column in the Seurat object to split the data into batches.
 Default is "orig.ident".}
+
+\item{slot}{A character string specifying the slot to use for expression data (e.g., "counts", "data").}
+
+\item{layer}{Name of layer to get or set. A character string specifying the layer to use for expression
+data (e.g., "counts", "data"). (for Seurat >= V5)}
 
 \item{...}{Additional arguments passed to \code{decontX::decontX} for more customized analysis.}
 }

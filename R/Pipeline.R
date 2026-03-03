@@ -148,7 +148,8 @@ RunPipeline <- function(object, threads.pca = NULL, threads.knn_hnsw = 1, BPtmpd
     object <- Seurat::RunUMAP(object = object, nn.name = "weighted.nn", reduction.name = reduction.name, reduction.key = "wnnUMAP_")
     cluster_name <- if (length(cluster.name) != length(resolution)) paste0(cluster.name, "_", resolution) else cluster.name
     object <- Seurat::FindClusters(object = object, graph.name = "wsnn", algorithm = 3, resolution = resolution, verbose = FALSE, cluster.name = cluster_name)
-    object$seurat_clusters <- object@meta.data[[cluster_name[length(cluster_name)]]]
+    metadata <- getMetaData(object)
+    object$seurat_clusters <- metadata[[cluster_name[length(cluster_name)]]]
     return(object)
   }
 
@@ -222,7 +223,8 @@ RunPipeline <- function(object, threads.pca = NULL, threads.knn_hnsw = 1, BPtmpd
     cluster_name <- output_cluster_name
   }
   object <- Seurat::FindClusters(object, resolution = resolution, graph.name = graph.name[2], cluster.name = cluster_name )
-  object$seurat_clusters <- object@meta.data[[cluster_name[length(cluster_name)] ]]
+  metadata <- getMetaData(object)
+  object$seurat_clusters <- metadata[[cluster_name[length(cluster_name)] ]]
   return(object)
 }
 

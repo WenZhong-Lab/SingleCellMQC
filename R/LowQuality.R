@@ -139,44 +139,44 @@ RunLQ_fixed <- function(object, min.nFeature_RNA=NULL,  min.nCount_RNA=NULL,
     stop("Error: Seurat object must be as input!!")
   }
 
-  # Initialize the output data frame
-  out <- data.frame(row.names = colnames(object))
+ # Initialize the output data frame
+ out <- data.frame(row.names = colnames(object))
 
-  # Filter based on nFeature_RNA
-  if(!is.null(min.nFeature_RNA)){
-    out$min.nFeature_RNA <- ifelse(object$nFeature_RNA >= min.nFeature_RNA, "Pass", "Fail")
-  }
+ # Filter based on nFeature_RNA
+ if(!is.null(min.nFeature_RNA)){
+ out$min.nFeature_RNA <- ifelse(getMetaData(object)$nFeature_RNA >= min.nFeature_RNA, "Pass", "Fail")
+ }
 
-  # Filter based on nCount_RNA
-  if(!is.null(min.nCount_RNA)){
-    out$min.nCount_RNA <- ifelse(object$nCount_RNA >= min.nCount_RNA, "Pass", "Fail")
-  }
+ # Filter based on nCount_RNA
+ if(!is.null(min.nCount_RNA)){
+ out$min.nCount_RNA <- ifelse(getMetaData(object)$nCount_RNA >= min.nCount_RNA, "Pass", "Fail")
+ }
 
 
-  # Filter based on percent.mt
-  if(!is.null(percent.mt)){
-    out$percent.mt <- ifelse(object$percent.mt <= percent.mt, "Pass", "Fail")
-  }
+ # Filter based on percent.mt
+ if(!is.null(percent.mt)){
+ out$percent.mt <- ifelse(getMetaData(object)$percent.mt <= percent.mt, "Pass", "Fail")
+ }
 
-  # Filter based on percent.rb
-  if(!is.null(percent.rb)){
-    out$percent.rb <- ifelse(object$percent.rb <= percent.rb, "Pass", "Fail")
-  }
+ # Filter based on percent.rb
+ if(!is.null(percent.rb)){
+ out$percent.rb <- ifelse(getMetaData(object)$percent.rb <= percent.rb, "Pass", "Fail")
+ }
 
-  # Filter based on percent.hb
-  if(!is.null(percent.hb)){
-    out$percent.hb <- ifelse(object$percent.hb <= percent.hb, "Pass", "Fail")
-  }
+ # Filter based on percent.hb
+ if(!is.null(percent.hb)){
+ out$percent.hb <- ifelse(getMetaData(object)$percent.hb <= percent.hb, "Pass", "Fail")
+ }
 
-  # Filter based on nFeature_ADT
-  if(!is.null(min.nFeature_ADT)){
-    out$min.nFeature_ADT <- ifelse(object$nFeature_ADT >= min.nFeature_ADT, "Pass", "Fail")
-  }
+ # Filter based on nFeature_ADT
+ if(!is.null(min.nFeature_ADT)){
+ out$min.nFeature_ADT <- ifelse(getMetaData(object)$nFeature_ADT >= min.nFeature_ADT, "Pass", "Fail")
+ }
 
-  # Filter based on nCount_ADT
-  if(!is.null(min.nCount_ADT)){
-    out$min.nCount_ADT <- ifelse(object$nCount_ADT >= min.nCount_ADT, "Pass", "Fail")
-  }
+ # Filter based on nCount_ADT
+ if(!is.null(min.nCount_ADT)){
+ out$min.nCount_ADT <- ifelse(getMetaData(object)$nCount_ADT >= min.nCount_ADT, "Pass", "Fail")
+ }
 
   # Combine all results into a single "Pass" or "Fail" column
   out$lq_fixed <- ifelse(rowSums(out == "Fail") == 0, "Pass", "Fail")
@@ -418,8 +418,7 @@ RunLQ_miQC <- function(object, model_type = "linear",  split.by= "orig.ident",
   filtered_args <- list(...)
   filtered_args <- filtered_args[names(filtered_args) %in% known_params]
 
-
-  metadata <- object@meta.data[, c(name.nFeature_RNA, name.percent.mt), drop = FALSE]
+  metadata <- getMetaData(object)[, c(name.nFeature_RNA, name.percent.mt), drop = FALSE]
   colnames(metadata)[1:2] <- c("detected", "subsets_mito_percent")
   object <- Seurat::AddMetaData(object, metadata = metadata)
 
@@ -438,7 +437,7 @@ RunLQ_miQC <- function(object, model_type = "linear",  split.by= "orig.ident",
     index <- colnames(out)
 
     lq_miQC <- data.frame( lq_miQC = rep("Fail", dim(x)[2] ) )
-    rownames(lq_miQC) <- rownames(x@meta.data)
+    rownames(lq_miQC) <- rownames(getMetaData(x))
     lq_miQC$lq_miQC[ match(index,rownames(lq_miQC))  ] <- "Pass"
 
     message( paste0(format(Sys.time(), "%H:%M:%S"), "-- ", getSampleName(x, sample.by = split.by), ": ", sum( lq_miQC$lq_miQC=="Fail" ), " fail cells, ", sum( lq_miQC$lq_miQC=="Pass" ), " pass cells" ))
@@ -512,13 +511,13 @@ RunLQ_ddqc <- function(object,add.Seurat=TRUE,split.by="orig.ident", BPtmpdir=".
     object_sample <- x
     SeuratObject::DefaultAssay(object_sample) <- "RNA"
 
-    if( is(SeuratObject::GetAssayData(object_sample, assay = "RNA", slot = "counts"), "IterableMatrix" ) ){
-      object_sample <- SeuratObject::SetAssayData(object_sample, assay = "RNA", slot = "counts",
-                                                  new.data = as(object = SeuratObject::GetAssayData(object_sample, assay = "RNA", slot = "counts"), Class = "dgCMatrix") )
+    if( is(getMatrix(object_sample, assay = "RNA", slot = "counts"), "IterableMatrix" ) ){
+      object_sample <- setAssayData(object_sample, assay = "RNA", slot = "counts",
+                                                  new_data = as(object = getMatrix(object_sample, assay = "RNA", slot = "counts"), Class = "dgCMatrix") )
     }
 
-    result <- data.frame(lq_ddqc=rep(FALSE, length(rownames(object_sample@meta.data)) ))
-    rownames(result) <- rownames(object_sample@meta.data)
+    result <- data.frame(lq_ddqc=rep(FALSE, length(rownames(getMetaData(object_sample))) ))
+    rownames(result) <- rownames(getMetaData(object_sample))
     object_sample <- ddqcR::initialQC(object_sample)
     # out <- !(do.call(ddqcR::ddqc.metrics, c(list("data" = object_sample), filtered_args))[, "passed.qc", drop = F])
     out <- !(ddqcR::ddqc.metrics(data = object_sample, res = known_params$res, threshold = known_params$threshold,

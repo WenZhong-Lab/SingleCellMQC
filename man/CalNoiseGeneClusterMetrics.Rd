@@ -4,11 +4,25 @@
 \alias{CalNoiseGeneClusterMetrics}
 \title{Calculate Noise Gene Cluster Metrics}
 \usage{
-CalNoiseGeneClusterMetrics(object, cluster_info)
+CalNoiseGeneClusterMetrics(
+  object,
+  assay = "RNA",
+  slot = "data",
+  layer = NULL,
+  cluster_info
+)
 }
 \arguments{
 \item{object}{A single-cell object (e.g., Seurat object) from which
 expression data and metadata will be extracted for Gini calculations.}
+
+\item{assay}{A character string specifying the assay to use (e.g., "RNA")
+if \code{object} is a single-cell object. Defaults to "RNA".}
+
+\item{slot}{A character string specifying the slot to use for expression data (e.g., "counts", "data").}
+
+\item{layer}{Name of layer to get or set. A character string specifying the layer to use for expression
+data (e.g., "counts", "data"). (for Seurat >= V5)}
 
 \item{cluster_info}{A data frame or a named list of data frames containing
 clustering results, typically the output of \code{RunNoiseGeneCluster}.

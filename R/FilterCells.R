@@ -36,7 +36,7 @@ FilterCells <- function(object,
     stop("Error: Seurat object must be as input!!")
   }
 
-  if(!all(filter_columns %in% colnames(object@meta.data))){
+  if(!all(filter_columns %in% colnames(getMetaData(object)))){
     stop("Error: The filter_columns must be in the Seurat object's metadata!!")
   }
 
@@ -44,12 +44,12 @@ FilterCells <- function(object,
     stop("Error: The filter_logic must be 'and' or 'or'!!")
   }
 
-  if(!split.by %in% colnames(object@meta.data)){
+  if(!split.by %in% colnames(getMetaData(object))){
     stop("Error: The split.by column must be in the Seurat object's metadata!!")
   }
 
 
-  filter_data <- object@meta.data[, filter_columns, drop = FALSE]
+  filter_data <- getMetaData(object)[, filter_columns, drop = FALSE]
   filter_data[is.na(filter_data)] <- "Pass"
 
   if(filter_logic == "and"){
@@ -78,9 +78,9 @@ FilterCells <- function(object,
   ))
 
   if(!is.null(split.by)){
-    split_groups <- unique(object@meta.data[[split.by]])
+    split_groups <- unique(getMetaData(object)[[split.by]])
     for(group in split_groups){
-      group_cells <- object@meta.data[[split.by]] == group
+      group_cells <- getMetaData(object)[[split.by]] == group
       .log_cat(paste0(">>>> Sample:", group, "\n"), verbose = verbose )
       .log_cat(paste0("  Cells before filtering:", sum(group_cells), "\n"), verbose = verbose )
       .log_cat(paste0("  Cells after filtering:", sum(group_cells & out), "\n"), verbose = verbose )

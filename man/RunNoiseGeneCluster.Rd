@@ -6,6 +6,9 @@
 \usage{
 RunNoiseGeneCluster(
   object,
+  assay = "RNA",
+  slot = "counts",
+  layer = NULL,
   gene_list = NULL,
   nfeatures = 2000,
   har.batch.by,
@@ -16,6 +19,14 @@ RunNoiseGeneCluster(
 \arguments{
 \item{object}{A single-cell object (e.g., Seurat object) from which
 expression data and metadata will be extracted.}
+
+\item{assay}{A character string specifying the assay to use (e.g., "RNA")
+if \code{object} is a single-cell object. Defaults to "RNA".}
+
+\item{slot}{A character string specifying the slot to use for expression data (e.g., "counts", "data").}
+
+\item{layer}{Name of layer to get or set. A character string specifying the layer to use for expression
+data (e.g., "counts", "data"). (for Seurat >= V5)}
 
 \item{gene_list}{(Optional) A named list of character vectors, where each
 vector contains gene names considered as a specific type of "noise" (e.g.,

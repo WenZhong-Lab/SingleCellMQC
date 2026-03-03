@@ -7,6 +7,8 @@
 RunCorrection_scCDC(
   object,
   assay = "RNA",
+  slot = "counts",
+  layer = NULL,
   features = NULL,
   split.by = "orig.ident",
   do.merge = T,
@@ -19,6 +21,11 @@ RunCorrection_scCDC(
 \item{object}{A Seurat object or a list of Seurat objects.}
 
 \item{assay}{Character. The name of the assay to be analyzed. Default is "RNA".}
+
+\item{slot}{A character string specifying the slot to use for expression data (e.g., "counts", "data").}
+
+\item{layer}{Name of layer to get or set. A character string specifying the layer to use for expression
+data (e.g., "counts", "data"). (for Seurat >= V5)}
 
 \item{features}{Vector or a list of features (genes) to correct. If NULL, all features are used. Default is NULL.}
 

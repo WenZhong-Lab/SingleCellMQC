@@ -433,10 +433,12 @@ getMetaData.default <- function(object, ...) {
 
 
 # Seurat
-setAssayData <- function(object, assay = "RNA", slot = "counts", layer = NULL,new_data, ...) {
+setAssayData <- function(object, assay = "RNA", slot = "counts", layer = NULL, new_data=NULL, new.data=NULL, ...) {
   is_v5 <- utils::packageVersion("SeuratObject") >= "5.0.0"
   val <- if (is.null(layer)) slot else layer
-
+  if (is.null(new_data) && !is.null(new.data)) {
+    new_data <- new.data
+  }
   if (is_v5) {
     # Seurat v5 logic
     object <- SeuratObject::SetAssayData(object, assay = assay, layer = val, new.data = new_data, ...)

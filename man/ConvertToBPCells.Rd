@@ -14,6 +14,7 @@ ConvertToBPCells(object, ...)
   BPdir = "./BPCellData/",
   assay = "RNA",
   slot = "counts",
+  layer = NULL,
   ...
 )
 
@@ -30,7 +31,10 @@ ConvertToBPCells(object, ...)
 
 \item{assay}{Name of assay to use (for Seurat objects). Default is \code{RNA}}
 
-\item{slot}{Name of slot to use (for Seurat objects). Default is \code{counts}}
+\item{slot}{A character string specifying the slot to use for expression data (e.g., "counts", "data").}
+
+\item{layer}{Name of layer to get or set. A character string specifying the layer to use for expression
+data (e.g., "counts", "data"). (for Seurat >= V5)}
 }
 \value{
 \strong{For Seurat object}:

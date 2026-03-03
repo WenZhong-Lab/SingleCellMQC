@@ -6,6 +6,9 @@
 \usage{
 RunBenchmarkDoublet(
   object,
+  assay = "RNA",
+  slot = "counts",
+  layer = NULL,
   split.by = "orig.ident",
   method_columns,
   resolution = seq(1, 1.5, 0.1),
@@ -14,6 +17,14 @@ RunBenchmarkDoublet(
 }
 \arguments{
 \item{object}{A Seurat object containing single-cell data.}
+
+\item{assay}{A character string specifying the assay to use (e.g., "RNA")
+if \code{object} is a single-cell object. Defaults to "RNA".}
+
+\item{slot}{A character string specifying the slot to use for expression data (e.g., "counts", "data").}
+
+\item{layer}{Name of layer to get or set. A character string specifying the layer to use for expression
+data (e.g., "counts", "data"). (for Seurat >= V5)}
 
 \item{split.by}{String specifying metadata column to split object by. Default is "orig.ident".}
 

@@ -80,11 +80,11 @@ RunScType <- function(object, split.by= NULL, return.name="ScType",
       cat(">>>>>>>>>>>>>>> ", "\n")
       sc_data <- object_list[[x]]
 
-      if ( "BPCells" %in% attr(class(Seurat::GetAssayData(sc_data, assay = "RNA", slot = "counts")), "package") ) {
-        sc_data <- SeuratObject::SetAssayData(object = sc_data,
-                                              assay = "RNA",
-                                              slot = "counts",
-                                              new.data = as(Seurat::GetAssayData(sc_data, assay = "RNA", slot = "counts"), "dgCMatrix") )
+      if ( "BPCells" %in% attr(class(getMatrix(sc_data, assay = "RNA", slot = "counts")), "package") ) {
+        sc_data <- setAssayData(object = sc_data,
+                                assay = "RNA",
+                                slot = "counts",
+                                new.data = as(getMatrix(sc_data, assay = "RNA", slot = "counts"), "dgCMatrix") )
       }
 
       if(!is.null(preprocess)){
@@ -93,7 +93,7 @@ RunScType <- function(object, split.by= NULL, return.name="ScType",
       }else{
         sc_data <- suppressMessages(RunPipeline(sc_data, preprocess ="rna.umap", resolution=resolution, ...))
       }
-      ano_result <- .runScType(object = sc_data, genelist = genelist, group.by=group.by, cutoff=cutoff)
+      ano_result <- .runScType(object = sc_data, genelist = genelist, group.by=group.by, cutoff=cutoff, slot = "scale.data")
       rm(sc_data)
       gc()
       return(ano_result)
@@ -121,7 +121,7 @@ RunScType <- function(object, split.by= NULL, return.name="ScType",
   return(data)
 }
 
-.runScType <- function(object, genelist, group.by, cutoff){
+.runScType <- function(object, genelist, group.by, cutoff, slot = "scale.data", layer = NULL){
   ##
   gene_name <- unique( as.character(c(do.call(c, genelist[[1]] ) , do.call(c, genelist[[2]]) )) )
   object <- Seurat::ScaleData(object, features=c(gene_name),verbose = F)
@@ -132,23 +132,24 @@ RunScType <- function(object, split.by= NULL, return.name="ScType",
 
   assay <- "RNA"
 
-  if( "RenameDims" %in% class(SeuratObject::GetAssayData(object, assay = assay, slot = "scale.data")) ){
-    scale_data <- methods::as(object = SeuratObject::GetAssayData(object, assay = assay, slot = "scale.data"), Class = "matrix")
+  if( "RenameDims" %in% class(getMatrix(object, assay = assay, slot = slot, layer = layer)) ){
+    scale_data <- methods::as(object = getMatrix(object, assay = assay, slot = slot, layer = layer), Class = "matrix")
   }else{
-    scale_data <- SeuratObject::GetAssayData(object, assay=assay, slot = "scale.data")
+    scale_data <- getMatrix(object, assay=assay, slot = slot, layer = layer)
   }
 
   es.max = .sctype_score(scRNAseqData = scale_data, scaled = TRUE, gs = genelist[[1]], gs2 = genelist[[2]])
   ###
-  cL_resutls = do.call("rbind", lapply( unique(na.omit(object@meta.data[[group.by]])), function(cl){
-    es.max.cl = sort(rowSums(es.max[ ,rownames( object@meta.data[object@meta.data[[group.by]] %in% cl, ] )]) , decreasing = !0)
-    utils::head(data.frame(cluster = cl, type = names(es.max.cl), scores = es.max.cl, ncells = sum(object@meta.data[[group.by]]==cl, na.rm=T)), 10)
+  metadata <- getMetaData(object)
+  cL_resutls = do.call("rbind", lapply( unique(na.omit(metadata[[group.by]])), function(cl){
+    es.max.cl = sort(rowSums(es.max[ ,rownames( metadata[metadata[[group.by]] %in% cl, ] )]) , decreasing = !0)
+    utils::head(data.frame(cluster = cl, type = names(es.max.cl), scores = es.max.cl, ncells = sum(metadata[[group.by]]==cl, na.rm=T)), 10)
   }))
   sctype_scores = cL_resutls %>% dplyr::group_by(cluster) %>% dplyr::top_n(n = 1, wt = scores)
   sctype_scores$type[as.numeric(as.character(sctype_scores$scores)) < sctype_scores$ncells/cutoff] = "Unknown"
-  out <- sctype_scores$type[match(object@meta.data[[group.by_final]], sctype_scores$cluster)]
+  out <- sctype_scores$type[match(metadata[[group.by_final]], sctype_scores$cluster)]
   out <- data.frame(ScType=out)
-  rownames(out) <- rownames(object@meta.data)
+  rownames(out) <- rownames(metadata)
   return(out)
 
 }
@@ -442,9 +443,9 @@ FindSampleMetricsWarning <- function(object,
                                      return.type=c("table"),
                                      verbose = TRUE
 ){
-  if("Seurat" %in% class(object)){
+  if("Seurat" %in% is(object)){
     QC_misc <- GetSingleCellMQCData(object)
-    object <- object@meta.data
+    object <- getMetaData(object)
   }else{
     object <- object
     QC_misc <- NULL
@@ -661,8 +662,8 @@ FindInterSamplePCTOutlier <- function(object,
 
 ) {
 
-  if("Seurat" %in% class(object)){
-    metadata <- object@meta.data
+  if("Seurat" %in% is(object)){
+    metadata <- getMetaData(object)
   }else{
     metadata <- object
   }
@@ -1030,8 +1031,8 @@ FindCommonPCTOutlier <- function(object,
 
 ) {
 
-  if("Seurat" %in% class(object)){
-    metadata <- object@meta.data
+  if("Seurat" %in% is(object)){
+    metadata <- getMetaData(object)
   }else{
     metadata <- object
   }
