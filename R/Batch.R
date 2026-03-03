@@ -14,9 +14,6 @@
 #' @param object A single-cell object.
 #' @param assay A character string specifying the assay to use (e.g., "RNA")
 #'   if `object` is a single-cell object. Defaults to "RNA".
-#' @param slot A character string specifying the slot to use for expression
-#'   data (e.g., "data", "counts") if `object` is a single-cell object.
-#'   Defaults to "data".
 #' @param group.by (Optional) A character string specifying the metadata column
 #'   representing biological groups (e.g., "cell_type", "condition") to be
 #'   controlled for in the GTE calculation. This helps isolate batch effects
@@ -24,6 +21,7 @@
 #' @param batch.by A character string specifying the metadata column representing
 #'   the technical factor (e.g., "batch_id", "sequencing_run") whose influence
 #'   is to be quantified.
+#' @inheritParams common_params
 #'
 #' @return A `data.frame`
 #'   \itemize{
@@ -42,8 +40,8 @@
 #' doi: 10.1038/s43588-025-00824-7. Epub 2025 Jun 27. PMID: 40579473.
 #'
 #' @export
-RunBatchGTE <- function(object, assay = "RNA", slot = "data", group.by, batch.by) {
-  mat <- getMatrix(object,assay=assay,  slot=slot)
+RunBatchGTE <- function(object, assay = "RNA", slot = "data", layer=NULL, group.by, batch.by) {
+  mat <- getMatrix(object,assay=assay,  slot=slot, layer= layer)
   mat_meta <- getMetaData(object)
 
   #name

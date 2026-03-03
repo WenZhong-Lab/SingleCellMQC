@@ -52,22 +52,21 @@ benchmark <- function(object, filter_columns, resolution=1, type="db"){
 #' @param method_columns Character vector of method names (column names) for doublet detection.
 #' @param resolution A numeric vector of cluster resolutions to benchmark. Default is \code{seq(1, 1.5, 0.1)}.
 #' @param BPtmpdir Temporary directory for BPCells matrix processing. Default is "./temp/SingleCellMQC_BPCellBenchmark/".
+#' @inheritParams common_params
 #'
 #' @returns A data.frame with one row per sample/method/resolution, containing clustering metric results.
 #' @export
 #'
-RunBenchmarkDoublet <- function(object, split.by="orig.ident", method_columns,resolution=seq(1,1.5,0.1),
+RunBenchmarkDoublet <- function(object, assay="RNA", slot="counts", layer=NULL, split.by="orig.ident", method_columns,resolution=seq(1,1.5,0.1),
                                    BPtmpdir= "./temp/SingleCellMQC_BPCellBenchmark/"){
-  split_object <- splitObject(object, split.by = split.by, assay="RNA", tmpdir= BPtmpdir)
+  split_object <- splitObject(object, split.by = split.by, assay=assay, tmpdir= BPtmpdir)
   method_columns <- c("no_filter", method_columns)
   p <- progressr::progressor(along = 1:length(split_object))
 
   Benchmark_out <- smart_lapply(split_object, function(x){
-    if ( "BPCells" %in% attr(class(Seurat::GetAssayData(x, assay = "RNA", slot = "counts")), "package") ) {
-      x <- SeuratObject::SetAssayData(object = x,
-                                      assay = "RNA",
-                                      slot = "counts",
-                                      new.data = as(Seurat::GetAssayData(x, assay = "RNA", slot = "counts"), "dgCMatrix") )
+    temp = getMatrix(x, assay = assay, slot = slot, layer= layer)
+    if ( "BPCells" %in% attr(class(temp), "package") ) {
+      x <-setAssayData(object = x, assay = assay, slot = slot, layer= layer, new.data = as(temp, "dgCMatrix"))
     }
 
     out  <- lapply(method_columns, function(y){

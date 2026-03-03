@@ -1,3 +1,21 @@
+# task1 : layer & slot update
+# task2 : update splitObject
+
+
+
+#' Common Parameter Documentation
+#'
+#' @param assay A character string specifying the assay to use (e.g., "RNA")
+#'   if `object` is a single-cell object. Defaults to "RNA".
+#' @param slot A character string specifying the slot to use for expression data (e.g., "counts", "data").
+#' @param layer Name of layer to get or set. A character string specifying the layer to use for expression
+#'   data (e.g., "counts", "data"). (for Seurat >= V5)
+#' @param verbose Logical. If TRUE, prints progress messages.
+#'
+#' @keywords internal
+common_params <- function(layer, verbose) {}
+
+
 
 
 toSeuratObject <- function(object, ...){

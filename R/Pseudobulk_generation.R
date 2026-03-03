@@ -23,6 +23,7 @@
 #' @param method A character string indicating the aggregation method for pseudobulking.
 #'   Accepted values depend on the underlying `BPCells::pseudobulk_matrix` function,
 #'   common options include "sum" (default), "mean".
+#' @inheritParams common_params
 #'
 #' @return A list containing three elements:
 #'   \itemize{
@@ -45,9 +46,10 @@
 #'
 #' @importFrom stats aggregate
 #' @export
-RunPseudobulkData <- function(object, assay = "RNA",slot = "counts",
+RunPseudobulkData <- function(object, assay = "RNA",slot = "counts", layer=NULL,
                               sample.by = NULL, cluster.by = NULL,
                               other_cols_contain=NULL, method="sum"){
+  slot <- layer <- if (is.null(layer)) slot else layer
   mat <- getMatrix(object, assay = assay, slot = slot)
   cell_meta <- getMetaData(object)
   pse_bulk <- .getPseudobulkMatrix(mat, cell_meta, sample.by = sample.by, group.by = cluster.by, method=method)
@@ -172,33 +174,3 @@ RunPseudobulkData <- function(object, assay = "RNA",slot = "counts",
   rownames(result) <- NULL
   return(result)
 }
-
-# .getPseudobulkMetadata <- function(object, sample.by, variable.by){
-#   if(is.null(sample.by)) stop("sample.by cannot be NULL. Please specify a grouping variable.")
-#   object[[sample.by]] <- as.character(object[[sample.by]])
-#   variable.by <- setdiff(variable.by, sample.by)
-#   out_list <- lapply(variable.by, function(x){
-#     if (!is.numeric(object[[x]])) {
-#       tab <- stats::aggregate(object[[x]], list(object[[sample.by]]),
-#                               function(vals) paste(unique(vals), collapse = "|"))
-#       colnames(tab) <- c(sample.by, x)
-#     } else {
-#       # 检查所有组是否都只有一个唯一值
-#       nuniq <- stats::aggregate(object[[x]], list(object[[sample.by]]), function(vals) length(unique(vals[!is.na(vals)])))
-#       all_unique <- all(nuniq$x == 1)
-#
-#       if (all_unique) {
-#         tab <- stats::aggregate(object[[x]], list(object[[sample.by]]), function(vals) unique(vals[!is.na(vals)]))
-#         colnames(tab) <- c(sample.by, x)
-#       } else {
-#         tab <- stats::aggregate(object[[x]], list(object[[sample.by]]), mean, na.rm = TRUE)
-#         colnames(tab) <- c(sample.by, paste0("mean_", x))
-#       }
-#     }
-#     tab
-#   })
-#
-#   result <- Reduce(function(x, y) merge(x, y, by = sample.by, all = TRUE, sort = FALSE), out_list)
-#   rownames(result) <- NULL
-#   return(result)
-# }

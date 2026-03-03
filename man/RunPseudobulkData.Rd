@@ -8,6 +8,7 @@ RunPseudobulkData(
   object,
   assay = "RNA",
   slot = "counts",
+  layer = NULL,
   sample.by = NULL,
   cluster.by = NULL,
   other_cols_contain = NULL,
@@ -23,6 +24,9 @@ Defaults to "RNA".}
 
 \item{slot}{A character string specifying the slot to use for expression
 data (e.g., "counts", "data"). Defaults to "counts".}
+
+\item{layer}{Name of layer to get or set. A character string specifying the layer to use for expression
+data (e.g., "counts", "data"). (for Seurat >= V5)}
 
 \item{sample.by}{A character string specifying the metadata column representing
 the samples (e.g., patient ID, donor ID). This defines the primary unit

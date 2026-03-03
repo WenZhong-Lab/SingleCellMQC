@@ -299,7 +299,7 @@ PlotFeatureMeanVariance <- function(object,
 
   p <- ggplot2::ggplot(mean_var,
                        ggplot2::aes(x = mean, y = variance, color = Sample)) +
-    ggplot2::geom_smooth(method = "gam", se = FALSE, size = 1) +
+    ggplot2::geom_smooth(method = "gam", se = FALSE, linewidth = 1) +
     ggplot2::theme_classic(base_size = 14) +
     ggplot2::scale_color_manual(values = get_colors(length(unique(mean_var$Sample))))
 

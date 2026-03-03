@@ -4,7 +4,14 @@
 \alias{RunBatchGTE}
 \title{Quantify Feature-level Technical Effects (GTE) for Single-cell Data}
 \usage{
-RunBatchGTE(object, assay = "RNA", slot = "data", group.by, batch.by)
+RunBatchGTE(
+  object,
+  assay = "RNA",
+  slot = "data",
+  layer = NULL,
+  group.by,
+  batch.by
+)
 }
 \arguments{
 \item{object}{A single-cell object.}
@@ -12,9 +19,10 @@ RunBatchGTE(object, assay = "RNA", slot = "data", group.by, batch.by)
 \item{assay}{A character string specifying the assay to use (e.g., "RNA")
 if \code{object} is a single-cell object. Defaults to "RNA".}
 
-\item{slot}{A character string specifying the slot to use for expression
-data (e.g., "data", "counts") if \code{object} is a single-cell object.
-Defaults to "data".}
+\item{slot}{A character string specifying the slot to use for expression data (e.g., "counts", "data").}
+
+\item{layer}{Name of layer to get or set. A character string specifying the layer to use for expression
+data (e.g., "counts", "data"). (for Seurat >= V5)}
 
 \item{group.by}{(Optional) A character string specifying the metadata column
 representing biological groups (e.g., "cell_type", "condition") to be

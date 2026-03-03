@@ -60,10 +60,12 @@ FindContaminationFeature <- function(object, assay= "RNA", group.by="seurat_clus
 #' @param ... Additional arguments passed to `scCDC::ContaminationCorrection` for customized analysis.
 #' @param group.by A character string specifying the metadata column used for grouping cells (default: `"seurat_clusters"`).
 #' @param saveBP_dir Directory to save BPCells data. Defaults to `./scCDC_BP/`
+#' @inheritParams common_params
 #'
 #' @return A Seurat object containing the corrected data in a new assay named "Corrected". If `do.merge` is TRUE and multiple samples are provided, a merged Seurat object is returned.
 #' @export
-RunCorrection_scCDC <- function(object, assay= "RNA", features=NULL, split.by="orig.ident", do.merge=T, group.by="seurat_clusters",
+RunCorrection_scCDC <- function(object, assay= "RNA", slot = "counts", layer=NULL,
+                                features=NULL, split.by="orig.ident", do.merge=T, group.by="seurat_clusters",
                                 saveBP_dir="./scCDC_BP/",
                                 ...){
 
@@ -81,7 +83,7 @@ RunCorrection_scCDC <- function(object, assay= "RNA", features=NULL, split.by="o
       stop("scCDC package version >= 1.4 only support for Seurat package version >= 5.0.0, please install the Seurat package version >= 5.0.0 or downgrade the scCDC package version < 1.4.")
     }
     object_list <- lapply(object_name, function(x) {
-      count_data = Seurat::GetAssayData(object_list[[x]], assay = assay, slot = "counts")
+      count_data = getMatrix(object_list[[x]], assay = assay, slot = slot, layer= layer)
       index = inherits(count_data, "IterableMatrix")
       if (index) {
         count_data <- as(count_data, "dgCMatrix")
@@ -90,12 +92,12 @@ RunCorrection_scCDC <- function(object, assay= "RNA", features=NULL, split.by="o
       seuObject <- Seurat::CreateSeuratObject(
         counts = count_data,
         assay = assay,
-        meta.data = object_list[[x]]@meta.data
+        meta.data = getMetaData(object_list[[x]])
       )
       SeuratObject::Idents(seuObject) <- seuObject@meta.data[[group.by]]
       cont_genes <- if (!is(features, "list")) features else features[[x]]
       seuObject <- scCDC::ContaminationCorrection(seuObject, cont_genes = cont_genes, ...)
-      count <- SeuratObject::GetAssayData(seuObject, assay = "Corrected", slot = "counts")
+      count <- getMatrix(seuObject, assay = "Corrected", slot = "counts", layer= layer)
       if (index) {
         count <- ConvertToBPCells(count, BPdir =paste0(saveBP_dir, "/", assay, "_split/", x) )
       }
@@ -105,21 +107,21 @@ RunCorrection_scCDC <- function(object, assay= "RNA", features=NULL, split.by="o
   }else if(packageVersion("scCDC") == "1.3"){
 
     object_list <- lapply(object_name, function(x) {
-      count_data = Seurat::GetAssayData(object_list[[x]], assay = assay, slot = "counts")
+      count_data = getMatrix(object_list[[x]], assay = assay, slot = slot, layer= layer)
       if (inherits(count_data, "IterableMatrix")) {
         count_data <- as(count_data, "dgCMatrix")
       }
       seuObject <- Seurat::CreateSeuratObject(
         counts = count_data,
         assay = assay,
-        meta.data = object_list[[x]]@meta.data
+        meta.data = getMetaData(object_list[[x]])
       )
       if (inherits(seuObject[[assay]], "Assay5")) {
         seuObject[[assay]] <- as(seuObject[[assay]], "Assay")
       }
       cont_genes <- if (!is(features, "list")) features else features[[x]]
       seuObject <- scCDC::ContaminationCorrection(seuObject, cont_genes = cont_genes, ...)
-      count <- SeuratObject::GetAssayData(seuObject, assay = "Corrected", slot = "counts")
+      count <- getMatrix(seuObject, assay = "Corrected", slot = "counts", layer= layer)
     })
   }else{
     stop("Please install the scCDC package version >= 1.3.")
@@ -196,11 +198,12 @@ RunCorrection_scCDC <- function(object, assay= "RNA", features=NULL, split.by="o
 #' @param split.by A character string specifying the metadata column in the Seurat object to split the data into batches.
 #'                 Default is "orig.ident".
 #' @param ... Additional arguments passed to `decontX::decontX` for more customized analysis.
+#' @inheritParams common_params
 #'
 #' @return A Seurat object contains additional corrected assay.
 #' @export
 
-RunCorrection_DecontX <- function(object, split.by = "orig.ident", ...){
+RunCorrection_DecontX <- function(object, split.by = "orig.ident", slot="counts", layer=NULL, ...){
   if(!("Seurat" %in% class(object)) ){
     stop("Error: Seurat object must be as input!!")
   }
@@ -209,7 +212,7 @@ RunCorrection_DecontX <- function(object, split.by = "orig.ident", ...){
     stop("Please install the decontX package first.")
   }
 
-  counts <- Seurat::GetAssayData(object, assay = "RNA", slot = "count")
+  counts <- getMatrix(object, assay = "RNA", slot = slot, layer=layer)
   sce <- SingleCellExperiment::SingleCellExperiment(list(counts = counts))
   sce <- decontX::decontX(sce, batch=object@meta.data[[split.by]], ...)
   object[["DecontX_RNA"]] <- Seurat::CreateAssayObject(counts = decontX::decontXcounts(sce))

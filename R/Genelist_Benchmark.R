@@ -5,6 +5,8 @@
 # exclude_custom_features & exclude_patterns will contain always hvg features = nfeatures
 stepRNAToPCA <- function(object,
                        assay = "RNA",
+                       slot="counts",
+                       layer=NULL,
                        nfeatures=2000,
                        exclude_custom_features=NULL,
                        add_custom_features = NULL,
@@ -17,7 +19,7 @@ stepRNAToPCA <- function(object,
                        add.norm_data=FALSE,
                        add.scale_data=FALSE) {
 
-  mat <- getMatrix(object)
+  mat <- getMatrix(object,assay=assay, slot=slot, layer=layer)
   metadata <- getMetaData(object)
   feature_name <- rownames(mat)
 
@@ -106,18 +108,12 @@ stepRNAToPCA <- function(object,
   if("Seurat" %in% class(object)){
     pca_dim <- Seurat::CreateDimReducObject(embeddings =pca,  key =  paste0(assay, "PC_"),assay = assay)
     if(add.norm_data){
-      object <- SeuratObject::SetAssayData(object = object,
-                                           assay = assay,
-                                           slot = "data",
-                                           new.data = mat)
+      object <-setAssayData(object = object,assay = assay,slot = "data",new.data = mat)
     }
     if(add.scale_data){
       mat_norm1 <- BPCells::min_by_row(mat = mat_norm1, vals = 10 * features.sd + features.mean)
       mat_norm1 <- (mat_norm1 - features.mean) / features.sd
-      object <- SeuratObject::SetAssayData(object = object,
-                                           assay = assay,
-                                           slot = "scale.data",
-                                           new.data = mat_norm1)
+      object <- setAssayData(object = object,assay = assay,slot = "scale.data",new.data = mat_norm1)
     }
     object[[output_pca_name]] <- pca_dim
     return(object)
@@ -311,6 +307,7 @@ PlotNoiseGeneClusterMetricsGini <- function(object, metrics, cluster_res,  ntop=
 #' @param tmpdir A character string specifying a temporary directory for large
 #'   intermediate files (particularly from `BPCells`). Defaults to
 #'   "./temp_SingleCellMQC/BenchmarkDelGene/".
+#' @inheritParams common_params
 #'
 #' @return A named list of data frames. Each element in the list corresponds
 #'   to a clustering `resolution` (e.g., `resolution=1`, `resolution=2`).
@@ -336,6 +333,9 @@ PlotNoiseGeneClusterMetricsGini <- function(object, metrics, cluster_res,  ntop=
 #'
 #' @export
 RunNoiseGeneCluster <-function(object,
+                               assay="RNA",
+                               slot="counts",
+                               layer=NULL,
                                   gene_list =NULL,
                                   nfeatures=2000,
                                   har.batch.by,
@@ -359,7 +359,14 @@ RunNoiseGeneCluster <-function(object,
   ### del all genes
   message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), ">>>>>>>>>>>> del all "))
   set.seed(1)
-  cluster_del_all <- stepRNAToPCA(object, nfeatures=nfeatures, exclude_custom_features=del_all_gene, tmpdir=tmpdir, only.returnPCA=T)
+  cluster_del_all <- stepRNAToPCA(object,
+                                  assay = assay,
+                                  slot= slot,
+                                  layer=layer,
+                                  nfeatures=nfeatures,
+                                  exclude_custom_features=del_all_gene,
+                                  tmpdir=tmpdir,
+                                  only.returnPCA=T)
   set.seed(1)
   cluster_del_all <- harmony::RunHarmony(cluster_del_all,
     meta_data = metadata,
@@ -374,7 +381,14 @@ RunNoiseGeneCluster <-function(object,
   cluster_dellist <- lapply( names(gene_list), function(x){
     message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), ">>>>>>>>>>>> add ", x))
     set.seed(1)
-    cluster_del <- stepRNAToPCA(object, nfeatures=nfeatures, exclude_custom_features=del_all_gene, add_custom_features=gene_list[[x]], tmpdir=tmpdir)
+    cluster_del <- stepRNAToPCA(object,
+                                assay = assay,
+                                slot= slot,
+                                layer=layer,
+                                nfeatures=nfeatures,
+                                exclude_custom_features=del_all_gene,
+                                add_custom_features=gene_list[[x]],
+                                tmpdir=tmpdir)
     set.seed(1)
     cluster_del <- harmony::RunHarmony(cluster_del,
         meta_data = metadata,
@@ -434,7 +448,7 @@ GetNoiseGeneList <- function(object){
                 "UBC","ZFP36")
 
   TCRab_gene <- grep("^TRA[JV].*|^TRB[VDJ].*", gene_name, value = T)
-  BCR_gene <- grep(paste0(c("^IGH[VDJ].*",
+  BCR_gene <- grep(paste0(c("^IGH[VJ].*",
                               "^IGK[JV].*",
                               "^IGL[JV].*"), collapse = "|"), gene_name, value = T)
   sex_gene <- c(
@@ -488,6 +502,7 @@ GetNoiseGeneList <- function(object){
 #'   clustering results, typically the output of `RunNoiseGeneCluster`.
 #'   Each data frame should have columns 'del_all' and 'add_X' for different
 #'   noise gene removal scenarios.
+#' @inheritParams common_params
 #'
 #' @return If `cluster_info` is a single data frame, returns a list with:
 #'   \itemize{
@@ -516,15 +531,19 @@ GetNoiseGeneList <- function(object){
 #' @importFrom gtools smartbind
 #' @importFrom data.table data.table melt
 #' @export
-CalNoiseGeneClusterMetrics <- function(object, cluster_info){
+CalNoiseGeneClusterMetrics <- function(object,
+                                       assay="RNA",
+                                       slot="data",
+                                       layer=NULL,
+                                       cluster_info){
   if(is.list(cluster_info)){
     out_list <- lapply(cluster_info, function(x){
-      calNoiseGeneMetrics(object, x)
+      calNoiseGeneMetrics(object, del_clusters=x, assay=assay,slot=slot, layer=layer)
     })
     names(out_list) <- names(cluster_info)
     return(out_list)
   }else{
-    return(calNoiseGeneMetrics(object, cluster_info))
+    return(calNoiseGeneMetrics(object, del_clusters=cluster_info,assay=assay,slot=slot, layer=layer))
   }
 }
 
@@ -532,7 +551,11 @@ CalNoiseGeneClusterMetrics <- function(object, cluster_info){
 
 
 
-calNoiseGeneMetrics <- function(object, del_clusters){
+calNoiseGeneMetrics <- function(object,
+                                assay="RNA",
+                                slot="data",
+                                layer=NULL,
+                                del_clusters){
   metadata = getMetaData(object)
   del_clusters <- del_clusters[match(rownames(metadata), rownames(del_clusters) ),]
   metadata <- cbind(metadata, del_clusters )
@@ -574,7 +597,12 @@ calNoiseGeneMetrics <- function(object, del_clusters){
   cluster_name_gini <- setdiff(cluster_name, del_index)
   gini_list <- lapply(cluster_name_gini, function(x){
     message( paste0(format(Sys.time(), "%H:%M:%S"), "-------- runGini ", x))
-    runGini(object, metadata = del_clusters, split.by = x)
+    runGini(object,
+            assay=assay,
+            slot=slot,
+            layer=layer,
+            metadata = del_clusters,
+            split.by = x)
   })
   names(gini_list) <- cluster_name_gini
   pct.gini <- do.call(cbind, gini_list )
@@ -600,8 +628,8 @@ calNoiseGeneMetrics <- function(object, del_clusters){
 
 
 
-runGini <- function(object, metadata, split.by){
-  mat <- getMatrix(object, slot="data")
+runGini <- function(object, assay="RNA", slot= "data", layer=NULL, metadata, split.by){
+  mat <- getMatrix(object, assay=assay, slot=slot, layer=layer)
   noise_list <- GetNoiseGeneList(object)
   if( !("BPCells" %in% attr(class(mat), "package"))){
     mat <- as(mat, "IterableMatrix")

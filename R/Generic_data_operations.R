@@ -84,7 +84,8 @@ AddSampleMeta.default <- function(object, merge_by_object = "orig.ident", Sample
 #' @param object An object to be converted
 #' @param BPdir Directory path to store BPCells data. Default is `./BPCellData/`
 #' @param assay Name of assay to use (for Seurat objects). Default is `RNA`
-#' @param slot Name of slot to use (for Seurat objects). Default is `counts`
+#' @inheritParams common_params
+#'
 #' @param ... Additional arguments passed to methods
 #' @return
 #' **For Seurat object**:
@@ -109,15 +110,12 @@ ConvertToBPCells <- function(object, ...) {
 #' @rdname ConvertToBPCells
 #' @method ConvertToBPCells Seurat
 #' @export
-ConvertToBPCells.Seurat <- function(object, BPdir="./BPCellData/", assay = "RNA", slot="counts", ...) {
+ConvertToBPCells.Seurat <- function(object, BPdir="./BPCellData/", assay = "RNA", slot="counts",layer=NULL, ...) {
   BPdir <- paste0(BPdir, "/", assay)
-  data <- Seurat::GetAssayData(object, assay = assay, slot = slot)
+  data <- getMatrix(object, assay = assay, slot = slot, layer=layer)
   BPCells::write_matrix_dir(data, dir = BPdir, overwrite = TRUE)
   data <- BPCells::open_matrix_dir(BPdir)
-  object <- SeuratObject::SetAssayData(object = object,
-                                       assay = assay,
-                                       slot = slot,
-                                       new.data = data)
+  object <- setAssayData(object = object,assay = assay, slot = slot,layer = layer,new.data = data)
   return(object)
 }
 
@@ -156,8 +154,8 @@ ConvertToBPCells.IterableMatrix <- function(object, BPdir="./BPCellData/", ...) 
 #'               object, or a matrix-like object.
 #' @param assay The name of the assay to extract from the Seurat object (default: "RNA").
 #'              Only applicable when `object` is a Seurat object.
-#' @param slot The slot to extract from the Seurat object (default: "counts").
-#'             Only applicable when `object` is a Seurat object.
+#' @inheritParams common_params
+#'
 #' @param ... Additional arguments passed to the conversion method.
 #'
 #' @return A SingleCellExperiment object.
@@ -168,9 +166,16 @@ ConvertToSCE <- function(object, ...) {
 #' @rdname ConvertToSCE
 #' @method ConvertToSCE Seurat
 #' @export
-ConvertToSCE.Seurat <- function(object, assay="RNA", slot="counts", ...) {
-  x <- suppressWarnings(Seurat::as.SingleCellExperiment(object, assay = assay, slot = slot))
-  return(x)
+ConvertToSCE.Seurat <- function(object, assay="RNA", slot="counts",layer=NULL, ...) {
+  # Determine version and value
+  is_v5 <- utils::packageVersion("SeuratObject") >= "5.0.0"
+  val <- layer %||% slot # Use layer if provided, otherwise use slot
+
+  if (is_v5) {
+    return(suppressWarnings(Seurat::as.SingleCellExperiment(object, assay = assay, layer = val)))
+  } else {
+    return(suppressWarnings(Seurat::as.SingleCellExperiment(object, assay = assay, slot = val)) )
+  }
 }
 
 #' @rdname ConvertToSCE
@@ -238,7 +243,12 @@ ConvertToSeurat.Seurat <- function(object, ...) {
 # #
 # ##############################################################################
 
-.splitObjectSeurat <- function(object, assay=NULL, split.by="orig.ident", tmpdir= "./temp/SingleCellMQC_tempBPCellSplitSeurat/"){
+.splitObjectSeurat <- function(object,
+                               assay=NULL,
+                               slot="counts",
+                               layer=NULL,
+                               split.by="orig.ident",
+                               tmpdir= "./temp/SingleCellMQC_tempBPCellSplitSeurat/"){
   if(is.null(assay)){
     assay_names <- SeuratObject::Assays(object)
   }else{
@@ -247,7 +257,7 @@ ConvertToSeurat.Seurat <- function(object, ...) {
 
   metalist <- split(object@meta.data, as.character(object@meta.data[[split.by]]) )
   exp_list <- lapply(assay_names, function(assay_name) {
-    counts <- SeuratObject::GetAssayData(object, assay = assay_name, slot = "counts")
+    counts <- getMatrix(object, assay = assay_name, slot = slot, layer=layer)
     return(counts)
   })
 
@@ -332,11 +342,17 @@ splitObject <- function(object, split.by = "orig.ident", ...){
 }
 
 #' @method splitObject Seurat
-splitObject.Seurat <- function(object, split.by = "orig.ident", assay=NULL,tmpdir= "./temp/SingleCellMQC_tempBPCellSplitSeurat/",  ...){
+splitObject.Seurat <- function(object,
+                               split.by = "orig.ident",
+                               assay=NULL,
+                               slot="counts",
+                               layer=NULL,
+                               tmpdir= "./temp/SingleCellMQC_tempBPCellSplitSeurat/",  ...){
   if(!is.null(split.by)){
     if(  length(unique(object@meta.data[[split.by]]))>1  ){
       message( paste0(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "-------- Split Seurat Object"))
-      split_object <- .splitObjectSeurat(object, split.by = split.by, assay=assay, tmpdir=tmpdir)
+      split_object <- .splitObjectSeurat(object, split.by = split.by, assay=assay,slot=slot,layer=layer,
+                                         tmpdir=tmpdir)
     }else{
       split_object <- list(Sample = object)
       names(split_object) <- as.character(unique(object@meta.data[[split.by]]))
@@ -375,16 +391,24 @@ getMatrix <- function(object, ...) {
   UseMethod("getMatrix")
 }
 #' @method getMatrix Seurat
-getMatrix.Seurat <- function(object, assay = "RNA", slot = "counts", ...) {
-  mat <- SeuratObject::GetAssayData(object = object, assay = assay, slot = slot)
-  return(mat)
+getMatrix.Seurat <- function(object, assay = "RNA", slot = "counts", layer = NULL, ...) {
+  # Determine version and value
+  is_v5 <- utils::packageVersion("SeuratObject") >= "5.0.0"
+  val <- layer %||% slot # Use layer if provided, otherwise use slot
+
+  if (is_v5) {
+    return(SeuratObject::GetAssayData(object = object, assay = assay, layer = val, ...))
+  } else {
+    return(SeuratObject::GetAssayData(object = object, assay = assay, slot = val, ...))
+  }
 }
+
 #' @method getMatrix dgCMatrix
-getMatrix.dgCMatrix <- function(object, assay = "RNA", slot = "counts", ...) {
+getMatrix.dgCMatrix <- function(object, assay = "RNA", slot = "counts", layer = NULL,...) {
   return(object)
 }
 #' @method getMatrix IterableMatrix
-getMatrix.IterableMatrix <- function(object, assay = "RNA", slot = "counts", ...) {
+getMatrix.IterableMatrix <- function(object, assay = "RNA", slot = "counts", layer = NULL,...) {
   return(object)
 }
 
@@ -408,4 +432,18 @@ getMetaData.default <- function(object, ...) {
 
 
 
+# Seurat
+setAssayData <- function(object, assay = "RNA", slot = "counts", layer = NULL,new_data, ...) {
+  is_v5 <- utils::packageVersion("SeuratObject") >= "5.0.0"
+  val <- if (is.null(layer)) slot else layer
+
+  if (is_v5) {
+    # Seurat v5 logic
+    object <- SeuratObject::SetAssayData(object, assay = assay, layer = val, new.data = new_data, ...)
+  } else {
+    # Seurat v4 logic
+    object <- SeuratObject::SetAssayData(object, assay = assay, slot = val, new.data = new_data, ...)
+  }
+  return(object)
+}
 
