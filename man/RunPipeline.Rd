@@ -78,7 +78,7 @@ The Seurat object with preprocessing and clustering results included, such as PC
 Default single-cell data preprocessing, including normalization, feature selection, scaling, dimensionality reduction, and clustering.
 }
 \details{
-For more details on these methods, please see the \code{\link{Seurat}} and BPCells documentation.
+For more details on these methods, please see the Seurat and BPCells documentation.
 If the number of cells is greater than the \code{BP.cutoff}, the function will convert data to BPCells type.
 If the number of cells is greater than the \code{wnn.upper.cutoff}, the function will perform WNN analysis.
 }

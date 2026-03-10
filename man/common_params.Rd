@@ -4,18 +4,18 @@
 \alias{common_params}
 \title{Common Parameter Documentation}
 \usage{
-common_params(layer, verbose)
+common_params(assay, slot, layer, verbose)
 }
 \arguments{
-\item{layer}{Name of layer to get or set. A character string specifying the layer to use for expression
-data (e.g., "counts", "data"). (for Seurat >= V5)}
-
-\item{verbose}{Logical. If TRUE, prints progress messages.}
-
 \item{assay}{A character string specifying the assay to use (e.g., "RNA")
 if \code{object} is a single-cell object. Defaults to "RNA".}
 
 \item{slot}{A character string specifying the slot to use for expression data (e.g., "counts", "data").}
+
+\item{layer}{Name of layer to get or set. A character string specifying the layer to use for expression
+data (e.g., "counts", "data"). (for Seurat >= V5)}
+
+\item{verbose}{Logical. If TRUE, prints progress messages.}
 }
 \description{
 Common Parameter Documentation

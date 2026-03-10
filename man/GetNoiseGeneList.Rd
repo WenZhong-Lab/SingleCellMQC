@@ -4,32 +4,78 @@
 \alias{GetNoiseGeneList}
 \title{Get Predefined Noise Gene Lists}
 \usage{
-GetNoiseGeneList(object)
+GetNoiseGeneList(
+  object,
+  mt.pattern = "^MT-",
+  mt.genes = NULL,
+  rb.pattern = "^RP[SL]",
+  rb.genes = NULL,
+  hb.pattern = NULL,
+  hb.genes = c("HBA1", "HBA2", "HBB", "HBD", "HBG1", "HBG2", "HBE1", "HBZ"),
+  dis.pattern = "^FOS|^JUN|^DNAJ|^HSP",
+  dis.genes = c("DUSP1", "IER2", "IER3", "BTG1", "BTG2", "ATF3", "EGR1", "CEBPB",
+    "CEBPB-AS1", "CEBPD", "CXCL1", "FOS", "FOSB", "FOSL1", "FOSL1P1", "FOSL2", "ID3",
+    "JUN", "JUNB", "JUND", "MT1A", "MT1B", "MT1E", "MT1F", "MT1G", "MT1H", "MT1L",
+    "MT1M", "MT1X", "MT2A", "NFKBIA", "NR4A1", "PPP1R15A", "SOCS3", "UBC", "ZFP36"),
+  tcr.pattern = "^TRA[JV].*|^TRB[VDJ].*",
+  tcr.genes = NULL,
+  bcr.pattern = "^IGH[VJ].*|^IGK[JV].*|^IGL[JV].*",
+  bcr.genes = NULL,
+  sex.genes = c("ARSD", "CXorf15", "DDX3X", "HDHD1A", "KDM5C", "PNPLA4", "RIBC1",
+    "RPS4X", "KDM6A", "ZFX", "XIST", "EIF2S3X", "ZFY", "USP9Y", "UTY", "PRKY",
+    "CYorf15A", "CYorf15B", "RPS4Y1", "NCRNA00185", "KDM5D", "EIF1AY", "DDX3Y"),
+  exclude.genes = c("HSPG2", "TRAV1-2")
+)
 }
 \arguments{
-\item{object}{A single-cell object (e.g., Seurat object) from which gene names
-will be extracted.}
+\item{object}{A single-cell object.}
+
+\item{mt.pattern}{Regex for mitochondrial genes (e.g., \verb{^MT-}). Combined with \code{mt.genes}.}
+
+\item{mt.genes}{List of specific mitochondrial symbols. Combined with \code{mt.pattern}.}
+
+\item{rb.pattern}{Regex for ribosomal genes (e.g., \verb{^RP[SL]}). Combined with \code{rb.genes}.}
+
+\item{rb.genes}{List of specific ribosomal symbols. Combined with \code{rb.pattern}.}
+
+\item{hb.pattern}{Regex for hemoglobin genes. Combined with \code{hb.genes}.}
+
+\item{hb.genes}{List of specific hemoglobin symbols (e.g. "HBA1", "HBA2", "HBB", "HBD", "HBG1", "HBG2", "HBE1", "HBZ"). Combined with \code{hb.pattern}.}
+
+\item{dis.pattern}{Regex for stress/dissociation genes, Default is "^FOS|^JUN|^DNAJ|^HSP". Combined with \code{dis.genes}.}
+
+\item{dis.genes}{List of specific stress symbols (e.g., FOS, JUN). Combined with \code{dis.pattern}.}
+
+\item{tcr.pattern}{Regex for T-cell receptor genes, Default is alpha/beta \verb{^TRA[JV].*|^TRB[VDJ].*}. Combined with \code{tcr.genes}.}
+
+\item{tcr.genes}{List of specific TCR symbols. Combined with \code{tcr.pattern}.}
+
+\item{bcr.pattern}{Regex for B-cell receptor genes, Default is \verb{^IGH[VJ].*|^IGK[JV].*|^IGL[JV].*}. Combined with \code{bcr.genes}.}
+
+\item{bcr.genes}{List of specific BCR symbols. Combined with \code{bcr.pattern}.}
+
+\item{sex.genes}{List of sex-chromosome-linked genes (e.g., XIST, UTY).}
+
+\item{exclude.genes}{A blacklist of genes to be removed from all results. Default: "HSPG2" and "TRAV1-2".}
 }
 \value{
-A named list, where each element is a character vector of gene names
-belonging to a specific noise category:
-\itemize{
-\item \code{mt}: Mitochondrial genes (e.g., "MT-").
-\item \code{rb}: Ribosomal protein genes (e.g., "RPS", "RPL").
-\item \code{hb}: Hemoglobin genes.
-\item \code{dissociation}: Genes commonly associated with dissociation stress.
-\item \code{TCRab}: T-cell receptor alpha/beta chain V(D)J genes.
-\item \code{BCR}: B-cell receptor (immunoglobulin, V(D)J) genes.
-\item \code{Sex_chromosome}: Genes located on X and Y chromosomes.
-}
-Genes lists are intersected with the actual gene names present in the \code{object}.
+A named list of gene vectors for each noise category.
 }
 \description{
-This function generates a named list of common "noise" gene sets that are
-often excluded or analyzed separately in single-cell RNA-seq data.
+This function identifies various categories of "noise" genes (Mitochondrial,
+Ribosomal, Hemoglobin, Dissociation/Stress, TCR/BCR, and Sex-chromosome
+linked genes).
 }
 \details{
-The function contains predefined patterns and lists of genes for various
-noise categories. It matches these against the rownames of the expression
-matrix from the provided \code{object} to return only the genes present in the dataset.
+For each category, the function identifies genes using two
+\strong{complementary} methods:
+\enumerate{
+\item \strong{Grepping}: It searches for genes matching a regular expression (e.g., \code{mt.pattern}).
+\item \strong{Filtering}: It looks for specific gene symbols provided in a list (e.g., \code{mt.genes}).
+}
+
+The results from both methods are merged (union) and deduplicated (unique).
+Finally, any genes specified in \code{exclude.genes} (e.g., HSPG2, TRAV1-2) are
+removed from the final output. The function is case-insensitive to support
+both Human and Mouse nomenclature.
 }

@@ -4,7 +4,23 @@
 \alias{CalculateMetrics}
 \title{Calculate Multi-omics Metrics}
 \usage{
-CalculateMetrics(object, types = c("Sample", "Cell"), sample.by = "orig.ident")
+CalculateMetrics(
+  object,
+  types = c("Sample", "Cell"),
+  sample.by = "orig.ident",
+  mt.pattern = "^MT-",
+  mt.genes = NULL,
+  rb.pattern = "^RP[SL]",
+  rb.genes = NULL,
+  hb.pattern = NULL,
+  hb.genes = c("HBA1", "HBA2", "HBB", "HBD", "HBG1", "HBG2", "HBE1", "HBZ"),
+  dis.pattern = "^FOS|^JUN|^DNAJ|^HSP",
+  dis.genes = c("DUSP1", "IER2", "IER3", "BTG1", "BTG2", "ATF3", "EGR1", "CEBPB",
+    "CEBPB-AS1", "CEBPD", "CXCL1", "FOS", "FOSB", "FOSL1", "FOSL1P1", "FOSL2", "ID3",
+    "JUN", "JUNB", "JUND", "MT1A", "MT1B", "MT1E", "MT1F", "MT1G", "MT1H", "MT1L",
+    "MT1M", "MT1X", "MT2A", "NFKBIA", "NR4A1", "PPP1R15A", "SOCS3", "UBC", "ZFP36"),
+  exclude.genes = c("HSPG2")
+)
 }
 \arguments{
 \item{object}{A Seurat object or a list containing GEX (Seurat object), TCR (list; optional), and BCR (list; optional) components.}
@@ -12,6 +28,24 @@ CalculateMetrics(object, types = c("Sample", "Cell"), sample.by = "orig.ident")
 \item{types}{A character vector specifying the types of metrics to run: "Sample", "Cell", and/or "Feature". Defaults to c("Sample", "Cell").}
 
 \item{sample.by}{Character string specifying the grouping variable for sample metrics. Defaults to "orig.ident".}
+
+\item{mt.pattern}{Regex for mitochondrial genes (e.g., \verb{^MT-}). Combined with \code{mt.genes}.}
+
+\item{mt.genes}{List of specific mitochondrial symbols. Combined with \code{mt.pattern}.}
+
+\item{rb.pattern}{Regex for ribosomal genes (e.g., \verb{^RP[SL]}). Combined with \code{rb.genes}.}
+
+\item{rb.genes}{List of specific ribosomal symbols. Combined with \code{rb.pattern}.}
+
+\item{hb.pattern}{Regex for hemoglobin genes. Combined with \code{hb.genes}.}
+
+\item{hb.genes}{List of specific hemoglobin symbols (e.g. "HBA1", "HBA2", "HBB", "HBD", "HBG1", "HBG2", "HBE1", "HBZ"). Combined with \code{hb.pattern}.}
+
+\item{dis.pattern}{Regex for stress/dissociation genes, Default is "^FOS|^JUN|^DNAJ|^HSP". Combined with \code{dis.genes}.}
+
+\item{dis.genes}{List of specific stress symbols (e.g., FOS, JUN). Combined with \code{dis.pattern}.}
+
+\item{exclude.genes}{A blacklist of genes to be excluded from the matched gene sets (e.g., MT, RB). Default: "HSPG2".}
 }
 \value{
 A Seurat object. All results are stored in \code{meta.data} and \code{SingleCelMQC} slot in \code{misc}.

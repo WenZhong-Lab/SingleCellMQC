@@ -411,66 +411,125 @@ RunNoiseGeneCluster <-function(object,
 #' Get Predefined Noise Gene Lists
 #'
 #' @description
-#' This function generates a named list of common "noise" gene sets that are
-#' often excluded or analyzed separately in single-cell RNA-seq data.
+#' This function identifies various categories of "noise" genes (Mitochondrial,
+#' Ribosomal, Hemoglobin, Dissociation/Stress, TCR/BCR, and Sex-chromosome
+#' linked genes).
 #'
-#' @param object A single-cell object (e.g., Seurat object) from which gene names
-#'   will be extracted.
-#'
-#' @return A named list, where each element is a character vector of gene names
-#'   belonging to a specific noise category:
-#'   \itemize{
-#'     \item `mt`: Mitochondrial genes (e.g., "MT-").
-#'     \item `rb`: Ribosomal protein genes (e.g., "RPS", "RPL").
-#'     \item `hb`: Hemoglobin genes.
-#'     \item `dissociation`: Genes commonly associated with dissociation stress.
-#'     \item `TCRab`: T-cell receptor alpha/beta chain V(D)J genes.
-#'     \item `BCR`: B-cell receptor (immunoglobulin, V(D)J) genes.
-#'     \item `Sex_chromosome`: Genes located on X and Y chromosomes.
-#'   }
-#'   Genes lists are intersected with the actual gene names present in the `object`.
 #' @details
-#' The function contains predefined patterns and lists of genes for various
-#' noise categories. It matches these against the rownames of the expression
-#' matrix from the provided `object` to return only the genes present in the dataset.
+#' For each category, the function identifies genes using two
+#' **complementary** methods:
+#' 1. **Grepping**: It searches for genes matching a regular expression (e.g., `mt.pattern`).
+#' 2. **Filtering**: It looks for specific gene symbols provided in a list (e.g., `mt.genes`).
 #'
+#' The results from both methods are merged (union) and deduplicated (unique).
+#' Finally, any genes specified in `exclude.genes` (e.g., HSPG2, TRAV1-2) are
+#' removed from the final output. The function is case-insensitive to support
+#' both Human and Mouse nomenclature.
+#'
+#' @param object A single-cell object.
+#' @param mt.pattern Regex for mitochondrial genes (e.g., `^MT-`). Combined with `mt.genes`.
+#' @param mt.genes List of specific mitochondrial symbols. Combined with `mt.pattern`.
+#' @param rb.pattern Regex for ribosomal genes (e.g., `^RP[SL]`). Combined with `rb.genes`.
+#' @param rb.genes List of specific ribosomal symbols. Combined with `rb.pattern`.
+#' @param hb.pattern Regex for hemoglobin genes. Combined with `hb.genes`.
+#' @param hb.genes List of specific hemoglobin symbols (e.g. "HBA1", "HBA2", "HBB", "HBD", "HBG1", "HBG2", "HBE1", "HBZ"). Combined with `hb.pattern`.
+#' @param dis.pattern Regex for stress/dissociation genes, Default is "^FOS|^JUN|^DNAJ|^HSP". Combined with `dis.genes`.
+#' @param dis.genes List of specific stress symbols (e.g., FOS, JUN). Combined with `dis.pattern`.
+#' @param tcr.pattern Regex for T-cell receptor genes, Default is alpha/beta `^TRA[JV].*|^TRB[VDJ].*`. Combined with `tcr.genes`.
+#' @param tcr.genes List of specific TCR symbols. Combined with `tcr.pattern`.
+#' @param bcr.pattern Regex for B-cell receptor genes, Default is `^IGH[VJ].*|^IGK[JV].*|^IGL[JV].*`. Combined with `bcr.genes`.
+#' @param bcr.genes List of specific BCR symbols. Combined with `bcr.pattern`.
+#' @param sex.genes List of sex-chromosome-linked genes (e.g., XIST, UTY).
+#' @param exclude.genes A blacklist of genes to be removed from all results. Default: "HSPG2" and "TRAV1-2".
+#'
+#' @return A named list of gene vectors for each noise category.
 #' @export
-GetNoiseGeneList <- function(object){
-  mat <- getMatrix(object)
-  gene_name <- rownames(mat)
-  mt_gene <- grep("^MT-", gene_name, value = T)
-  rb_gene <- grep("^RP[SL]", gene_name, value = T)
-  hb_gene <- c("HBA1", "HBA2", "HBB", "HBD", "HBG1", "HBG2", "HBE1", "HBZ")
+GetNoiseGeneList <- function(
+    object,
+    # 1. Mitochondria (MT)
+    mt.pattern = "^MT-",
+    mt.genes   = NULL,
+    # 2. Ribosome (RB)
+    rb.pattern = "^RP[SL]",
+    rb.genes   = NULL,
+    # 3. Hemoglobin (HB)
+    hb.pattern = NULL,
+    hb.genes   = c("HBA1", "HBA2", "HBB", "HBD", "HBG1", "HBG2", "HBE1", "HBZ"),
+    # 4. Dissociation / Stress
+    dis.pattern = "^FOS|^JUN|^DNAJ|^HSP",
+    dis.genes   = c("DUSP1", "IER2", "IER3", "BTG1", "BTG2", "ATF3", "EGR1", "CEBPB",
+                    "CEBPB-AS1", "CEBPD", "CXCL1", "FOS","FOSB", "FOSL1", "FOSL1P1", "FOSL2",
+                    "ID3","JUN", "JUNB", "JUND", "MT1A", "MT1B", "MT1E", "MT1F", "MT1G", "MT1H",
+                    "MT1L", "MT1M", "MT1X", "MT2A", "NFKBIA", "NR4A1", "PPP1R15A", "SOCS3",
+                    "UBC", "ZFP36"),
 
-  dis_pa <- c("^FOS","^JUN","^DNAJ","^HSP")
-  dis_gene <- c(setdiff(grep(paste0(dis_pa, collapse = "|"), gene_name, value = TRUE), "HSPG2"), "DUSP1", "IER2", "IER3", "BTG1", "BTG2", "ATF3","EGR1","ATF3","BTG2","CEBPB","CEBPB-AS1","CEBPD","CXCL1","EGR1","FOS","FOSB","FOSL1","FOSL1P1","FOSL2","ID3","IER2","JUN",
-                "JUNB","JUND","MT1A","MT1B","MT1E","MT1F","MT1G","MT1H","MT1L","MT1M","MT1X","MT2A","NFKBIA","NR4A1","PPP1R15A","SOCS3",
-                "UBC","ZFP36")
+    # 5. TCR
+    tcr.pattern = "^TRA[JV].*|^TRB[VDJ].*",
+    tcr.genes   = NULL,
+    # 6. BCR
+    bcr.pattern = "^IGH[VJ].*|^IGK[JV].*|^IGL[JV].*",
+    bcr.genes   = NULL,
+    # 7. Sex Chromosome
+    sex.genes   = c("ARSD", "CXorf15", "DDX3X", "HDHD1A", "KDM5C", "PNPLA4", "RIBC1",
+                    "RPS4X", "KDM6A", "ZFX", "XIST", "EIF2S3X", "ZFY", "USP9Y", "UTY",
+                    "PRKY", "CYorf15A", "CYorf15B", "RPS4Y1", "NCRNA00185", "KDM5D",
+                    "EIF1AY", "DDX3Y"),
+    # 8. Global Exclusion
+    exclude.genes = c("HSPG2", "TRAV1-2")
+) {
 
-  TCRab_gene <- grep("^TRA[JV].*|^TRB[VDJ].*", gene_name, value = T)
-  BCR_gene <- grep(paste0(c("^IGH[VJ].*",
-                              "^IGK[JV].*",
-                              "^IGL[JV].*"), collapse = "|"), gene_name, value = T)
-  sex_gene <- c(
-    # X chromosome
-    "ARSD", "CXorf15", "DDX3X", "HDHD1A", "KDM5C", "PNPLA4",
-    "RIBC1", "RPS4X", "KDM6A", "ZFX", "XIST",
-    "EIF2S3X",
-    # Y chromosome
-    "ZFY", "USP9Y", "UTY", "PRKY", "CYorf15A", "CYorf15B",
-    "RPS4Y1", "NCRNA00185", "KDM5D", "EIF1AY", "DDX3Y"
-  )
+  # A. Extract gene names from the provided object
+  gene_name <- tryCatch({
+    if (is.matrix(object) || is(object, "dgCMatrix")) {
+      rownames(object)
+    } else if (exists("getMatrix")) {
+      rownames(getMatrix(object))
+    } else {
+      rownames(object)
+    }
+  }, error = function(e) stop("Failed to extract gene names from the input object."))
+
+  if (is.null(gene_name)) stop("Object rownames are empty.")
+
+  # B. Helper function: Union of Grep & List, then Unique, then Exclude
+  .collect <- function(all_genes, pa, ge, ex) {
+    # 1. Matching by Pattern
+    res_pa <- character(0)
+    if (!is.null(pa) && pa != "") {
+      res_pa <- grep(pa, all_genes, value = TRUE, ignore.case = TRUE)
+    }
+
+    # 2. Matching by Gene List (Case-insensitive)
+    res_ge <- character(0)
+    if (!is.null(ge)) {
+      res_ge <- all_genes[tolower(all_genes) %in% tolower(ge)]
+    }
+
+    # 3. Union and Unique
+    combined <- unique(c(res_pa, res_ge))
+
+    # 4. Exclusion (Case-insensitive)
+    if (length(combined) > 0 && !is.null(ex)) {
+      combined <- combined[!(tolower(combined) %in% tolower(ex))]
+    }
+
+    return(combined)
+  }
+
+  # C. Assemble the named list for all categories
   gene_list <- list(
-    "mt" = intersect(mt_gene, gene_name),
-    "rb" = intersect(rb_gene,gene_name),
-    "hb" = intersect(hb_gene,gene_name),
-    "dissociation" = intersect(dis_gene,gene_name),
-    "TCRab" = intersect(TCRab_gene,gene_name),
-    "BCR" = intersect(BCR_gene,gene_name),
-    "Sex_chromosome" = intersect(sex_gene,gene_name)
+    "mt"              = .collect(gene_name, mt.pattern, mt.genes, exclude.genes),
+    "rb"              = .collect(gene_name, rb.pattern, rb.genes, exclude.genes),
+    "hb"              = .collect(gene_name, hb.pattern, hb.genes, exclude.genes),
+    "dissociation"    = .collect(gene_name, dis.pattern, dis.genes, exclude.genes),
+    "TCRab"           = .collect(gene_name, tcr.pattern, tcr.genes, exclude.genes),
+    "BCR"             = .collect(gene_name, bcr.pattern, bcr.genes, exclude.genes),
+    "Sex_chromosome"  = .collect(gene_name, NULL, sex.genes, exclude.genes)
   )
+
   return(gene_list)
 }
+
 
 #KIR23_gene <- grep("^KIR2|^KIR3", gene_name, value=TRUE)
 # cell_cycle_s <- c("MCM5", "PCNA", "TYMS", "FEN1", "MCM2", "MCM4", "RRM1", "UNG", "GINS2",

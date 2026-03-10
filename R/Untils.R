@@ -13,7 +13,7 @@
 #' @param verbose Logical. If TRUE, prints progress messages.
 #'
 #' @keywords internal
-common_params <- function(layer, verbose) {}
+common_params <- function(assay, slot, layer, verbose) {}
 
 
 
