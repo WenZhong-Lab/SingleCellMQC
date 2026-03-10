@@ -2,7 +2,7 @@
 % Please edit documentation in R/Sample_QC.R
 \name{FindCommonPCTOutlier}
 \alias{FindCommonPCTOutlier}
-\title{Find Common PCT Outliers}
+\title{Identify Sample Outliers Based on Cell Type Proportions}
 \usage{
 FindCommonPCTOutlier(
   object,
@@ -10,7 +10,8 @@ FindCommonPCTOutlier(
   celltype.by = "ScType",
   return.type = c("table"),
   tissue = NULL,
-  verbose = TRUE
+  verbose = TRUE,
+  custom_ref_range = NULL
 )
 }
 \arguments{
@@ -24,8 +25,15 @@ FindCommonPCTOutlier(
 
 \item{tissue}{A character string specifying the tissue type to filter by. If NULL, the function will stop and prompt the user to specify a tissue.}
 
-\item{verbose}{A logical value. If \code{TRUE} (default), the message will be printed.
-If \code{FALSE} , the message will be suppressed (not printed).}
+\item{verbose}{A logical value. If \code{TRUE} (default), the message will be printed.  If \code{FALSE} , the message will be suppressed (not printed).}
+
+\item{custom_ref_range}{A data frame specifying custom reference ranges for cell type proportions. If provided, it overrides the built-in database.
+The data frame must contain exactly three columns:
+\itemize{
+\item \code{CellType}: Character. Cell type names (must match values in the \code{celltype.by} column).
+\item \code{min}: Numeric. The minimum expected proportion (value between 0 and 1).
+\item \code{max}: Numeric. The maximum expected proportion (value between 0 and 1).
+}}
 }
 \value{
 Depending on the \code{return.type} parameter, the function returns:
@@ -39,8 +47,13 @@ Depending on the \code{return.type} parameter, the function returns:
 This function identifies common pct (percentage) outliers based on a built-in database of cell proportions.
 }
 \details{
-To detect outlier samples based on cell type composition, one approach involves compiling and integrating data from established tissue atlases,
-such as those from the DISCO database and additional single-cell reference datasets,
-to define the common range of inter-individual variability for major typical cell types within each tissue.
-The function then identifies samples exhibiting deviations from these established reference proportions, marking them as potential outliers.
+To detect outlier samples based on cell type composition, this approach integrates data from established tissue atlases
+(e.g., DISCO database and other single-cell references) to define the expected range of inter-individual variability
+for major cell types within specific tissues.
+
+The function compares the cell type proportions of the input samples against these established (or custom) reference ranges
+and identifies samples exhibiting significant deviations as potential outliers.
+}
+\seealso{
+\code{ShowCommonPCTTissue} for a list of supported tissue types.
 }

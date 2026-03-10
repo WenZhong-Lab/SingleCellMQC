@@ -995,7 +995,7 @@ CellRangerAlerts <- function(object, return.type="table"){
 
 
 
-#' Find Common PCT Outliers
+#' Identify Sample Outliers Based on Cell Type Proportions
 #'
 #' This function identifies common pct (percentage) outliers based on a built-in database of cell proportions.
 #'
@@ -1004,8 +1004,15 @@ CellRangerAlerts <- function(object, return.type="table"){
 #' @param celltype.by A character string specifying the metadata column to use for identifying cell types. Default is "ScType".
 #' @param return.type A character vector specifying the type of output to return. Options are "table" and/or "interactive_table". Default is "table".
 #' @param tissue A character string specifying the tissue type to filter by. If NULL, the function will stop and prompt the user to specify a tissue.
-#' @param verbose A logical value. If `TRUE` (default), the message will be printed.
-#'              If `FALSE` , the message will be suppressed (not printed).
+#' @param verbose A logical value. If `TRUE` (default), the message will be printed.  If `FALSE` , the message will be suppressed (not printed).
+#' @param custom_ref_range A data frame specifying custom reference ranges for cell type proportions. If provided, it overrides the built-in database.
+#'   The data frame must contain exactly three columns:
+#'   \itemize{
+#'     \item \code{CellType}: Character. Cell type names (must match values in the \code{celltype.by} column).
+#'     \item \code{min}: Numeric. The minimum expected proportion (value between 0 and 1).
+#'     \item \code{max}: Numeric. The maximum expected proportion (value between 0 and 1).
+#'   }
+#'
 #' @return Depending on the `return.type` parameter, the function returns:
 #' \itemize{
 #'   \item If "table" is specified, a data frame containing the outlier results.
@@ -1013,29 +1020,27 @@ CellRangerAlerts <- function(object, return.type="table"){
 #'   \item If both are specified, a list containing both the table and the interactive table.
 #' }
 #'
+#' @seealso \code{ShowCommonPCTTissue} for a list of supported tissue types.
+#'
 #' @export
 #'
 #' @details
-#' To detect outlier samples based on cell type composition, one approach involves compiling and integrating data from established tissue atlases,
-#' such as those from the DISCO database and additional single-cell reference datasets,
-#' to define the common range of inter-individual variability for major typical cell types within each tissue.
-#' The function then identifies samples exhibiting deviations from these established reference proportions, marking them as potential outliers.
+#' To detect outlier samples based on cell type composition, this approach integrates data from established tissue atlases
+#' (e.g., DISCO database and other single-cell references) to define the expected range of inter-individual variability
+#' for major cell types within specific tissues.
 #'
+#' The function compares the cell type proportions of the input samples against these established (or custom) reference ranges
+#' and identifies samples exhibiting significant deviations as potential outliers.
 #'
 FindCommonPCTOutlier <- function(object,
                                  sample.by = "orig.ident",
                                  celltype.by = "ScType",
-                                 return.type=c("table"),
+                                 return.type = c("table"),
                                  tissue = NULL,
-                                 verbose = TRUE
+                                 verbose = TRUE,
+                                 custom_ref_range= NULL
 
 ) {
-
-  if("Seurat" %in% is(object)){
-    metadata <- getMetaData(object)
-  }else{
-    metadata <- object
-  }
   if( length(setdiff(return.type, c("table", "interactive_table")))!=0 ){
     stop("Invalid `return.type`, only: `table` or/and `interactive_table` ")
   }
@@ -1043,9 +1048,11 @@ FindCommonPCTOutlier <- function(object,
   if(is.null(tissue)){
     stop("Error: The tissue must be specified!!, please run `ShowCommonPCTTissue` to get the available tissue. ")
   }
+  metadata <- getMetaData(object)
 
   out <- list()
-  out_table <- .perSamplePCTOutlier(metadata, tissue = tissue, celltype.by = celltype.by, sample.by = sample.by, verbose = verbose)
+  out_table <- .perSamplePCTOutlier(metadata, tissue = tissue, celltype.by = celltype.by, sample.by = sample.by, verbose = verbose,
+                                    custom_ref_range=custom_ref_range)
   if("table" %in% return.type){
     out$table <- out_table
   }
@@ -1102,13 +1109,25 @@ FindCommonPCTOutlier <- function(object,
 }
 
 
-.perSamplePCTOutlier <- function(object, tissue, celltype.by, sample.by, type="min-max", verbose=TRUE){
+.perSamplePCTOutlier <- function(object, tissue, celltype.by, sample.by, type="min-max", verbose=TRUE, custom_ref_range){
+
+  ## pct
   metadata <- object[, c(sample.by, celltype.by)]
   pct_table <- data.table::data.table(metadata)[, list(.N), by=.(Sample=get(sample.by), CellType=get(celltype.by))]
   pct_table[, total := sum(N), by = Sample]
   pct_table[, proportion := N / total]
 
-  tissue_table <- pct_stat_out[pct_stat_out$tissue==tissue, ]
+  if(!is.null(custom_ref_range)){
+    if(tissue %in% unique(pct_stat_out$tissue) ){
+      tissue_table <- pct_stat_out[pct_stat_out$tissue==tissue, ]
+    }else{
+      stop("Invalid tissue type, please run `ShowCommonPCTTissue` to get the available tissue. ")
+    }
+  }else{
+    tissue_table = custom_ref_range
+  }
+
+
   index <- match(pct_table$CellType, tissue_table$CellType)
   if(type == "min-max"){
     pct_table$min_cutoff <- round(tissue_table$min[index]*100,3)
