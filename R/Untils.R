@@ -18,21 +18,21 @@ common_params <- function(assay, slot, layer, verbose) {}
 
 
 
-toSeuratObject <- function(object, ...){
+toSeuratObject <- function(object,min.cells=0, ...){
   if (!("Seurat" %in% class(object))) {
     if ("Antibody Capture" %in% names(object)) {
-      rna <- Seurat::CreateSeuratObject(object$`Gene Expression`, min.cells = 0, ...)
+      rna <- Seurat::CreateSeuratObject(object$`Gene Expression`, min.cells = min.cells, ...)
       if( "Assay5" %in% class(rna@assays$RNA) ){
-        adt <- SeuratObject::CreateAssay5Object(object$`Antibody Capture`, min.cells = 0, ...)
+        adt <- SeuratObject::CreateAssay5Object(object$`Antibody Capture`, min.cells = min.cells, ...)
       }else{
-        adt <- SeuratObject::CreateAssayObject(object$`Antibody Capture`, min.cells = 0, ...)
+        adt <- SeuratObject::CreateAssayObject(object$`Antibody Capture`, min.cells = min.cells, ...)
       }
       rna[["ADT"]] <- adt
       Seurat::DefaultAssay(rna) <- 'RNA'
     }else if( "dgCMatrix" %in% class(object) ){
-      rna <- Seurat::CreateSeuratObject(object, min.cells = 0, ...)
+      rna <- Seurat::CreateSeuratObject(object, min.cells = min.cells, ...)
     }else{
-      rna <- Seurat::CreateSeuratObject(object$`Gene Expression`, min.cells = 0, ...)
+      rna <- Seurat::CreateSeuratObject(object$`Gene Expression`, min.cells = min.cells, ...)
     }
     name_col <- colnames(rna)
     prefix <- sub("_.*$", "", name_col)
@@ -424,6 +424,11 @@ smart_lapply <- function(X, FUN, ..., .use_future = NULL, future.seed = TRUE) {
                       number_fmr="paste0(value,'%')",
                       subtitle=NULL
 ){
+
+  suffix <- sample(1:1000000, 1)
+  csv.name <- paste0(csv.name, "_", suffix)
+  elementId <- paste0(elementId, "_", suffix)
+
   count <- as.data.frame(object)
   colnames(count)[1] <- first_name
   filter_code <- "filterable = TRUE,

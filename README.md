@@ -11,6 +11,8 @@ Before installation, we recommend installing these dependencies first:
 -   [Seurat](https://github.com/satijalab/seurat) (single-cell analysis toolkit)
 -   [BPCells](https://github.com/bnprks/BPCells) (memory-efficient single-cell data processing)
 
+
+**other main packages**
 ```  
 cran_pkgs <- c(
   "cutoff", "data.table", "dbscan", "dplyr", "factoextra", "ggrepel", "ggplot2",
@@ -39,10 +41,10 @@ if (length(bioc_missing) > 0) {
 You can install the development version of `SingleCellMQC` :
 
 ```         
-if (!requireNamespace("devtools", quietly = TRUE)) {
-  install.packages("devtools")  
+if (!requireNamespace("pak", quietly = TRUE)) {
+  install.packages("pak")
 }
-devtools::install_github('WenZhong-Lab/SingleCellMQC') 
+pak::pkg_install("WenZhong-Lab/SingleCellMQC")
 library(SingleCellMQC)
 ```
 

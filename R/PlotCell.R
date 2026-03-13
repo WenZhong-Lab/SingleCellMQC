@@ -245,8 +245,8 @@ PlotCellMethodFiltration <- function(object, type.detection ="lq", ##"lq", "db"
                                      .SDcols=setdiff(colnames(plot_table), sample.by)]
 
   if("interactive_table" %in% return.type){
-    out$pct <- .re_table(plot_pct,csv.name = paste0(type.detection,"_pct.csv"),elementId = paste0(type.detection, "_pct-table"), right.sparkline = T , down.sparkline = T,first_name = "Sample", subtitle = paste0(subtitle, " percentage"), number_type = "custom", number_fmr = "paste0( round(value*100,2),'%')")
-    out$count <- .re_table(plot_count,csv.name = paste0(type.detection,"_count.csv"),elementId = paste0(type.detection, "_count-table"),right.sparkline = T , down.sparkline = T,first_name = "Sample", subtitle = paste0(subtitle, " number"))
+    out$pct <- .re_table(plot_pct,csv.name = paste0(type.detection,"_pct"),elementId = paste0(type.detection, "_pct-table"), right.sparkline = T , down.sparkline = T,first_name = "Sample", subtitle = paste0(subtitle, " percentage"), number_type = "custom", number_fmr = "paste0( round(value*100,2),'%')")
+    out$count <- .re_table(plot_count,csv.name = paste0(type.detection,"_count"),elementId = paste0(type.detection, "_count-table"),right.sparkline = T , down.sparkline = T,first_name = "Sample", subtitle = paste0(subtitle, " number"))
     return(out)
   }
   if("plot" %in% return.type){

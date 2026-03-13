@@ -1,7 +1,11 @@
 
-# 0.8.0 (26)
+# 0.8.0 (2603)
 - Adapt slots and layers for better compatibility for new Seurat version.
 - Refactored some functions into a generic architecture to facilitate better integration with non-Seurat objects and future data structures.
+- feat: support custom reference ranges in `FindCommonPCTOutlier`.
+- Enhance `CalculateMetricsPerCell` and `GetNoiseGeneList` with support for custom matching patterns and user-defined features.
+- Optimize QC metrics calculation logic to improve robustness and compatibility with varying object structures.
+- Add the `min.cells` parameter in both `Read10XH5Data` and `Read10XData` functions.
 
 # v0.7.1 (25)
 

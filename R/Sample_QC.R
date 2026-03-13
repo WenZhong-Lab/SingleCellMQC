@@ -1117,7 +1117,7 @@ FindCommonPCTOutlier <- function(object,
   pct_table[, total := sum(N), by = Sample]
   pct_table[, proportion := N / total]
 
-  if(!is.null(custom_ref_range)){
+  if(is.null(custom_ref_range)){
     if(tissue %in% unique(pct_stat_out$tissue) ){
       tissue_table <- pct_stat_out[pct_stat_out$tissue==tissue, ]
     }else{
@@ -1217,6 +1217,7 @@ SummarySample <- function(object,
                           csv.name="SampleSummary"
                           ){
   # nCell
+  object <- CalculateMetricsPerSample(object)
   base_metrics <- object@misc[["SingleCellMQC"]][["perQCMetrics"]][["perSample"]][["count"]]
   index = match( c("sample", "nCell", "nGene_RNA", "nPro_ADT", "nCell_TCR", "nCell_BCR") , colnames(base_metrics))
   index=na.omit(index)

@@ -43,6 +43,8 @@ ReadVDJ <- function(dir10x, sample=seq_along(dir10x)){
 #' @param sample Optional; sample identifiers. If not provided, default names will be generated.
 #' @param return.type Character; specifies the format of the returned GEX data. Options are `"Seurat"` (returns a Seurat object) or `"matrix"` (returns a dgCMatrix or IterableMatrix ).
 #'   Defaults to `"Seurat"`.
+#' @param min.cells Include features detected in at least this many cells. Will subset the counts matrix as well.
+#' To reintroduce excluded features, create a new object with a lower cutoff
 #'
 #' @return A list containing the following components:
 #'   - `GEX`: Gene/Protein Expression data. If `return.type` is `"Seurat"`, this is a merged Seurat object; if `"matrix"`, it is a merged matrix.
@@ -52,7 +54,7 @@ ReadVDJ <- function(dir10x, sample=seq_along(dir10x)){
 #'   If only one component is loaded (e.g., only GEX data), the function returns that component directly instead of a list.
 #' @export
 Read10XData <- function(dir_GEX=NULL, dir_TCR=NULL, dir_BCR=NULL, sample=NULL,
-                         dir_BPCells=NULL,  gene.column=2, return.type="Seurat"){
+                         dir_BPCells=NULL,  gene.column=2, return.type="Seurat", min.cells =0){
   out_list <- list()
   saveBPCells = !is.null(dir_BPCells)
   #exp
@@ -136,7 +138,7 @@ Read10XData <- function(dir_GEX=NULL, dir_TCR=NULL, dir_BCR=NULL, sample=NULL,
     if("matrix" %in% return.type){
       out_list$GEX <- out
     }else if("Seurat" %in% return.type){
-      out_list$GEX <- toSeuratObject(out)
+      out_list$GEX <- toSeuratObject(out, min.cells=min.cells)
     }
   }
 
@@ -168,6 +170,8 @@ Read10XData <- function(dir_GEX=NULL, dir_TCR=NULL, dir_BCR=NULL, sample=NULL,
 #' @param sample Optional; sample identifiers. If not provided, default names will be generated.
 #' @param return.type Character; specifies the format of the returned GEX data. Options are `"Seurat"` (returns a Seurat object) or `"matrix"` (returns a dgCMatrix or IterableMatrix ).
 #'   Defaults to `"Seurat"`.
+#' @param min.cells Include features detected in at least this many cells. Will subset the counts matrix as well.
+#' To reintroduce excluded features, create a new object with a lower cutoff
 #'
 #' @return A list containing the following components:
 #'   - `GEX`: Gene/Protein Expression data. If `return.type` is `"Seurat"`, this is a merged Seurat object; if `"matrix"`, it is a merged matrix.
@@ -179,7 +183,7 @@ Read10XData <- function(dir_GEX=NULL, dir_TCR=NULL, dir_BCR=NULL, sample=NULL,
 #'
 Read10XH5Data <- function(dir_GEX = NULL, dir_TCR = NULL, dir_BCR = NULL, sample = NULL,
                            dir_BPCells = NULL, gene.column = 2,
-                          return.type = "Seurat") {
+                          return.type = "Seurat", min.cells =0) {
   out_list <- list()
   saveBPCells = !is.null(dir_BPCells)
 
@@ -276,7 +280,7 @@ Read10XH5Data <- function(dir_GEX = NULL, dir_TCR = NULL, dir_BCR = NULL, sample
     if ("matrix" %in% return.type) {
       out_list$GEX <- out
     } else if ("Seurat" %in% return.type) {
-      out_list$GEX <- toSeuratObject(out)
+      out_list$GEX <- toSeuratObject(out, min.cells=min.cells)
     }
   }
 

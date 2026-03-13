@@ -11,7 +11,8 @@ Read10XH5Data(
   sample = NULL,
   dir_BPCells = NULL,
   gene.column = 2,
-  return.type = "Seurat"
+  return.type = "Seurat",
+  min.cells = 0
 )
 }
 \arguments{
@@ -30,6 +31,9 @@ A vector or named vector can be given in order to load several data directories.
 
 \item{return.type}{Character; specifies the format of the returned GEX data. Options are \code{"Seurat"} (returns a Seurat object) or \code{"matrix"} (returns a dgCMatrix or IterableMatrix ).
 Defaults to \code{"Seurat"}.}
+
+\item{min.cells}{Include features detected in at least this many cells. Will subset the counts matrix as well.
+To reintroduce excluded features, create a new object with a lower cutoff}
 }
 \value{
 A list containing the following components:
