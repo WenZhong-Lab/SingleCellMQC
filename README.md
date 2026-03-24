@@ -55,6 +55,10 @@ The comprehensive documentation: <https://daihanji.github.io/SingleCellMQC-qmd/>
 
 -   [**Step-by-Step Tutorial 2: Dataset 3 (breast dataset, 1.6M cells, powered by BPCells)**](https://daihanji.github.io/SingleCellMQC-qmd/Dataset3.html)
 
+## Example Data and QC HTML Reports
+
+Access URL: <https://doi.org/10.5281/zenodo.15120930>
+
 ## 📝 Key functions
 
 | **Main Task** | **Main SingleCellMQC Functions Used** |
@@ -79,6 +83,3 @@ The comprehensive documentation: <https://daihanji.github.io/SingleCellMQC-qmd/>
 
 **Other Key Packages For QC**: [BPCells](https://github.com/bnprks/BPCells), [COSG](https://github.com/genecell/COSGR), [ScType](https://github.com/IanevskiAleksandr/sc-type#readme), [variancePartition](https://github.com/GabrielHoffman/variancePartition), [dreamlet](https://github.com/GabrielHoffman/dreamlet), [reactable](https://glin.github.io/reactable/index.html)
 
-## Examples: Data and QC HTML Reports
-
-Access URL: <https://doi.org/10.5281/zenodo.15120930>
