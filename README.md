@@ -11,9 +11,9 @@ Before installation, we recommend installing these dependencies first:
 -   [Seurat](https://github.com/satijalab/seurat) (single-cell analysis toolkit)
 -   [BPCells](https://github.com/bnprks/BPCells) (memory-efficient single-cell data processing)
 
-
 **other main packages**
-```  
+
+```         
 cran_pkgs <- c(
   "cutoff", "data.table", "dbscan", "dplyr", "factoextra", "ggrepel", "ggplot2",
   "ggside", "htmltools", "htmlwidgets", "irr", "patchwork", "plotly", "reactable",
@@ -35,7 +35,6 @@ bioc_missing <- bioc_pkgs[!bioc_pkgs %in% rownames(installed.packages())]
 if (length(bioc_missing) > 0) {
   BiocManager::install(bioc_missing)
 }
-
 ```
 
 You can install the development version of `SingleCellMQC` :
@@ -48,14 +47,18 @@ pak::pkg_install("WenZhong-Lab/SingleCellMQC")
 library(SingleCellMQC)
 ```
 
-## Detail Documentation
+## 📖 SingleCellMQC Comprehensive Documentation
 
 The comprehensive documentation: <https://daihanji.github.io/SingleCellMQC-qmd/>
+
+-   [**Tutorial 1: Dataset 1 (inhouse PBMC dataset, 28K cells)**](https://daihanji.github.io/SingleCellMQC-qmd/Inhouse_PBMC.html)
+
+-   [**Tutorial 2: Dataset 3 (breast dataset, 1.6M cells, powered by BPCells)**](https://daihanji.github.io/SingleCellMQC-qmd/Dataset3.html)
 
 ## 📝 Key functions
 
 | **Main Task** | **Main SingleCellMQC Functions Used** |
-|:---------------------|:-------------------------------------------------|
+|:----------------------|:------------------------------------------------|
 | Read & add data | `Read10XData`, `Read10XH5Data`, `Read10XMetrics`, `Add10XMetrics`, `AddSampleMeta` |
 | Sample metrics assessment | `CellRangerAlerts`, `CalculateMetricsPerSample`, `FindSampleMetricsWarning`, `PlotSampleMetrics`, `PlotSampleLabel`, `PlotSampleVDJ`, `PlotCellMetrics` |
 | Celltype % outlier sample detection | `RunScType`, `FindInterSamplePCTOutlier`, `FindCommonPCTOutlier`, `PlotSampleCellTypePCT` |
@@ -70,7 +73,6 @@ The comprehensive documentation: <https://daihanji.github.io/SingleCellMQC-qmd/>
 | Batch: Feature-level evaluation | `RunBatchGTE`, `PlotGTEBar` |
 | QC html report | `RunReport` |
 
-
 ## Integrated QC Tools in SingleCellMQC
 
 [scater](https://bioconductor.org/packages/release/bioc/html/scater.html), [Seurat](https://satijalab.org/seurat/), [miQC](https://github.com/greenelab/miQC), [ddqc](https://github.com/ayshwaryas/ddqc), [decontX](https://github.com/campbio/decontX), [scCDC](https://github.com/ZJU-UoE-CCW-LAB/scCDC), [scDblFinder](https://github.com/plger/scDblFinder), [scds](https://github.com/kostkalab/scds), [DoubletFinder](https://github.com/chris-mcginnis-ucsf/DoubletFinder), [DropletUtils](https://github.com/MarioniLab/DropletUtils), [scRepertoire](https://github.com/BorchLab/scRepertoire), [GTEs](https://github.com/yzhou1999/GTEs/).
@@ -79,5 +81,4 @@ The comprehensive documentation: <https://daihanji.github.io/SingleCellMQC-qmd/>
 
 ## Examples: Data and QC HTML Reports
 
-Access URL: https://doi.org/10.5281/zenodo.15120930
-
+Access URL: <https://doi.org/10.5281/zenodo.15120930>
