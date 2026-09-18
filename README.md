@@ -51,9 +51,9 @@ library(SingleCellMQC)
 
 The comprehensive documentation: <https://daihanji.github.io/SingleCellMQC-qmd/>
 
--   [**Step-by-Step Tutorial 1: Dataset 1 (inhouse PBMC dataset, 28K cells)**](https://daihanji.github.io/SingleCellMQC-qmd/Inhouse_PBMC.html)
+-   [**Step-by-Step Tutorial 1: Dataset 1 (inhouse PBMC dataset, 28K cells)**](https://sielume.github.io/SingleCellMQC-qmd/Inhouse_PBMC.html)
 
--   [**Step-by-Step Tutorial 2: Dataset 3 (breast dataset, 1.6M cells, powered by BPCells)**](https://daihanji.github.io/SingleCellMQC-qmd/Dataset3.html)
+-   [**Step-by-Step Tutorial 2: Dataset 3 (breast dataset, 1.6M cells, powered by BPCells)**](https://sielume.github.io/SingleCellMQC-qmd/Dataset3.html)
 
 ## Example Data and QC HTML Reports
 
