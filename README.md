@@ -49,7 +49,7 @@ library(SingleCellMQC)
 
 ## 📖 SingleCellMQC Comprehensive Documentation
 
-The comprehensive documentation: <https://daihanji.github.io/SingleCellMQC-qmd/>
+The comprehensive documentation: <https://sielume.github.io/SingleCellMQC-qmd/>
 
 -   [**Step-by-Step Tutorial 1: Dataset 1 (inhouse PBMC dataset, 28K cells)**](https://sielume.github.io/SingleCellMQC-qmd/Inhouse_PBMC.html)
 
