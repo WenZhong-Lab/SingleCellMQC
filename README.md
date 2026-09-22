@@ -83,3 +83,11 @@ Access URL: <https://doi.org/10.5281/zenodo.15120930>
 
 **Other Key Packages For QC**: [BPCells](https://github.com/bnprks/BPCells), [COSG](https://github.com/genecell/COSGR), [ScType](https://github.com/IanevskiAleksandr/sc-type#readme), [variancePartition](https://github.com/GabrielHoffman/variancePartition), [dreamlet](https://github.com/GabrielHoffman/dreamlet), [reactable](https://glin.github.io/reactable/index.html)
 
+## Citation
+
+If you use **SingleCellMQC** in your research, please cite:
+
+Ji D, Han M, Lu S, Zeng J, Zhong W.  
+**SingleCellMQC: A comprehensive quality control workflow for single-cell multi-omics.**  
+*iScience*. 2026;29(9):117398.  
+https://doi.org/10.1016/j.isci.2026.117398
