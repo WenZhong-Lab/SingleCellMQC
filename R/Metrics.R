@@ -673,7 +673,7 @@ CalculateMetricsPerFeature <- function(object, add.Seurat= T, verbose=TRUE, samp
     .log_msg(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
                    "------CalculateMetricsPerFeature assay:", x), verbose = verbose)
 
-    exp <- Seurat::GetAssayData(object, slot = "counts", assay = x)
+    exp <- getMatrix(object, slot = "counts", assay = x)
     row_indices <- split(1:ncol(exp), object@meta.data[[sample.by]])
     split_matrices <- lapply(row_indices, function(idx) exp[, idx, drop = FALSE])
     out_list <- lapply( names(split_matrices), function(y){

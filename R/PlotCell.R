@@ -740,10 +740,10 @@ PlotADTCutoff <- function(object, cutoff_table, feature1=NULL, feature2=NULL,
   object$orig.ident <- object@meta.data[[sample.by]]
   object <- subset(object, subset = orig.ident %in% Sample)
   Seurat::DefaultAssay(object) <- "ADT"
-  expADT <- Seurat::GetAssayData(object, assay = "ADT", slot = "counts")
+  expADT <- getMatrix(object, assay = "ADT", slot = "counts")
 
   # object <- Seurat::NormalizeData(object, normalization.method = 'CLR', margin = 2)
-  # expADT <- Seurat::GetAssayData(object, assay = "ADT", slot = "data")
+  # expADT <- getMatrix(object, assay = "ADT", slot = "data")
 
   log_sums <- BPCells::colSums(log1p(expADT ), na.rm = TRUE)
   scale_factors <- exp(log_sums / nrow(expADT))

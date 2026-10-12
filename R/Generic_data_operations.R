@@ -154,9 +154,18 @@ ConvertToBPCells.IterableMatrix <- function(object, BPdir="./BPCellData/", ...) 
 #'               object, or a matrix-like object.
 #' @param assay The name of the assay to extract from the Seurat object (default: "RNA").
 #'              Only applicable when `object` is a Seurat object.
-#' @inheritParams common_params
+#' @param slot Expression slot to select. Defaults to `"counts"`.
+#' @param layer Expression layer to select; when non-NULL, overrides `slot`.
 #'
 #' @param ... Additional arguments passed to the conversion method.
+#'
+#' @details For Seurat objects, selecting `"counts"` retains Seurat's standard
+#' conversion, including its additional assays and reduced dimensions. Selecting
+#' another layer converts that matrix into the SCE `counts` assay, with matching
+#' cell and feature metadata, and does not copy other expression layers or
+#' reduced dimensions. This mode accepts one Seurat assay and errors on missing
+#' or empty layers. Selecting a normalized or scaled layer does not turn
+#' its values into raw counts; use a layer appropriate for the downstream method.
 #'
 #' @return A SingleCellExperiment object.
 #' @export
@@ -167,15 +176,30 @@ ConvertToSCE <- function(object, ...) {
 #' @method ConvertToSCE Seurat
 #' @export
 ConvertToSCE.Seurat <- function(object, assay="RNA", slot="counts",layer=NULL, ...) {
-  # Determine version and value
-  is_v5 <- utils::packageVersion("SeuratObject") >= "5.0.0"
   val <- layer %||% slot # Use layer if provided, otherwise use slot
-
-  if (is_v5) {
-    return(suppressWarnings(Seurat::as.SingleCellExperiment(object, assay = assay, layer = val)))
-  } else {
-    return(suppressWarnings(Seurat::as.SingleCellExperiment(object, assay = assay, slot = val)) )
+  if (identical(val, "counts")) {
+    return(suppressWarnings(Seurat::as.SingleCellExperiment(object, assay = assay, ...)))
   }
+  if (!is.character(val) || length(val) != 1L || is.na(val) || !nzchar(val)) {
+    stop("Select one non-empty expression layer.")
+  }
+  if (length(assay) != 1L) {
+    stop("Select one assay when converting a non-counts layer.")
+  }
+  if (utils::packageVersion("SeuratObject") >= "5.0.0" &&
+      !val %in% SeuratObject::Layers(object[[assay]], search = NA)) {
+    stop("Layer '", val, "' is missing from assay '", assay, "'.")
+  }
+  mat <- getMatrix(object, assay = assay, slot = val)
+  if (nrow(mat) == 0L || ncol(mat) == 0L) {
+    stop("Layer '", val, "' is empty.")
+  }
+  cell_meta <- object[[]][colnames(mat), , drop = FALSE]
+  cell_meta$ident <- SeuratObject::Idents(object)[colnames(mat)]
+  feature_meta <- object[[assay]][[]][rownames(mat), , drop = FALSE]
+  SingleCellExperiment::SingleCellExperiment(
+    assays = list(counts = mat), colData = cell_meta, rowData = feature_meta, ...
+  )
 }
 
 #' @rdname ConvertToSCE

@@ -102,20 +102,20 @@ RunPipeline <- function(object, threads.pca = NULL, threads.knn_hnsw = 1, BPtmpd
   }
 
   if(preprocess %in% c("rna.pca", "rna.umap", "rna.umap.har", "wnn.umap", "wnn.umap.har") & BP.cutoff < nrow(object)  ) {
-    if (!("BPCells" %in% attr(class( SeuratObject::GetAssayData(object, assay ="RNA", slot="counts") ), "package")) ) {
+    if (!("BPCells" %in% attr(class( getMatrix(object, assay ="RNA", slot="counts") ), "package")) ) {
       object <- ConvertToBPCells(object = object, BPdir = BPdir, assay = "RNA", slot = "counts")
     }
   }
 
   if(preprocess %in% c("adt.pca", "adt.umap", "adt.umap.har", "wnn.umap", "wnn.umap.har") & BP.cutoff < nrow(object)  ) {
-    if (!("BPCells" %in% attr(class( SeuratObject::GetAssayData(object, assay ="ADT", slot="counts") ), "package")) ) {
+    if (!("BPCells" %in% attr(class( getMatrix(object, assay ="ADT", slot="counts") ), "package")) ) {
       object <- ConvertToBPCells(object = object, BPdir = BPdir, assay = "ADT", slot = "counts")
     }
   }
 
   # Helper function for PCA processing
   processPCA <- function(object, assay, nfeatures, exclude_patterns = NULL, threads = NULL, tmpdir = NULL, reduction.name) {
-    if ( "BPCells" %in% attr(class(Seurat::GetAssayData(object, assay = assay, slot = "counts")), "package") ) {
+    if ( "BPCells" %in% attr(class(getMatrix(object, assay = assay, slot = "counts")), "package") ) {
       object <- StepBPToPCA(object = object, assay = assay, nfeatures = nfeatures, exclude_patterns = exclude_patterns, threads = threads,
                             tmpdir = tmpdir, output_pca_name = reduction.name, add.scale_data=add.BPscale_data)
     } else {
@@ -126,7 +126,7 @@ RunPipeline <- function(object, threads.pca = NULL, threads.knn_hnsw = 1, BPtmpd
 
   # Helper function for UMAP processing
   processUMAP <- function(object, pca_name, assay, output_umap_name, dims, resolution, output_cluster_name, threads = NULL) {
-    if ( "BPCells" %in% attr(class(Seurat::GetAssayData(object, assay = assay, slot = "counts")), "package") ) {
+    if ( "BPCells" %in% attr(class(getMatrix(object, assay = assay, slot = "counts")), "package") ) {
       object <- StepBPPCAToUMAP(object = object, pca_name = pca_name, assay = assay, output_umap_name = output_umap_name, dims = dims)
       object <- StepBPPCAToCluster(object = object, assay = assay, pca_name = pca_name, output_cluster_name = output_cluster_name, threads = threads, resolution = resolution, dims = dims)
     } else {
@@ -272,7 +272,7 @@ RunPipeline <- function(object, threads.pca = NULL, threads.knn_hnsw = 1, BPtmpd
 StepBPToPCA <- function(object, assay = "RNA", nfeatures=2000, exclude_patterns=NULL, threads=NULL, tmpdir ="./temp/SingleCellMQC_BPCellsStepBPToPCAScale/",
                         output_pca_name="rna.pca", add.norm_data=TRUE, add.scale_data=FALSE) {
   if("Seurat" %in% class(object)){
-    mat <- Seurat::GetAssayData(object, assay = assay, slot = "counts")
+    mat <- getMatrix(object, assay = assay, slot = "counts")
   }else{
     mat <- object
   }
@@ -339,13 +339,13 @@ StepBPToPCA <- function(object, assay = "RNA", nfeatures=2000, exclude_patterns=
   if("Seurat" %in% class(object)){
     pca_dim <- Seurat::CreateDimReducObject(embeddings =pca,  key =  paste0(assay, "_PC_"),assay = assay)
     if(add.norm_data){
-      object <- SeuratObject::SetAssayData(object = object,
+      object <- setAssayData(object = object,
                                                assay = assay,
                                                slot = "data",
                                                new.data = mat)
     }
     if(add.scale_data){
-      object <- SeuratObject::SetAssayData(object = object,
+      object <- setAssayData(object = object,
                                                assay = assay,
                                                slot = "scale.data",
                                                new.data = mat_norm)

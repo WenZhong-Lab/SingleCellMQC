@@ -24,10 +24,9 @@ object, or a matrix-like object.}
 \item{assay}{The name of the assay to extract from the Seurat object (default: "RNA").
 Only applicable when \code{object} is a Seurat object.}
 
-\item{slot}{A character string specifying the slot to use for expression data (e.g., "counts", "data").}
+\item{slot}{Expression slot to select. Defaults to \code{"counts"}.}
 
-\item{layer}{Name of layer to get or set. A character string specifying the layer to use for expression
-data (e.g., "counts", "data"). (for Seurat >= V5)}
+\item{layer}{Expression layer to select; when non-NULL, overrides \code{slot}.}
 }
 \value{
 A SingleCellExperiment object.
@@ -38,4 +37,13 @@ into a SingleCellExperiment object. If the input is already a SingleCellExperime
 it is returned as-is. For Seurat objects, the specified assay and slot are used for
 conversion. For other objects (e.g., matrices), they are wrapped into a
 SingleCellExperiment object.
+}
+\details{
+For Seurat objects, selecting \code{"counts"} retains Seurat's standard
+conversion, including its additional assays and reduced dimensions. Selecting
+another layer converts that matrix into the SCE \code{counts} assay, with matching
+cell and feature metadata, and does not copy other expression layers or
+reduced dimensions. This mode accepts one Seurat assay and errors on missing
+or empty layers. Selecting a normalized or scaled layer does not turn
+its values into raw counts; use a layer appropriate for the downstream method.
 }

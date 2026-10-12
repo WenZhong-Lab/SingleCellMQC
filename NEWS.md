@@ -1,5 +1,10 @@
 
-# 0.8.0 (2603)
+# 0.8.0 (2610)
+- Make `ConvertToSCE()` honor non-default `slot` and `layer` selections, with
+  `layer` taking precedence, and preserve matching cell and feature metadata.
+- Fix remaining SeuratObject v5 `slot` compatibility calls in `RunPipeline()`,
+  `StepBPToPCA()`, `CalculateMetricsPerFeature()`, and `PlotADTCutoff()` by using
+  the existing version-aware assay accessors.
 - Adapt slots and layers for better compatibility for new Seurat version.
 - Refactored some functions into a generic architecture to facilitate better integration with non-Seurat objects and future data structures.
 - feat: support custom reference ranges in `FindCommonPCTOutlier`.
