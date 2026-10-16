@@ -1,5 +1,9 @@
 
 # 0.8.0 (2610)
+- Keep Assay5 input in scCDC contamination detection instead of coercing to the
+  legacy Assay class, and check scCDC/Seurat versions before splitting data.
+- Use safe temporary cluster labels for scCDC detection and correction, avoiding
+  Seurat/scCDC label rewriting while preserving original clusters and identities.
 - Require scCDC >= 1.4 and Seurat >= 5.0.0 for `RunCorrection_scCDC()`;
   remove the scCDC 1.3 compatibility branch and check versions before splitting data.
 - Make `ConvertToSCE()` honor non-default `slot` and `layer` selections, with

@@ -1,8 +1,30 @@
+# Use temporary, collision-free labels that neither Seurat nor scCDC rewrites.
+.scCDC_cluster_idents <- function(metadata, group.by) {
+  if (!is.character(group.by) || length(group.by) != 1L || is.na(group.by) ||
+      !group.by %in% colnames(metadata)) {
+    stop("`group.by` must name a metadata column containing cluster labels.", call. = FALSE)
+  }
+  groups <- as.character(metadata[[group.by]])
+  if (anyNA(groups) || any(!nzchar(trimws(groups)))) {
+    stop("`group.by` must not contain missing or empty cluster labels.", call. = FALSE)
+  }
+  # Match Seurat's identity assignment: retain factor order, otherwise first appearance.
+  group_levels <- if (is.factor(metadata[[group.by]])) {
+    levels(droplevels(metadata[[group.by]]))
+  } else {
+    unique(groups)
+  }
+  safe_levels <- paste0("cluster", seq_along(group_levels))
+  factor(safe_levels[match(groups, group_levels)], levels = safe_levels)
+}
+
 #' Detect the comtamination causing genes by scCDC package
 #'
 #' This function identifies potential contamination features in a given Seurat object. It utilizes the
 #' `scCDC::ContaminationDetection` method to detect contamination, making it easier to identify unwanted or erroneous features that might affect
 #' the downstream analysis.
+#' Requires scCDC >= 1.4 and Seurat >= 5.0.0. The temporary detection object's
+#' assay is used directly, without converting Assay5 to the legacy Assay class.
 #'
 #' @param object A Seurat object or a list of Seurat objects. This is the primary input that contains single-cell data in the form
 #' of a Seurat object. The function will analyze the specified assay within this object.
@@ -10,6 +32,10 @@
 #' the expression data to be used for contamination detection.
 #' @param group.by Character. The metadata column used for grouping cells. Default is "seurat_clusters".
 #' This parameter is used to identify groups within the cells that may have different contamination profiles.
+#' Labels are mapped to temporary names such as `cluster1` inside scCDC, preserving
+#' cell membership and the original object's metadata and identities. Any scCDC
+#' cluster-specific output files use these temporary names.
+#' Observed factor levels retain their original order; other vectors use first appearance.
 #' @param restriction_factor Numeric. A parameter to control the sensitivity of contamination detection.
 #' Values should be between 0 and 1, where a higher value implies a stricter detection. Default is 0.1
 #' @param ... Additional arguments passed to `scCDC::ContaminationDetection` for more customized analysis.
@@ -23,17 +49,19 @@
 #' Wang, W., Cen, Y., Lu, Z., Xu, Y., Sun, T., Xiao, Y., Liu, W., Li, J. J., & Wang, C. (2024). scCDC: a computational method for gene-specific contamination detection and correction in single-cell and single-nucleus RNA-seq data. Genome biology, 25(1), 136. https://doi.org/10.1186/s13059-024-03284-wIF: 1
 #'
 FindContaminationFeature <- function(object, assay= "RNA", group.by="seurat_clusters", split.by="orig.ident", restriction_factor=0.1, ...){
+  if(!requireNamespace("scCDC", quietly = TRUE) || packageVersion("scCDC") < "1.4"){
+    stop("Please install scCDC >= 1.4 to use FindContaminationFeature().", call. = FALSE)
+  }
+  if(packageVersion("Seurat") < "5.0.0"){
+    stop("Please install Seurat >= 5.0.0 to use FindContaminationFeature().", call. = FALSE)
+  }
   object_list <- splitObject(object, split.by = split.by)
 
   GCGname_list <- lapply(object_list, function(x){
     metadata <- getMetaData(x)
     x <- SeuratObject::CreateSeuratObject(counts = getMatrix(x, assay = assay), assay = assay, meta.data = metadata)
 
-    if(class(x[[assay]]) %in% "Assay5"){
-      x[[assay]] <- as(x[[assay]], "Assay")
-    }
-
-    SeuratObject::Idents(x) <- paste0("g_", metadata[[group.by]])
+    SeuratObject::Idents(x) <- .scCDC_cluster_idents(getMetaData(x), group.by)
 
     GCGs <- scCDC::ContaminationDetection(x, restriction_factor=restriction_factor, ...)
     return(rownames(GCGs))
@@ -61,6 +89,9 @@ FindContaminationFeature <- function(object, assay= "RNA", group.by="seurat_clus
 #' @param do.merge Logical. Whether to merge the corrected objects into a single Seurat object. Default is TRUE.
 #' @param ... Additional arguments passed to `scCDC::ContaminationCorrection` for customized analysis.
 #' @param group.by A character string specifying the metadata column used for grouping cells (default: `"seurat_clusters"`).
+#'   Labels are mapped to temporary names such as `cluster1` inside scCDC without
+#'   changing cell membership or the original object's metadata and identities.
+#'   Observed factor levels retain their original order; other vectors use first appearance.
 #' @param saveBP_dir Directory to save BPCells data. Defaults to `./scCDC_BP/`
 #' @inheritParams common_params
 #'
@@ -94,7 +125,7 @@ RunCorrection_scCDC <- function(object, assay= "RNA", slot = "counts", layer=NUL
       assay = assay,
       meta.data = metadata
     )
-    SeuratObject::Idents(seuObject) <- getMetaData(seuObject)[[group.by]]
+    SeuratObject::Idents(seuObject) <- .scCDC_cluster_idents(getMetaData(seuObject), group.by)
     cont_genes <- if (!is(features, "list")) features else features[[x]]
     seuObject <- scCDC::ContaminationCorrection(seuObject, cont_genes = cont_genes, ...)
     count <- getMatrix(seuObject, assay = "Corrected", slot = "counts", layer= layer)

@@ -33,7 +33,10 @@ data (e.g., "counts", "data"). (for Seurat >= V5)}
 
 \item{do.merge}{Logical. Whether to merge the corrected objects into a single Seurat object. Default is TRUE.}
 
-\item{group.by}{A character string specifying the metadata column used for grouping cells (default: \code{"seurat_clusters"}).}
+\item{group.by}{A character string specifying the metadata column used for grouping cells (default: \code{"seurat_clusters"}).
+Labels are mapped to temporary names such as \code{cluster1} inside scCDC without
+changing cell membership or the original object's metadata and identities.
+Observed factor levels retain their original order; other vectors use first appearance.}
 
 \item{saveBP_dir}{Directory to save BPCells data. Defaults to \verb{./scCDC_BP/}}
 

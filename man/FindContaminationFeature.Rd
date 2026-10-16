@@ -21,7 +21,11 @@ of a Seurat object. The function will analyze the specified assay within this ob
 the expression data to be used for contamination detection.}
 
 \item{group.by}{Character. The metadata column used for grouping cells. Default is "seurat_clusters".
-This parameter is used to identify groups within the cells that may have different contamination profiles.}
+This parameter is used to identify groups within the cells that may have different contamination profiles.
+Labels are mapped to temporary names such as \code{cluster1} inside scCDC, preserving
+cell membership and the original object's metadata and identities. Any scCDC
+cluster-specific output files use these temporary names.
+Observed factor levels retain their original order; other vectors use first appearance.}
 
 \item{split.by}{A character string specifying the sample column in the Seurat object's metadata (e.g., "orig.ident"). Default is "orig.ident".}
 
@@ -38,6 +42,8 @@ A list of features or metrics that indicate potential contamination, as returned
 This function identifies potential contamination features in a given Seurat object. It utilizes the
 \code{scCDC::ContaminationDetection} method to detect contamination, making it easier to identify unwanted or erroneous features that might affect
 the downstream analysis.
+Requires scCDC >= 1.4 and Seurat >= 5.0.0. The temporary detection object's
+assay is used directly, without converting Assay5 to the legacy Assay class.
 }
 \references{
 Wang, W., Cen, Y., Lu, Z., Xu, Y., Sun, T., Xiao, Y., Liu, W., Li, J. J., & Wang, C. (2024). scCDC: a computational method for gene-specific contamination detection and correction in single-cell and single-nucleus RNA-seq data. Genome biology, 25(1), 136. https://doi.org/10.1186/s13059-024-03284-wIF: 1
