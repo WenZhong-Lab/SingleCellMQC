@@ -52,6 +52,7 @@ FindContaminationFeature <- function(object, assay= "RNA", group.by="seurat_clus
 #'
 #' This function applies the scCDC contamination correction method to a Seurat object or a list of Seurat objects.
 #' It supports multi-sample analysis and returns a Seurat object with a new "Corrected" assay.
+#' Requires scCDC >= 1.4 and Seurat >= 5.0.0; scCDC 1.3 is not supported.
 #'
 #' @param object A Seurat object or a list of Seurat objects.
 #' @param assay Character. The name of the assay to be analyzed. Default is "RNA".
@@ -70,64 +71,38 @@ RunCorrection_scCDC <- function(object, assay= "RNA", slot = "counts", layer=NUL
                                 saveBP_dir="./scCDC_BP/",
                                 ...){
 
+  if(!requireNamespace("scCDC", quietly = TRUE) || packageVersion("scCDC") < "1.4"){
+    stop("Please install scCDC >= 1.4 to use RunCorrection_scCDC().", call. = FALSE)
+  }
+  if(packageVersion("Seurat") < "5.0.0"){
+    stop("Please install Seurat >= 5.0.0 to use RunCorrection_scCDC().", call. = FALSE)
+  }
+
   object_list <- splitObject(object, split.by = split.by)
   tmpdir= "./temp/SingleCellMQC_tempBPCellSplitSeurat/"
-
   object_name <- names(object_list)
 
-  if(!requireNamespace("scCDC", quietly = TRUE)){
-    stop("Please install the scCDC package first.")
-  }
-
-  if(packageVersion("scCDC") >= "1.4"){
-    if(packageVersion("Seurat") < "5.0.0"){
-      stop("scCDC package version >= 1.4 only support for Seurat package version >= 5.0.0, please install the Seurat package version >= 5.0.0 or downgrade the scCDC package version < 1.4.")
+  object_list <- lapply(object_name, function(x) {
+    count_data = getMatrix(object_list[[x]], assay = assay, slot = slot, layer= layer)
+    index = inherits(count_data, "IterableMatrix")
+    if (index) {
+      count_data <- as(count_data, "dgCMatrix")
     }
-    object_list <- lapply(object_name, function(x) {
-      count_data = getMatrix(object_list[[x]], assay = assay, slot = slot, layer= layer)
-      index = inherits(count_data, "IterableMatrix")
-      if (index) {
-        count_data <- as(count_data, "dgCMatrix")
-
-      }
-      metadata <- getMetaData(object_list[[x]])
-      seuObject <- Seurat::CreateSeuratObject(
-        counts = count_data,
-        assay = assay,
-        meta.data = metadata
-      )
-      SeuratObject::Idents(seuObject) <- getMetaData(seuObject)[[group.by]]
-      cont_genes <- if (!is(features, "list")) features else features[[x]]
-      seuObject <- scCDC::ContaminationCorrection(seuObject, cont_genes = cont_genes, ...)
-      count <- getMatrix(seuObject, assay = "Corrected", slot = "counts", layer= layer)
-      if (index) {
-        count <- ConvertToBPCells(count, BPdir =paste0(saveBP_dir, "/", assay, "_split/", x) )
-      }
-      return(count)
-    })
-
-  }else if(packageVersion("scCDC") == "1.3"){
-
-    object_list <- lapply(object_name, function(x) {
-      count_data = getMatrix(object_list[[x]], assay = assay, slot = slot, layer= layer)
-      if (inherits(count_data, "IterableMatrix")) {
-        count_data <- as(count_data, "dgCMatrix")
-      }
-      seuObject <- Seurat::CreateSeuratObject(
-        counts = count_data,
-        assay = assay,
-        meta.data = getMetaData(object_list[[x]])
-      )
-      if (inherits(seuObject[[assay]], "Assay5")) {
-        seuObject[[assay]] <- as(seuObject[[assay]], "Assay")
-      }
-      cont_genes <- if (!is(features, "list")) features else features[[x]]
-      seuObject <- scCDC::ContaminationCorrection(seuObject, cont_genes = cont_genes, ...)
-      count <- getMatrix(seuObject, assay = "Corrected", slot = "counts", layer= layer)
-    })
-  }else{
-    stop("Please install the scCDC package version >= 1.3.")
-  }
+    metadata <- getMetaData(object_list[[x]])
+    seuObject <- Seurat::CreateSeuratObject(
+      counts = count_data,
+      assay = assay,
+      meta.data = metadata
+    )
+    SeuratObject::Idents(seuObject) <- getMetaData(seuObject)[[group.by]]
+    cont_genes <- if (!is(features, "list")) features else features[[x]]
+    seuObject <- scCDC::ContaminationCorrection(seuObject, cont_genes = cont_genes, ...)
+    count <- getMatrix(seuObject, assay = "Corrected", slot = "counts", layer= layer)
+    if (index) {
+      count <- ConvertToBPCells(count, BPdir =paste0(saveBP_dir, "/", assay, "_split/", x) )
+    }
+    return(count)
+  })
 
   names(object_list) <- object_name
 

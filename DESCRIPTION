@@ -80,7 +80,7 @@ Suggests:
     KernSmooth,
     miQC,
     proxyC,
-    scCDC,
+    scCDC (>= 1.4),
     scds,
     scRepertoire
 Roxygen: list(markdown = TRUE)

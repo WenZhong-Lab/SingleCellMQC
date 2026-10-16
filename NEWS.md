@@ -1,5 +1,7 @@
 
 # 0.8.0 (2610)
+- Require scCDC >= 1.4 and Seurat >= 5.0.0 for `RunCorrection_scCDC()`;
+  remove the scCDC 1.3 compatibility branch and check versions before splitting data.
 - Make `ConvertToSCE()` honor non-default `slot` and `layer` selections, with
   `layer` taking precedence, and preserve matching cell and feature metadata.
 - Fix remaining SeuratObject v5 `slot` compatibility calls in `RunPipeline()`,

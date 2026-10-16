@@ -11,6 +11,8 @@ Before installation, we recommend installing these dependencies first:
 -   [Seurat](https://github.com/satijalab/seurat) (single-cell analysis toolkit)
 -   [BPCells](https://github.com/bnprks/BPCells) (memory-efficient single-cell data processing)
 
+`RunCorrection_scCDC()` requires scCDC >= 1.4 and Seurat >= 5.0.0.
+
 **other main packages**
 
 ```         

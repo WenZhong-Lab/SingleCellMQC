@@ -45,4 +45,5 @@ A Seurat object containing the corrected data in a new assay named "Corrected". 
 \description{
 This function applies the scCDC contamination correction method to a Seurat object or a list of Seurat objects.
 It supports multi-sample analysis and returns a Seurat object with a new "Corrected" assay.
+Requires scCDC >= 1.4 and Seurat >= 5.0.0; scCDC 1.3 is not supported.
 }
